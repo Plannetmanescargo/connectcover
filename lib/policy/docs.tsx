@@ -94,14 +94,24 @@ const HEADER_H = 64;
 const FOOTER_H = 150;
 const PAGE_PADDING_X = 34;
 
+const BRAND = "#6c4cf3";
+const BRAND_DARK = "#5b3fe0";
+const BRAND_SOFT = "#f3efff";
+const BRAND_BORDER = "#ddd3ff";
+const INK = "#0f172a";
+const TEXT = "#334155";
+const MUTED = "#64748b";
+const LINE = "#e7e5f4";
+
 const styles = StyleSheet.create({
   page: {
     fontSize: 9.1,
-    color: "#0f172a",
+    color: INK,
     lineHeight: 1.2,
     paddingTop: HEADER_H + 14,
     paddingBottom: FOOTER_H + 14,
     paddingHorizontal: PAGE_PADDING_X,
+    backgroundColor: "#fcfbff",
   },
 
   /* Header (fixed) */
@@ -111,7 +121,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: HEADER_H,
-    backgroundColor: "#0b1220",
+    backgroundColor: BRAND,
     paddingHorizontal: PAGE_PADDING_X,
     paddingVertical: 14,
     flexDirection: "row",
@@ -127,7 +137,7 @@ const styles = StyleSheet.create({
   },
 
   headerRight: { width: 220, alignItems: "flex-end", justifyContent: "center" },
-  headerRightText: { color: "#e2e8f0", fontSize: 8.8, letterSpacing: 0.9 },
+  headerRightText: { color: "#efeaff", fontSize: 8.8, letterSpacing: 0.9 },
   headerTitle: { color: "#ffffff", fontSize: 10.2, fontWeight: 800 },
 
   /* Footer (fixed) */
@@ -141,8 +151,8 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 12,
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
-    backgroundColor: "#ffffff",
+    borderTopColor: BRAND_BORDER,
+    backgroundColor: "#faf8ff",
   },
   footerGrid: {
     flexDirection: "row",
@@ -151,16 +161,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   footerCol: { flex: 1 },
-  footerSmall: { fontSize: 7.4, color: "#475569", lineHeight: 1.18 },
-  footerMuted: { fontSize: 7.4, color: "#64748b", lineHeight: 1.18 },
+  footerSmall: { fontSize: 7.4, color: TEXT, lineHeight: 1.18 },
+  footerMuted: { fontSize: 7.4, color: MUTED, lineHeight: 1.18 },
 
   sigBlock: { marginTop: 5 },
   sigImg: { width: 110, height: 28, objectFit: "contain" },
-  sigName: { fontSize: 7.4, color: "#0f172a", fontWeight: 800 },
+  sigName: { fontSize: 7.4, color: INK, fontWeight: 800 },
 
   /* Titles */
-  h1: { fontSize: 13.2, fontWeight: 900, letterSpacing: -0.2, marginBottom: 4 },
-  sub: { fontSize: 9.1, color: "#475569", marginBottom: 9 },
+  h1: {
+    fontSize: 13.2,
+    fontWeight: 900,
+    letterSpacing: -0.2,
+    marginBottom: 4,
+    color: BRAND_DARK,
+  },
+  sub: { fontSize: 9.1, color: MUTED, marginBottom: 9 },
 
   /* Two-column layout */
   columns: {
@@ -173,48 +189,75 @@ const styles = StyleSheet.create({
 
   /* Sections */
   section: { marginBottom: 9 },
-  sectionTitle: { fontSize: 10.0, fontWeight: 900, marginBottom: 5, color: "#0f172a" },
-  para: { color: "#334155" },
+  sectionTitle: {
+    fontSize: 10.0,
+    fontWeight: 900,
+    marginBottom: 5,
+    color: BRAND_DARK,
+  },
+  para: { color: TEXT },
 
   /* Key-value table (compact) */
   kvWrap: {
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: BRAND_BORDER,
     borderRadius: 10,
     overflow: "hidden",
     backgroundColor: "#ffffff",
   },
-  kvRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2e8f0" },
+  kvRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: BRAND_BORDER },
   kvRowFirst: { flexDirection: "row" },
   kvK: {
     width: "42%",
     paddingVertical: 6,
     paddingHorizontal: 10,
-    backgroundColor: "#f8fafc",
-    color: "#475569",
+    backgroundColor: BRAND_SOFT,
+    color: BRAND_DARK,
     fontSize: 8.5,
+    fontWeight: 700,
   },
   kvV: {
     width: "58%",
     paddingVertical: 6,
     paddingHorizontal: 10,
     fontSize: 9.1,
-    color: "#0f172a",
+    color: INK,
   },
 
-  metaLine: { fontSize: 8.5, color: "#475569" },
-  metaStrong: { color: "#0f172a", fontWeight: 900 },
+  metaLine: { fontSize: 8.5, color: MUTED },
+  metaStrong: { color: BRAND_DARK, fontWeight: 900 },
 
-  /* Declarations — CLEAN (no box) */
-  declTitle: { fontSize: 10.0, fontWeight: 900, marginBottom: 5, color: "#0f172a" },
-  declIntro: { fontSize: 8.6, color: "#334155", marginBottom: 7, lineHeight: 1.22 },
-  groupTitle: { fontSize: 9.2, fontWeight: 900, marginTop: 6, marginBottom: 4 },
+  /* Declarations */
+  declTitle: {
+    fontSize: 10.0,
+    fontWeight: 900,
+    marginBottom: 5,
+    color: BRAND_DARK,
+  },
+  declIntro: {
+    fontSize: 8.6,
+    color: TEXT,
+    marginBottom: 7,
+    lineHeight: 1.22,
+  },
+  groupTitle: {
+    fontSize: 9.2,
+    fontWeight: 900,
+    marginTop: 6,
+    marginBottom: 4,
+    color: BRAND_DARK,
+  },
 
   itemRow: { flexDirection: "row", marginBottom: 3 },
-  itemKey: { width: 16, fontSize: 8.4, fontWeight: 900, color: "#0f172a" },
-  itemText: { flex: 1, fontSize: 8.6, color: "#334155", lineHeight: 1.18 },
+  itemKey: { width: 16, fontSize: 8.4, fontWeight: 900, color: BRAND_DARK },
+  itemText: { flex: 1, fontSize: 8.6, color: TEXT, lineHeight: 1.18 },
 
-  divider: { marginTop: 8, marginBottom: 8, height: 1, backgroundColor: "#e2e8f0" },
+  divider: {
+    marginTop: 8,
+    marginBottom: 8,
+    height: 1,
+    backgroundColor: LINE,
+  },
 
   belowColumns: { marginTop: 10 },
 });
@@ -223,7 +266,7 @@ function Header() {
   return (
     <View style={styles.headerWrap} fixed>
       <View style={styles.headerLeft}>
-        <Text style={styles.brandText}>GoTempCover</Text>
+        <Text style={styles.brandText}>Coverza</Text>
       </View>
 
       <View style={styles.headerRight}>
@@ -252,7 +295,7 @@ function Footer({ baseUrl, signatureUrl }: { baseUrl: string; signatureUrl?: str
           </Text>
 
           <Text style={[styles.footerMuted, { marginTop: 5 }]}>
-            GoTempCover Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance
+            Coverza Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance
             business under the Financial Services Act 2019 and Financial Services Regulations 2020, registered address
             5/5 Crutchett’s Ramp, Gibraltar.
           </Text>
@@ -306,7 +349,7 @@ function DeclIntro() {
     <>
       <Text style={styles.declTitle}>Temporary Insurance Declaration</Text>
       <Text style={styles.declIntro}>
-        This is a copy of the declaration you agree to as part of purchasing insurance from GoTempCover. You confirm you
+        This is a copy of the declaration you agree to as part of purchasing insurance from Coverza. You confirm you
         meet the assumptions and eligibility criteria below. Failure to meet these criteria could invalidate your
         insurance. You must continue to meet them for the duration of the policy.
       </Text>
