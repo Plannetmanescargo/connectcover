@@ -1,4 +1,5 @@
 // lib/email/sendPolicyEmail.ts
+import { Buffer } from "node:buffer";
 import { Resend } from "resend";
 
 type SendPolicyEmailInput = {
@@ -39,6 +40,34 @@ function cleanPdfUrl(url: string, label: string) {
   return url;
 }
 
+async function pdfUrlToBase64(url: string, label: string) {
+  const response = await fetch(url, {
+    cache: "no-store",
+    headers: {
+      Accept: "application/pdf",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`${label} could not be downloaded: ${response.status} ${response.statusText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  if (!buffer.length) {
+    throw new Error(`${label} downloaded as an empty file`);
+  }
+
+  const header = buffer.subarray(0, 4).toString("utf8");
+  if (header !== "%PDF") {
+    const contentType = response.headers.get("content-type") || "unknown";
+    throw new Error(`${label} did not download as a valid PDF. Content-Type: ${contentType}`);
+  }
+
+  return buffer.toString("base64");
+}
+
 function escapeHtml(s: string) {
   return s
     .replaceAll("&", "&amp;")
@@ -52,6 +81,7 @@ function fmtDateTime(iso?: string | null) {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
+
   return d.toLocaleString("en-GB", {
     weekday: "short",
     day: "2-digit",
@@ -82,7 +112,7 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
   const proposalUrl = cleanPdfUrl(input.proposalUrl, "proposalUrl");
 
   const brandName = "Coverza";
-  const supportEmail = replyTo || "support@Coverza.com";
+  const supportEmail = replyTo || "support@coverza.co.uk";
   const policyNumber = input.policyNumber.trim();
 
   const veh = vehicleLine(input);
@@ -169,7 +199,6 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
         <td align="center" style="padding:28px 12px;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="640" style="width:640px;max-width:100%;">
 
-            <!-- Header -->
             <tr>
               <td style="padding:0 4px 14px 4px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -421,6 +450,11 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
 
   const resend = new Resend(apiKey);
 
+  const [certificateContent, proposalContent] = await Promise.all([
+    pdfUrlToBase64(certificateUrl, "Certificate PDF"),
+    pdfUrlToBase64(proposalUrl, "Statement of Fact PDF"),
+  ]);
+
   const res = await resend.emails.send({
     from,
     to: input.to,
@@ -430,12 +464,12 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
     html,
     attachments: [
       {
-        filename: `connect-cover-certificate-${policyNumber}.pdf`,
-        path: certificateUrl,
+        filename: `coverza-certificate-${policyNumber}.pdf`,
+        content: certificateContent,
       },
       {
-        filename: `connect-cover-statement-of-fact-${policyNumber}.pdf`,
-        path: proposalUrl,
+        filename: `coverza-statement-of-fact-${policyNumber}.pdf`,
+        content: proposalContent,
       },
     ],
   });
