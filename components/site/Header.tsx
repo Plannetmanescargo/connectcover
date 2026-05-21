@@ -75,7 +75,7 @@ export default function Header() {
               className="flex shrink-0 items-center gap-3.5 rounded-xl transition-opacity hover:opacity-95"
             >
               <Image
-                src="/brand/connectcoverbig.png"
+                src="/brand/Connectcoverbig.png"
                 alt=""
                 width={42}
                 height={42}

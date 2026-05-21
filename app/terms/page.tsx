@@ -64,7 +64,7 @@ export default function TermsPage() {
           </div>
 
           <p className="mt-10 max-w-[54rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.14rem]">
-            These terms explain how you may use the Connect Cover website and related
+            These terms explain how you may use the Coverza website and related
             services, including quote journeys, policy retrieval and support pages.
           </p>
 
@@ -93,12 +93,12 @@ export default function TermsPage() {
       <section className="mt-16">
         <div className="max-w-[64rem] rounded-[2rem] border border-slate-200/80 bg-white/88 p-6 shadow-sm sm:p-8 lg:p-10">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Connect Cover Terms &amp; Conditions
+            Coverza Terms &amp; Conditions
           </div>
 
           <TermsSection title="1. About these terms">
             <p>
-              These Terms &amp; Conditions apply to your use of the Connect Cover
+              These Terms &amp; Conditions apply to your use of the Coverza
               website and any related online journeys, including requesting quotes,
               purchasing cover, retrieving documents and contacting support.
             </p>
@@ -110,15 +110,15 @@ export default function TermsPage() {
 
           <TermsSection title="2. Who we are">
             <p>
-              In these terms, “Connect Cover”, “we”, “us” and “our” refer to the
+              In these terms, “Coverza”, “we”, “us” and “our” refer to the
               business operating this website and associated customer journeys.
             </p>
             <p>
-              <strong>Business name:</strong> Connect Cover Limited
+              <strong>Business name:</strong> Coverza Limited
               <br />
               <strong>Registered address:</strong> 5/5 Crutchett’s Ramp, Gibraltar, GX11 1AA
               <br />
-              <strong>Support email:</strong> support@connectcover.com
+              <strong>Support email:</strong> support@Coverza.com
             </p>
           </TermsSection>
 
@@ -156,7 +156,7 @@ export default function TermsPage() {
 
           <TermsSection title="5. Insurance products and policy documents">
             <p>
-              Insurance products offered through Connect Cover are subject to the
+              Insurance products offered through Coverza are subject to the
               insurer’s terms, conditions, exclusions and policy wording.
             </p>
             <p>
@@ -187,7 +187,7 @@ export default function TermsPage() {
 
           <TermsSection title="7. Policy retrieval and document access">
             <p>
-              Connect Cover may provide a retrieval service allowing you to access policy
+              Coverza may provide a retrieval service allowing you to access policy
               documents again using details such as your policy number and email address.
             </p>
             <p>
@@ -238,7 +238,7 @@ export default function TermsPage() {
           <TermsSection title="11. Intellectual property">
             <p>
               All content on this website, including text, design, branding, graphics,
-              layout and code, is owned by or licensed to Connect Cover unless stated
+              layout and code, is owned by or licensed to Coverza unless stated
               otherwise.
             </p>
             <p>
@@ -330,7 +330,7 @@ export default function TermsPage() {
               If you have any questions about these Terms &amp; Conditions, please contact us:
             </p>
             <p>
-              <strong>Email:</strong> support@connectcover.com
+              <strong>Email:</strong> support@Coverza.com
               <br />
               <strong>Address:</strong> 5/5 Crutchett’s Ramp, Gibraltar, GX11 1AA
             </p>

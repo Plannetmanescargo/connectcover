@@ -299,7 +299,7 @@ export default function BlogPage() {
 
               <p className="mt-4 max-w-[38rem] text-[1rem] leading-8 text-slate-600">
                 This page is live as a preview, so you can browse the themes and
-                article directions already planned across the Connect Cover journeys.
+                article directions already planned across the Coverza journeys.
               </p>
             </div>
 
@@ -384,7 +384,7 @@ export default function BlogPage() {
           </h2>
 
           <p className="mt-4 max-w-[44rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
-            A first look at the articles planned for the Connect Cover content library.
+            A first look at the articles planned for the Coverza content library.
           </p>
         </div>
 
@@ -406,7 +406,7 @@ export default function BlogPage() {
             <div className="mx-auto mt-5 max-w-[38rem]">
               <p className="text-center text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
                 Choose your cover timing, review the option that fits, and continue
-                through the Connect Cover journey.
+                through the Coverza journey.
               </p>
             </div>
 

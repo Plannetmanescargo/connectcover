@@ -326,7 +326,7 @@ export default function RetrievePolicyPage() {
               </div>
 
               <div className="mt-2 text-[1.04rem] font-semibold tracking-[-0.02em] text-slate-950">
-                support@connectcover.com
+                support@Coverza.com
               </div>
 
               <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -335,7 +335,7 @@ export default function RetrievePolicyPage() {
 
               <div className="mt-4">
                 <a
-                  href="mailto:support@connectcover.com"
+                  href="mailto:support@Coverza.com"
                   className="btn-ghost w-full justify-center"
                 >
                   Email support

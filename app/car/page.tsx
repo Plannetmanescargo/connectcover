@@ -593,7 +593,7 @@ export default function CarPage() {
               </div>
 
               <div className="mt-2 text-[1.08rem] font-semibold tracking-[-0.02em] text-slate-950">
-                support@connectcover.com
+                support@Coverza.com
               </div>
 
               <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -614,7 +614,7 @@ export default function CarPage() {
 
               <div className="mt-5">
                 <a
-                  href="mailto:support@connectcover.com"
+                  href="mailto:support@Coverza.com"
                   className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
                 >
                   Email support

@@ -18,7 +18,7 @@ type QuoteDraft = {
   savedAt?: string;
 };
 
-type DrivingLicenceType = "UK" | "International" | "Learner";
+type DrivingLicenceType = "Full UK" | "International" | "Learner";
 
 type AddressStructured = {
   line1: string;
@@ -372,7 +372,7 @@ export default function GetQuotePage() {
     fullName: "",
     dob: "",
     email: "",
-    licenceType: "UK",
+    licenceType: "Full UK",
     address: "",
   });
 
@@ -895,7 +895,7 @@ export default function GetQuotePage() {
                         setFormError(null);
                       }}
                     >
-                      <option value="UK">UK</option>
+                      <option value="UK">Full UK</option>
                       <option value="International">International</option>
                       <option value="Learner">Learner</option>
                     </select>

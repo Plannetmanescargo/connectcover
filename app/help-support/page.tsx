@@ -237,7 +237,7 @@ export default function HelpSupportPage() {
                         Email
                       </div>
                       <div className="mt-2 text-[1.04rem] font-semibold tracking-[-0.02em] text-slate-950">
-                        support@connectcover.com
+                        support@Coverza.com
                       </div>
                       <p className="mt-3 text-sm leading-7 text-slate-600">
                         We usually reply within one business day.

@@ -258,7 +258,7 @@ export default function HomePage() {
                   <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm">
                     <div className="relative aspect-[4/5] w-full">
                       <Image
-                        src="/images/hero-car-1.png"
+                        src="/images/hero-car-4.png"
                         alt="Driving in the city with Coverza"
                         fill
                         sizes="(min-width: 1280px) 11vw, (min-width: 1024px) 14vw, 33vw"
@@ -270,7 +270,7 @@ export default function HomePage() {
                   <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm">
                     <div className="relative aspect-[4/5] w-full">
                       <Image
-                        src="/images/hero-car-2.png"
+                        src="/images/hero-car-5.png"
                         alt="Flexible temporary vehicle cover"
                         fill
                         sizes="(min-width: 1280px) 11vw, (min-width: 1024px) 14vw, 33vw"
@@ -282,7 +282,7 @@ export default function HomePage() {
                   <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm">
                     <div className="relative aspect-[4/5] w-full">
                       <Image
-                        src="/images/hero-car-3.png"
+                        src="/images/hero-car-6.png"
                         alt="Temporary insurance designed for short-term use"
                         fill
                         sizes="(min-width: 1280px) 11vw, (min-width: 1024px) 14vw, 33vw"
@@ -361,7 +361,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* WHY CONNECT COVER */}
+        {/* WHY Coverza */}
         <section className="section relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(108,76,243,0.08),transparent_30%),radial-gradient(circle_at_88%_18%,rgba(74,96,245,0.06),transparent_26%),linear-gradient(to_bottom,rgba(255,255,255,0.72),rgba(248,250,252,0.92))]" />
 
@@ -581,7 +581,7 @@ export default function HomePage() {
   </div>
 </section>
 
-        {/* WHEN CONNECT COVER MAKES SENSE */}
+        {/* WHEN Coverza MAKES SENSE */}
         <section className="section relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(108,76,243,0.05),transparent_24%),linear-gradient(to_bottom,rgba(255,255,255,0.72),rgba(248,250,252,0.94))]" />
 

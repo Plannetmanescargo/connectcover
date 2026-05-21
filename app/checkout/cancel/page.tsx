@@ -143,7 +143,7 @@ export default function CancelPage() {
                 Leave the checkout journey
               </div>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Head back to the homepage if you want to browse the rest of Connect Cover again.
+                Head back to the homepage if you want to browse the rest of Coverza again.
               </p>
               <div className="mt-5">
                 <Link href="/" className="btn-ghost w-full justify-center">
@@ -190,7 +190,7 @@ export default function CancelPage() {
               </div>
 
               <div className="mt-2 text-[1.04rem] font-semibold tracking-[-0.02em] text-slate-950 break-words">
-                support@connectcover.com
+                support@Coverza.com
               </div>
 
               <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -199,7 +199,7 @@ export default function CancelPage() {
 
               <div className="mt-5">
                 <a
-                  href="mailto:support@connectcover.com"
+                  href="mailto:support@Coverza.com"
                   className="btn-ghost w-full justify-center"
                 >
                   Email support

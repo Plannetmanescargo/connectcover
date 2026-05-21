@@ -5,7 +5,7 @@ import Link from "next/link";
 
 type CookieChoice = "accepted" | "rejected" | null;
 
-const STORAGE_KEY = "connectcover_cookie_choice";
+const STORAGE_KEY = "Coverza_cookie_choice";
 
 export default function CookieBanner() {
   const [mounted, setMounted] = useState(false);

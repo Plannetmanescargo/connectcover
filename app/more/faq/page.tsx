@@ -427,7 +427,7 @@ const SECTIONS: readonly FAQSection[] = [
         a: (
           <>
             Yes, payment is handled through a secure checkout flow. Always make
-            sure you are completing payment on the official Connect Cover checkout
+            sure you are completing payment on the official Coverza checkout
             page before entering card details.
           </>
         ),
@@ -931,7 +931,7 @@ export default function FaqPage() {
           </div>
 
           <p className="mt-10 max-w-[54rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.14rem]">
-            Browse every Connect Cover FAQ on one page, from documents and timings
+            Browse every Coverza FAQ on one page, from documents and timings
             to learner, van, car, impound and checkout questions.
           </p>
 

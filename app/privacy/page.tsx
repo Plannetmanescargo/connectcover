@@ -64,7 +64,7 @@ export default function PrivacyPolicyPage() {
           </div>
 
           <p className="mt-10 max-w-[54rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.14rem]">
-            This policy explains how Connect Cover collects, uses, stores and protects
+            This policy explains how Coverza collects, uses, stores and protects
             personal information when you use our website, request a quote, purchase
             cover, retrieve documents or contact support.
           </p>
@@ -94,24 +94,24 @@ export default function PrivacyPolicyPage() {
       <section className="mt-16">
         <div className="max-w-[64rem] rounded-[2rem] border border-slate-200/80 bg-white/88 p-6 shadow-sm sm:p-8 lg:p-10">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Connect Cover Privacy Policy
+            Coverza Privacy Policy
           </div>
 
           <PolicySection title="1. Who we are">
             <p>
-              Connect Cover is responsible for the personal information collected
+              Coverza is responsible for the personal information collected
               through this website and related customer journeys.
             </p>
             <p>
-              In this policy, “Connect Cover”, “we”, “us” and “our” mean the business
+              In this policy, “Coverza”, “we”, “us” and “our” mean the business
               operating this website and related insurance journeys.
             </p>
             <p>
-              <strong>Data controller:</strong> Connect Cover Limited
+              <strong>Data controller:</strong> Coverza Limited
               <br />
               <strong>Registered address:</strong> 5/5 Crutchett’s Ramp, Gibraltar, GX11 1AA
               <br />
-              <strong>Contact email:</strong> support@connectcover.com
+              <strong>Contact email:</strong> support@Coverza.com
             </p>
             <p>
               If another insurer, underwriter, claims handler or service provider also
@@ -372,7 +372,7 @@ export default function PrivacyPolicyPage() {
               is used, please contact us:
             </p>
             <p>
-              <strong>Email:</strong> support@connectcover.com
+              <strong>Email:</strong> support@Coverza.com
               <br />
               <strong>Address:</strong> 5/5 Crutchett’s Ramp, Gibraltar, GX11 1AA
             </p>

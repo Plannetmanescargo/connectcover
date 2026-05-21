@@ -81,8 +81,8 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
   const certificateUrl = cleanPdfUrl(input.certificateUrl, "certificateUrl");
   const proposalUrl = cleanPdfUrl(input.proposalUrl, "proposalUrl");
 
-  const brandName = "Connect Cover";
-  const supportEmail = replyTo || "support@connectcover.com";
+  const brandName = "Coverza";
+  const supportEmail = replyTo || "support@Coverza.com";
   const policyNumber = input.policyNumber.trim();
 
   const veh = vehicleLine(input);
@@ -124,7 +124,7 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
     "Regulatory & legal information:",
     "We hereby certify that the policy satisfies the requirements of the relevant law applicable in Great Britain, Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.",
     "",
-    "Connect Cover Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.",
+    "Coverza Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.",
     "Details about our regulation by the Financial Conduct Authority and Prudential Regulation Authority are available on request.",
     "",
     "Registered in England and Wales as ACCELERANT INSURANCE UK LIMITED. Reg. No. 03326800. Registered Address: One, Fleet Place, London, England, EC4M 7WS. Authorised and regulated by the Financial Conduct Authority (207658).",
@@ -202,7 +202,7 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                       <div style="height:12px;line-height:12px;font-size:12px;">&nbsp;</div>
 
                       <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:26px;line-height:1.15;letter-spacing:-0.5px;color:#0f172a;font-weight:900;">
-                        Your Connect Cover policy is confirmed
+                        Your Coverza policy is confirmed
                       </div>
 
                       <div style="height:8px;line-height:8px;font-size:8px;">&nbsp;</div>
@@ -387,7 +387,7 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                     Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.
                   </div>
                   <div style="margin-top:8px;">
-                    Connect Cover Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the
+                    Coverza Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the
                     Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.
                   </div>
                   <div style="margin-top:8px;">
