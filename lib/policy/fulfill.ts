@@ -32,7 +32,7 @@ function getSiteUrl() {
   if (process.env.NODE_ENV !== "production") return "http://localhost:3000";
 
   throw new Error(
-    "Missing SITE_URL env var. Set SITE_URL=https://www.gotempcover.co.uk in Vercel (Production + Preview)."
+    "Missing SITE_URL env var. Set SITE_URL=https://www.coverza.co.uk in Vercel (Production + Preview)."
   );
 }
 

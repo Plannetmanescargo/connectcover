@@ -450,33 +450,53 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
 
   const resend = new Resend(apiKey);
 
+let attachments:
+  | {
+      filename: string;
+      content: string;
+      contentType: string;
+    }[]
+  | undefined;
+
+try {
   const [certificateContent, proposalContent] = await Promise.all([
     pdfUrlToBase64(certificateUrl, "Certificate PDF"),
     pdfUrlToBase64(proposalUrl, "Statement of Fact PDF"),
   ]);
 
-  const res = await resend.emails.send({
-    from,
-    to: input.to,
-    subject,
-    ...(replyTo ? { replyTo } : {}),
-    text,
-    html,
-    attachments: [
-      {
-        filename: `coverza-certificate-${policyNumber}.pdf`,
-        content: certificateContent,
-      },
-      {
-        filename: `coverza-statement-of-fact-${policyNumber}.pdf`,
-        content: proposalContent,
-      },
-    ],
-  });
+  attachments = [
+    {
+      filename: `coverza-certificate-${policyNumber}.pdf`,
+      content: certificateContent,
+      contentType: "application/pdf",
+    },
+    {
+      filename: `coverza-statement-of-fact-${policyNumber}.pdf`,
+      content: proposalContent,
+      contentType: "application/pdf",
+    },
+  ];
+} catch (err) {
+  console.error(
+    "[sendPolicyEmail] PDF attachment download failed; sending email with document links only",
+    err
+  );
+}
 
-  if (res.error) {
-    throw new Error(res.error.message || "Resend failed to send email");
-  }
+const res = await resend.emails.send({
+  from,
+  to: input.to,
+  subject,
+  ...(replyTo ? { replyTo } : {}),
+  text,
+  html,
+  ...(attachments ? { attachments } : {}),
+});
 
-  return { ok: true as const, id: res.data?.id ?? null };
+if (res.error) {
+  console.error("[sendPolicyEmail] Resend error", res.error);
+  throw new Error(res.error.message);
+}
+
+return res.data;
 }
