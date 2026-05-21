@@ -354,6 +354,14 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
 
   const resend = new Resend(apiKey);
 
+  console.log("[sendPolicyEmail] sending email", {
+  to: input.to,
+  from,
+  policyNumber,
+  certificateUrl,
+  proposalUrl,
+});
+
   const res = await resend.emails.send({
     from,
     to: input.to,
@@ -372,6 +380,11 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
       },
     ],
   });
+
+  console.log("[sendPolicyEmail] resend response", {
+  error: res.error,
+  data: res.data,
+});
 
   if (res.error) {
     console.error("[sendPolicyEmail] Resend error", res.error);
