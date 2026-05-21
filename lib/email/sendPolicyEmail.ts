@@ -172,213 +172,243 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="x-apple-disable-message-reformatting" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="supported-color-schemes" content="light dark" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
     <title>${safeBrand} — Policy ${safePolicy}</title>
   </head>
+
   <body style="margin:0;padding:0;background:#f6f7fb;">
     <div style="display:none;font-size:1px;color:#f6f7fb;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-      Cover confirmed. Policy ${safePolicy}. Documents attached and available via secure links.
+      Your Coverza temporary insurance policy is confirmed. Policy ${safePolicy}.
     </div>
 
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f7fb;">
       <tr>
-        <td align="center" style="padding:28px 12px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="640" style="width:640px;max-width:100%;">
+        <td align="center" style="padding:32px 14px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="620" style="width:620px;max-width:100%;">
 
+            <!-- Brand header -->
             <tr>
-              <td style="padding:0 4px 14px 4px;">
+              <td style="padding:0 2px 18px 2px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                   <tr>
-                    <td align="left">
-                      <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#6c4cf3;font-weight:900;font-size:17px;letter-spacing:-0.2px;">
+                    <td align="left" style="vertical-align:middle;">
+                      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#6c4cf3;font-size:20px;line-height:1.1;font-weight:900;letter-spacing:-0.4px;">
                         ${safeBrand}
                       </div>
-                      <div style="margin-top:3px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#64748b;font-size:12px;">
-                        Temporary insurance, made clearer
+                      <div style="margin-top:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:12px;line-height:1.4;">
+                        Coverage that connects
                       </div>
                     </td>
-                    <td align="right" style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#64748b;font-size:12px;vertical-align:top;">
-                      Policy <span style="font-weight:900;color:#0f172a;">${safePolicy}</span>
+
+                    <td align="right" style="vertical-align:middle;">
+                      <div style="display:inline-block;border:1px solid #e2e8f0;background:#ffffff;border-radius:999px;padding:7px 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;font-size:12px;line-height:1;font-weight:700;">
+                        Policy ${safePolicy}
+                      </div>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
 
+            <!-- Main card -->
             <tr>
-              <td style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;overflow:hidden;box-shadow:0 10px 28px rgba(15,23,42,0.08);">
+              <td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:28px;overflow:hidden;box-shadow:0 18px 45px rgba(15,23,42,0.08);">
+
+                <!-- Hero -->
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                   <tr>
-                    <td style="padding:18px 18px 0 18px;">
-                      <span style="display:inline-block;background:#f3efff;color:#6c4cf3;border:1px solid #ddd3ff;padding:6px 10px;border-radius:999px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12px;font-weight:900;">
-                        Payment received
-                      </span>
+                    <td style="padding:30px 28px 22px 28px;">
+                      <div style="display:inline-block;background:#f3efff;color:#6c4cf3;border:1px solid #ddd3ff;border-radius:999px;padding:7px 11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1;font-weight:800;">
+                        Cover confirmed
+                      </div>
+
+                      <div style="height:18px;line-height:18px;font-size:18px;">&nbsp;</div>
+
+                      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:34px;line-height:1.08;font-weight:850;letter-spacing:-1.1px;">
+                        Your temporary car insurance is active.
+                      </div>
 
                       <div style="height:12px;line-height:12px;font-size:12px;">&nbsp;</div>
 
-                      <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:26px;line-height:1.15;letter-spacing:-0.5px;color:#0f172a;font-weight:900;">
-                        Your Coverza policy is confirmed
-                      </div>
-
-                      <div style="height:8px;line-height:8px;font-size:8px;">&nbsp;</div>
-
-                      <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#475569;font-size:14px;line-height:1.7;">
-                        Your temporary insurance is now in force. Your policy documents are attached to this email and also available through the buttons below.
+                      <div style="max-width:500px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;font-size:15px;line-height:1.65;">
+                        Your policy documents are attached to this email. You can also open them instantly using the secure links below.
                       </div>
                     </td>
                   </tr>
 
+                  <!-- Soft divider -->
                   <tr>
-                    <td style="padding:16px 18px 0 18px;">
+                    <td style="padding:0 28px;">
+                      <div style="height:1px;line-height:1px;background:#edf0f5;">&nbsp;</div>
+                    </td>
+                  </tr>
+
+                  <!-- Policy snapshot -->
+                  <tr>
+                    <td style="padding:22px 28px 6px 28px;">
                       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                         <tr>
-                          <td align="left" style="padding-right:10px;">
-                            <a href="${safeCertUrl}"
-                               style="display:inline-block;text-decoration:none;background:#6c4cf3;color:#ffffff;border:1px solid #6c4cf3;border-radius:14px;padding:12px 14px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;font-weight:900;box-shadow:0 10px 24px rgba(108,76,243,0.18);">
-                              Download certificate (PDF)
-                            </a>
-                          </td>
-                          <td align="left">
-                            <a href="${safePropUrl}"
-                               style="display:inline-block;text-decoration:none;background:#ffffff;color:#0f172a;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;font-weight:900;">
-                              View statement (PDF)
-                            </a>
+                          <td style="padding:0 0 14px 0;">
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:14px;line-height:1.3;font-weight:850;">
+                              Policy summary
+                            </div>
                           </td>
                         </tr>
-                      </table>
 
-                      <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:0 18px 18px 18px;">
-                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;">
                         <tr>
-                          <td style="padding:14px;">
-                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                          <td>
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e5e7eb;border-radius:20px;background:#fbfcff;">
                               <tr>
-                                <td style="width:50%;padding-right:8px;vertical-align:top;">
-                                  <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:#64748b;font-weight:800;">
-                                    Policy number
-                                  </div>
-                                  <div style="margin-top:6px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:16px;color:#0f172a;font-weight:950;">
-                                    ${safePolicy}
-                                  </div>
-                                </td>
+                                <td style="padding:16px;">
+                                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                                    <tr>
+                                      <td style="width:50%;padding:0 10px 14px 0;vertical-align:top;">
+                                        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;line-height:1.3;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
+                                          Policy number
+                                        </div>
+                                        <div style="margin-top:6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:15px;line-height:1.35;font-weight:850;">
+                                          ${safePolicy}
+                                        </div>
+                                      </td>
 
-                                <td style="width:50%;padding-left:8px;vertical-align:top;">
-                                  <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:#64748b;font-weight:800;">
-                                    Policyholder email
-                                  </div>
-                                  <div style="margin-top:6px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;color:#0f172a;font-weight:800;word-break:break-all;">
-                                    ${safeTo}
-                                  </div>
+                                      <td style="width:50%;padding:0 0 14px 10px;vertical-align:top;">
+                                        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;line-height:1.3;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
+                                          Email
+                                        </div>
+                                        <div style="margin-top:6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:13px;line-height:1.35;font-weight:750;word-break:break-all;">
+                                          ${safeTo}
+                                        </div>
+                                      </td>
+                                    </tr>
+
+                                    ${
+                                      safeVeh
+                                        ? `
+                                    <tr>
+                                      <td colspan="2" style="padding:0 0 14px 0;vertical-align:top;">
+                                        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;line-height:1.3;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
+                                          Vehicle
+                                        </div>
+                                        <div style="margin-top:6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:15px;line-height:1.35;font-weight:850;">
+                                          ${safeVeh}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                        `
+                                        : ""
+                                    }
+
+                                    ${
+                                      safeStart && safeEnd
+                                        ? `
+                                    <tr>
+                                      <td style="width:50%;padding:0 10px 0 0;vertical-align:top;">
+                                        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;line-height:1.3;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
+                                          Starts
+                                        </div>
+                                        <div style="margin-top:6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:13px;line-height:1.45;font-weight:800;">
+                                          ${safeStart}
+                                        </div>
+                                      </td>
+
+                                      <td style="width:50%;padding:0 0 0 10px;vertical-align:top;">
+                                        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;line-height:1.3;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">
+                                          Ends
+                                        </div>
+                                        <div style="margin-top:6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:13px;line-height:1.45;font-weight:800;">
+                                          ${safeEnd}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                        `
+                                        : ""
+                                    }
+                                  </table>
                                 </td>
                               </tr>
-
-                              ${
-                                safeVeh
-                                  ? `
-                              <tr>
-                                <td colspan="2" style="padding-top:12px;">
-                                  <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:#64748b;font-weight:800;">
-                                    Insured vehicle
-                                  </div>
-                                  <div style="margin-top:6px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;color:#0f172a;font-weight:900;">
-                                    ${safeVeh}
-                                  </div>
-                                </td>
-                              </tr>
-                                  `
-                                  : ""
-                              }
-
-                              ${
-                                safeStart && safeEnd
-                                  ? `
-                              <tr>
-                                <td style="padding-top:12px;padding-right:8px;vertical-align:top;">
-                                  <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:#64748b;font-weight:800;">
-                                    Start of cover
-                                  </div>
-                                  <div style="margin-top:6px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;color:#0f172a;font-weight:900;">
-                                    ${safeStart}
-                                  </div>
-                                </td>
-
-                                <td style="padding-top:12px;padding-left:8px;vertical-align:top;">
-                                  <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:#64748b;font-weight:800;">
-                                    End of cover
-                                  </div>
-                                  <div style="margin-top:6px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;color:#0f172a;font-weight:900;">
-                                    ${safeEnd}
-                                  </div>
-                                </td>
-                              </tr>
-                                  `
-                                  : ""
-                              }
                             </table>
                           </td>
                         </tr>
                       </table>
+                    </td>
+                  </tr>
 
-                      <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-
-                      <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;color:#0f172a;font-weight:950;margin-bottom:8px;">
-                        Policy documents
-                      </div>
-
-                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e2e8f0;border-radius:16px;">
+                  <!-- Document actions -->
+                  <tr>
+                    <td style="padding:18px 28px 4px 28px;">
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                         <tr>
-                          <td style="padding:12px 12px 10px 12px;">
-                            <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;color:#334155;line-height:1.7;">
-                              • <span style="font-weight:900;color:#0f172a;">Certificate of Motor Insurance</span> (PDF)<br/>
-                              • <span style="font-weight:900;color:#0f172a;">Statement of Fact &amp; Declaration</span> (PDF)
+                          <td style="padding:0 0 12px 0;">
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:14px;line-height:1.3;font-weight:850;">
+                              Your documents
+                            </div>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td>
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                              <tr>
+                                <td style="padding:0 0 10px 0;">
+                                  <a href="${safeCertUrl}" style="display:block;text-decoration:none;background:#6c4cf3;border:1px solid #6c4cf3;border-radius:17px;padding:15px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#ffffff;font-size:14px;line-height:1.2;font-weight:850;text-align:center;box-shadow:0 12px 26px rgba(108,76,243,0.22);">
+                                    Download certificate
+                                  </a>
+                                </td>
+                              </tr>
+
+                              <tr>
+                                <td>
+                                  <a href="${safePropUrl}" style="display:block;text-decoration:none;background:#ffffff;border:1px solid #e2e8f0;border-radius:17px;padding:15px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:14px;line-height:1.2;font-weight:850;text-align:center;">
+                                    View statement of fact
+                                  </a>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:12px 0 0 0;">
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:12.5px;line-height:1.6;">
+                              Both PDFs are also attached to this email for your records.
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Guidance -->
+                  <tr>
+                    <td style="padding:20px 28px 28px 28px;">
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;">
+                        <tr>
+                          <td style="padding:17px 18px;">
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:14px;line-height:1.3;font-weight:850;">
+                              Before you drive
+                            </div>
+
+                            <div style="height:8px;line-height:8px;font-size:8px;">&nbsp;</div>
+
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;font-size:13px;line-height:1.7;">
+                              Review your certificate and statement carefully. Save the PDFs to your device and keep the certificate accessible while the vehicle is in use.
+                            </div>
+
+                            <div style="height:12px;line-height:12px;font-size:12px;">&nbsp;</div>
+
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;font-size:13px;line-height:1.7;">
+                              MID records update several times daily, so please allow a few hours for the cover to appear after purchase. Your certificate is legal evidence of cover.
                             </div>
                           </td>
                         </tr>
                       </table>
 
-                      <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
+                      <div style="height:16px;line-height:16px;font-size:16px;">&nbsp;</div>
 
-                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:16px;">
-                        <tr>
-                          <td style="padding:12px;">
-                            <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12px;color:#0f172a;font-weight:950;margin-bottom:6px;">
-                              Next steps
-                            </div>
-                            <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12.5px;color:#334155;line-height:1.75;">
-                              1) Review the <strong style="color:#0f172a;">Certificate</strong> and <strong style="color:#0f172a;">Statement of Fact</strong> carefully to ensure your details are correct.<br/>
-                              2) Save the PDFs to your device and keep the Certificate accessible while the vehicle is in use.<br/>
-                              3) If any detail is incorrect, contact us immediately so we can advise on the right next step.
-                            </div>
-                          </td>
-                        </tr>
-                      </table>
-
-                      <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-
-                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;">
-                        <tr>
-                          <td style="padding:12px;">
-                            <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12px;color:#0f172a;font-weight:950;margin-bottom:6px;">
-                              Motor Insurance Database (MID / askMID / Navigate)
-                            </div>
-                            <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12.5px;color:#334155;line-height:1.75;">
-                              MID records are updated several times daily. Please allow a few hours for your cover to appear after purchase.<br/>
-                              If you are asked to provide proof of insurance, your <strong style="color:#0f172a;">Certificate of Motor Insurance</strong> is legal evidence of cover.
-                            </div>
-                          </td>
-                        </tr>
-                      </table>
-
-                      <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
-
-                      <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#475569;font-size:12.5px;line-height:1.75;">
-                        Questions or concerns? Reply to this email or contact <span style="font-weight:900;color:#0f172a;">${safeSupport}</span>.
+                      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:13px;line-height:1.7;text-align:center;">
+                        Need help? Reply to this email or contact
+                        <span style="font-weight:850;color:#0f172a;">${safeSupport}</span>.
                       </div>
                     </td>
                   </tr>
@@ -386,43 +416,23 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
               </td>
             </tr>
 
+            <!-- Footer -->
             <tr>
-              <td style="padding:14px 6px 0 6px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#64748b;font-size:11px;line-height:1.65;">
-                <div style="padding:12px 10px;border-top:1px solid #e2e8f0;">
-                  <div style="font-weight:900;color:#0f172a;margin-bottom:6px;">Questions or concerns?</div>
-                  <div>
-                    Reply to this email or contact us at
-                    <span style="font-weight:900;color:#0f172a;"> ${safeSupport}</span>.
-                  </div>
+              <td style="padding:18px 6px 0 6px;">
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;line-height:1.65;text-align:center;">
+                  ${safeBrand} temporary insurance.
+                  <br />
+                  Policy ${safePolicy}. Documents attached and available through the links above.
+                </div>
 
-                  <div style="height:12px;line-height:12px;font-size:12px;">&nbsp;</div>
+                <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
 
-                  <div style="font-weight:900;color:#0f172a;margin-bottom:6px;">Regulatory information</div>
-                  <div>
-                    We hereby certify that the policy satisfies the requirements of the relevant law applicable in Great Britain,
-                    Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.
-                  </div>
-                  <div style="margin-top:8px;">
-                    Coverza Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the
-                    Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.
-                  </div>
-                  <div style="margin-top:8px;">
-                    Details about our regulation by the Financial Conduct Authority and Prudential Regulation Authority are available on request.
-                  </div>
-                  <div style="margin-top:8px;">
-                    Registered in England and Wales as <span style="font-weight:900;color:#0f172a;">ACCELERANT INSURANCE UK LIMITED</span>.
-                    Reg. No. 03326800. Registered Address: One, Fleet Place, London, England, EC4M 7WS.
-                    Authorised and regulated by the Financial Conduct Authority (207658).
-                  </div>
-
-                  <div style="height:12px;line-height:12px;font-size:12px;">&nbsp;</div>
-
-                  <div style="font-weight:900;color:#0f172a;margin-bottom:6px;">Confidentiality notice</div>
-                  <div>
-                    The content of this email is confidential and intended only for the recipient specified.
-                    It is strictly forbidden to share any part of this message with any third party without the written consent of the sender.
-                    If you received this message by mistake, please reply to this email and then delete it so we can help prevent this happening again.
-                  </div>
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:10.5px;line-height:1.65;text-align:left;">
+                  We hereby certify that the policy satisfies the requirements of the relevant law applicable in Great Britain, Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.
+                  <br /><br />
+                  Coverza Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.
+                  <br /><br />
+                  Registered in England and Wales as ACCELERANT INSURANCE UK LIMITED. Reg. No. 03326800. Registered Address: One, Fleet Place, London, England, EC4M 7WS. Authorised and regulated by the Financial Conduct Authority (207658).
                 </div>
               </td>
             </tr>
