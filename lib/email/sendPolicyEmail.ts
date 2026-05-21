@@ -1,5 +1,4 @@
 // lib/email/sendPolicyEmail.ts
-import { Buffer } from "node:buffer";
 import { Resend } from "resend";
 
 type SendPolicyEmailInput = {
@@ -35,37 +34,15 @@ function isHttpUrl(s: string) {
 }
 
 function cleanPdfUrl(url: string, label: string) {
-  if (!url || !isHttpUrl(url)) throw new Error(`${label} must be a valid http(s) URL`);
-  if (!/\.pdf(\?|#|$)/i.test(url)) throw new Error(`${label} must point to a .pdf`);
+  if (!url || !isHttpUrl(url)) {
+    throw new Error(`${label} must be a valid http(s) URL`);
+  }
+
+  if (!/\.pdf(\?|#|$)/i.test(url)) {
+    throw new Error(`${label} must point to a .pdf`);
+  }
+
   return url;
-}
-
-async function pdfUrlToBase64(url: string, label: string) {
-  const response = await fetch(url, {
-    cache: "no-store",
-    headers: {
-      Accept: "application/pdf",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`${label} could not be downloaded: ${response.status} ${response.statusText}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  if (!buffer.length) {
-    throw new Error(`${label} downloaded as an empty file`);
-  }
-
-  const header = buffer.subarray(0, 4).toString("utf8");
-  if (header !== "%PDF") {
-    const contentType = response.headers.get("content-type") || "unknown";
-    throw new Error(`${label} did not download as a valid PDF. Content-Type: ${contentType}`);
-  }
-
-  return buffer.toString("base64");
 }
 
 function escapeHtml(s: string) {
@@ -79,6 +56,7 @@ function escapeHtml(s: string) {
 
 function fmtDateTime(iso?: string | null) {
   if (!iso) return null;
+
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
 
@@ -96,7 +74,11 @@ function vehicleLine(input: SendPolicyEmailInput) {
   const vrm = (input.vrm || "").trim();
   const mm = [input.make, input.model].filter(Boolean).join(" ").trim();
   const year = (input.year || "").trim();
-  const parts = [vrm || null, mm || null, year ? `(${year})` : null].filter(Boolean);
+
+  const parts = [vrm || null, mm || null, year ? `(${year})` : null].filter(
+    Boolean
+  );
+
   return parts.length ? parts.join(" ") : null;
 }
 
@@ -105,8 +87,13 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
   const from = requireEnv("RESEND_FROM");
   const replyTo = (process.env.RESEND_REPLY_TO || "").trim();
 
-  if (!input?.policyNumber?.trim()) throw new Error("policyNumber is required");
-  if (!input?.to?.trim() || !validEmail(input.to)) throw new Error("to must be a valid email");
+  if (!input?.policyNumber?.trim()) {
+    throw new Error("policyNumber is required");
+  }
+
+  if (!input?.to?.trim() || !validEmail(input.to)) {
+    throw new Error("to must be a valid email");
+  }
 
   const certificateUrl = cleanPdfUrl(input.certificateUrl, "certificateUrl");
   const proposalUrl = cleanPdfUrl(input.proposalUrl, "proposalUrl");
@@ -450,53 +437,29 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
 
   const resend = new Resend(apiKey);
 
-let attachments:
-  | {
-      filename: string;
-      content: string;
-      contentType: string;
-    }[]
-  | undefined;
+  const res = await resend.emails.send({
+    from,
+    to: input.to,
+    subject,
+    ...(replyTo ? { replyTo } : {}),
+    text,
+    html,
+    attachments: [
+      {
+        filename: `coverza-certificate-${policyNumber}.pdf`,
+        path: certificateUrl,
+      },
+      {
+        filename: `coverza-statement-of-fact-${policyNumber}.pdf`,
+        path: proposalUrl,
+      },
+    ],
+  });
 
-try {
-  const [certificateContent, proposalContent] = await Promise.all([
-    pdfUrlToBase64(certificateUrl, "Certificate PDF"),
-    pdfUrlToBase64(proposalUrl, "Statement of Fact PDF"),
-  ]);
+  if (res.error) {
+    console.error("[sendPolicyEmail] Resend error", res.error);
+    throw new Error(res.error.message || "Resend failed to send email");
+  }
 
-  attachments = [
-    {
-      filename: `coverza-certificate-${policyNumber}.pdf`,
-      content: certificateContent,
-      contentType: "application/pdf",
-    },
-    {
-      filename: `coverza-statement-of-fact-${policyNumber}.pdf`,
-      content: proposalContent,
-      contentType: "application/pdf",
-    },
-  ];
-} catch (err) {
-  console.error(
-    "[sendPolicyEmail] PDF attachment download failed; sending email with document links only",
-    err
-  );
-}
-
-const res = await resend.emails.send({
-  from,
-  to: input.to,
-  subject,
-  ...(replyTo ? { replyTo } : {}),
-  text,
-  html,
-  ...(attachments ? { attachments } : {}),
-});
-
-if (res.error) {
-  console.error("[sendPolicyEmail] Resend error", res.error);
-  throw new Error(res.error.message);
-}
-
-return res.data;
+  return { ok: true as const, id: res.data?.id ?? null };
 }
