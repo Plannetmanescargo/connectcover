@@ -162,7 +162,6 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
   const safeSupport = escapeHtml(supportEmail);
   const safeCertUrl = escapeHtml(certificateUrl);
   const safePropUrl = escapeHtml(proposalUrl);
-  const safeTo = escapeHtml(input.to);
   const safeBrand = escapeHtml(brandName);
 
   const html = `
@@ -172,33 +171,38 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="x-apple-disable-message-reformatting" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
     <title>${safeBrand} — Policy ${safePolicy}</title>
   </head>
 
   <body style="margin:0;padding:0;background:#f6f7fb;">
     <div style="display:none;font-size:1px;color:#f6f7fb;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-      Your Coverza policy is confirmed. Documents attached.
+      Your Coverza temporary insurance policy is confirmed. Documents attached.
     </div>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7fb;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f6f7fb;">
       <tr>
-        <td align="center" style="padding:32px 14px;">
-          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;">
+        <td align="center" style="padding:34px 14px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;">
 
             <tr>
               <td style="padding:0 4px 18px 4px;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                   <tr>
-                    <td>
-                      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#6c4cf3;font-size:20px;font-weight:900;letter-spacing:-0.4px;">
+                    <td align="left" style="vertical-align:middle;">
+                      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#6c4cf3;font-size:22px;line-height:1.05;font-weight:900;letter-spacing:-0.6px;">
                         ${safeBrand}
                       </div>
-                      <div style="margin-top:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:12px;">
+                      <div style="margin-top:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:12px;line-height:1.4;">
                         Coverage that connects
                       </div>
                     </td>
-                    <td align="right" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:12px;">
-                      Policy <strong style="color:#0f172a;">${safePolicy}</strong>
+
+                    <td align="right" style="vertical-align:middle;">
+                      <div style="display:inline-block;background:#ffffff;border:1px solid #e5e7eb;border-radius:999px;padding:8px 11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;font-size:12px;line-height:1;font-weight:700;">
+                        Policy <span style="color:#0f172a;font-weight:900;">${safePolicy}</span>
+                      </div>
                     </td>
                   </tr>
                 </table>
@@ -206,45 +210,49 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
             </tr>
 
             <tr>
-              <td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:24px;overflow:hidden;box-shadow:0 14px 34px rgba(15,23,42,0.08);">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:28px;overflow:hidden;box-shadow:0 18px 45px rgba(15,23,42,0.08);">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 
                   <tr>
-                    <td style="padding:30px 28px 20px 28px;">
-                      <div style="display:inline-block;background:#f3efff;color:#6c4cf3;border:1px solid #ddd3ff;border-radius:999px;padding:7px 11px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;font-weight:800;">
-                        Cover confirmed
+                    <td style="padding:30px 28px 22px 28px;background:#ffffff;">
+                      <div style="display:inline-block;background:#f3efff;color:#6c4cf3;border:1px solid #ddd3ff;border-radius:999px;padding:7px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:1;font-weight:850;">
+                        Payment received
                       </div>
 
-                      <h1 style="margin:18px 0 10px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:31px;line-height:1.12;font-weight:850;letter-spacing:-1px;">
-                        Your temporary car insurance is active.
+                      <h1 style="margin:18px 0 10px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:32px;line-height:1.1;font-weight:900;letter-spacing:-1.05px;">
+                        Your cover is confirmed.
                       </h1>
 
-                      <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;font-size:15px;line-height:1.65;">
-                        Your policy documents are attached to this email. You can also open them using the secure links below.
+                      <p style="margin:0;max-width:500px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;font-size:15px;line-height:1.65;">
+                        Your temporary car insurance is now active. Your documents are attached to this email and available through the secure links below.
                       </p>
                     </td>
                   </tr>
 
                   <tr>
                     <td style="padding:0 28px;">
-                      <div style="height:1px;background:#edf0f5;line-height:1px;">&nbsp;</div>
+                      <div style="height:1px;background:#eef1f6;line-height:1px;">&nbsp;</div>
                     </td>
                   </tr>
 
                   <tr>
                     <td style="padding:22px 28px 8px 28px;">
-                      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:14px;font-weight:850;margin-bottom:12px;">
-                        Policy summary
-                      </div>
-
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fbfcff;border:1px solid #e5e7eb;border-radius:18px;">
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fbfcff;border:1px solid #e5e7eb;border-radius:20px;">
                         <tr>
-                          <td style="padding:16px;">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                          <td style="padding:17px 17px 15px 17px;">
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:15px;line-height:1.3;font-weight:900;margin-bottom:14px;">
+                              Policy summary
+                            </div>
+
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                               <tr>
-                                <td style="padding-bottom:12px;">
-                                  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Policy number</div>
-                                  <div style="margin-top:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:15px;font-weight:850;">${safePolicy}</div>
+                                <td style="padding:0 0 13px 0;">
+                                  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;line-height:1.3;font-weight:850;text-transform:uppercase;letter-spacing:0.08em;">
+                                    Policy number
+                                  </div>
+                                  <div style="margin-top:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:16px;line-height:1.35;font-weight:900;">
+                                    ${safePolicy}
+                                  </div>
                                 </td>
                               </tr>
 
@@ -252,9 +260,13 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                                 safeVeh
                                   ? `
                               <tr>
-                                <td style="padding-bottom:12px;">
-                                  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Vehicle</div>
-                                  <div style="margin-top:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:15px;font-weight:850;">${safeVeh}</div>
+                                <td style="padding:0 0 13px 0;">
+                                  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;line-height:1.3;font-weight:850;text-transform:uppercase;letter-spacing:0.08em;">
+                                    Vehicle
+                                  </div>
+                                  <div style="margin-top:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:15px;line-height:1.35;font-weight:850;">
+                                    ${safeVeh}
+                                  </div>
                                 </td>
                               </tr>
                                   `
@@ -265,9 +277,13 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                                 safeStart && safeEnd
                                   ? `
                               <tr>
-                                <td>
-                                  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Cover period</div>
-                                  <div style="margin-top:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:13px;font-weight:800;line-height:1.5;">${safeStart} → ${safeEnd}</div>
+                                <td style="padding:0;">
+                                  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:11px;line-height:1.3;font-weight:850;text-transform:uppercase;letter-spacing:0.08em;">
+                                    Cover period
+                                  </div>
+                                  <div style="margin-top:5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:13px;line-height:1.55;font-weight:800;">
+                                    ${safeStart} → ${safeEnd}
+                                  </div>
                                 </td>
                               </tr>
                                   `
@@ -281,45 +297,50 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                   </tr>
 
                   <tr>
-                    <td style="padding:18px 28px 6px 28px;">
-                      <a href="${safeCertUrl}" style="display:block;text-decoration:none;background:#6c4cf3;border:1px solid #6c4cf3;border-radius:16px;padding:15px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#ffffff;font-size:14px;font-weight:850;text-align:center;box-shadow:0 10px 22px rgba(108,76,243,0.20);">
+                    <td style="padding:18px 28px 4px 28px;">
+                      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:15px;line-height:1.3;font-weight:900;margin-bottom:12px;">
+                        Your documents
+                      </div>
+
+                      <a href="${safeCertUrl}" style="display:block;text-decoration:none;background:#6c4cf3;border:1px solid #6c4cf3;border-radius:17px;padding:15px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#ffffff;font-size:14px;line-height:1.2;font-weight:900;text-align:center;box-shadow:0 12px 26px rgba(108,76,243,0.22);">
                         Download certificate
                       </a>
 
                       <div style="height:10px;line-height:10px;font-size:10px;">&nbsp;</div>
 
-                      <a href="${safePropUrl}" style="display:block;text-decoration:none;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:15px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:14px;font-weight:850;text-align:center;">
+                      <a href="${safePropUrl}" style="display:block;text-decoration:none;background:#ffffff;border:1px solid #e2e8f0;border-radius:17px;padding:15px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:14px;line-height:1.2;font-weight:900;text-align:center;">
                         View statement of fact
                       </a>
 
                       <p style="margin:12px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:12.5px;line-height:1.6;">
-                        Both PDFs are also attached to this email.
+                        Both PDFs are also attached to this email for your records.
                       </p>
                     </td>
                   </tr>
 
                   <tr>
-                    <td style="padding:18px 28px 28px 28px;">
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:18px;">
+                    <td style="padding:20px 28px 28px 28px;">
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;">
                         <tr>
-                          <td style="padding:16px;">
-                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:14px;font-weight:850;">
+                          <td style="padding:17px 18px;">
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:14px;line-height:1.3;font-weight:900;">
                               Before you drive
                             </div>
 
                             <p style="margin:8px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;font-size:13px;line-height:1.7;">
-                              Review your documents carefully, save the PDFs to your device, and keep your certificate accessible while the vehicle is in use.
+                              Review your certificate and statement carefully. Save the PDFs to your device and keep the certificate accessible while the vehicle is in use.
                             </p>
 
                             <p style="margin:10px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;font-size:13px;line-height:1.7;">
-                              MID records update several times daily. Please allow a few hours for your cover to appear after purchase.
+                              MID records update several times daily, so please allow a few hours for your cover to appear after purchase. Your certificate is legal evidence of cover.
                             </p>
                           </td>
                         </tr>
                       </table>
 
                       <p style="margin:16px 0 0 0;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:13px;line-height:1.7;">
-                        Need help? Reply to this email or contact <strong style="color:#0f172a;">${safeSupport}</strong>.
+                        Need help? Reply to this email or contact
+                        <strong style="color:#0f172a;font-weight:900;">${safeSupport}</strong>.
                       </p>
                     </td>
                   </tr>
@@ -334,13 +355,33 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                   ${safeBrand} temporary insurance. Policy ${safePolicy}.
                 </p>
 
-                <p style="margin:14px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#94a3b8;font-size:10.5px;line-height:1.65;">
-                  We hereby certify that the policy satisfies the requirements of the relevant law applicable in Great Britain, Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.
-                  <br /><br />
-                  Coverza Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.
-                  <br /><br />
-                  Registered in England and Wales as ACCELERANT INSURANCE UK LIMITED. Reg. No. 03326800. Registered Address: One, Fleet Place, London, England, EC4M 7WS. Authorised and regulated by the Financial Conduct Authority (207658).
-                </p>
+                <div style="margin-top:14px;padding:14px 14px 13px 14px;background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;">
+                  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:12px;line-height:1.45;font-weight:900;margin-bottom:7px;">
+                    Regulatory &amp; legal information
+                  </div>
+
+                  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:10.8px;line-height:1.65;">
+                    We hereby certify that the policy satisfies the requirements of the relevant law applicable in Great Britain, Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.
+                    <br /><br />
+                    Coverza Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.
+                    <br /><br />
+                    Details about our regulation by the Financial Conduct Authority and Prudential Regulation Authority are available on request.
+                    <br /><br />
+                    Registered in England and Wales as <strong style="color:#475569;font-weight:900;">ACCELERANT INSURANCE UK LIMITED</strong>. Reg. No. 03326800. Registered Address: One, Fleet Place, London, England, EC4M 7WS. Authorised and regulated by the Financial Conduct Authority (207658).
+                  </p>
+                </div>
+
+                <div style="margin-top:10px;padding:14px 14px 13px 14px;background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;">
+                  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;font-size:12px;line-height:1.45;font-weight:900;margin-bottom:7px;">
+                    Confidentiality notice
+                  </div>
+
+                  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#64748b;font-size:10.8px;line-height:1.65;">
+                    The content of this email is confidential and intended only for the recipient specified. It is strictly forbidden to share any part of this message with any third party without the written consent of the sender.
+                    <br /><br />
+                    If you received this message by mistake, please reply to this email and then delete it so we can help prevent this happening again.
+                  </p>
+                </div>
               </td>
             </tr>
 
@@ -355,12 +396,12 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
   const resend = new Resend(apiKey);
 
   console.log("[sendPolicyEmail] sending email", {
-  to: input.to,
-  from,
-  policyNumber,
-  certificateUrl,
-  proposalUrl,
-});
+    to: input.to,
+    from,
+    policyNumber,
+    certificateUrl,
+    proposalUrl,
+  });
 
   const res = await resend.emails.send({
     from,
@@ -382,9 +423,9 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
   });
 
   console.log("[sendPolicyEmail] resend response", {
-  error: res.error,
-  data: res.data,
-});
+    error: res.error,
+    data: res.data,
+  });
 
   if (res.error) {
     console.error("[sendPolicyEmail] Resend error", res.error);

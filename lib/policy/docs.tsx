@@ -11,12 +11,11 @@ import {
 } from "@react-pdf/renderer";
 
 /**
- * Proposal / Statement of Fact & Declaration (GoShorty-style)
- * - Fixed header + fixed footer
- * - Header uses GoTempCover text (no Accelerant logo)
- * - Clean "document" typography (NO boxes around declarations)
- * - Page 1: two-column (facts left, declaration part 1 right)
- * - Continue declaration parts 2+3 FULL-WIDTH under columns (fills page 1, flows to page 2)
+ * Proposal / Statement of Fact & Declaration
+ * - Fixed Coverza branded header + footer
+ * - Premium summary card
+ * - Two-column layout on page 1
+ * - Declaration continues full-width under the columns
  */
 
 export type ProposalPdfInput = {
@@ -41,8 +40,8 @@ export type ProposalPdfInput = {
 
   // branding/legal
   issuedBy?: string;
-  baseUrl: string; // still used for loading public assets in server context
-  signatureUrl?: string | null; // optional override
+  baseUrl: string;
+  signatureUrl?: string | null;
 };
 
 function pad2(n: number) {
@@ -58,6 +57,7 @@ function formatLongUKDateTime(iso: string) {
   const year = d.getFullYear();
   const hh = pad2(d.getHours());
   const mm = pad2(d.getMinutes());
+
   return `${day} ${month} ${year} at ${hh}:${mm}`;
 }
 
@@ -68,6 +68,7 @@ function formatLongUKDate(iso: string) {
   const day = d.getDate();
   const month = d.toLocaleString("en-GB", { month: "long" });
   const year = d.getFullYear();
+
   return `${day} ${month} ${year}`;
 }
 
@@ -94,27 +95,32 @@ const HEADER_H = 64;
 const FOOTER_H = 150;
 const PAGE_PADDING_X = 34;
 
+// Brand constants
 const BRAND = "#6c4cf3";
-const BRAND_DARK = "#5b3fe0";
-const BRAND_SOFT = "#f3efff";
-const BRAND_BORDER = "#ddd3ff";
-const INK = "#0f172a";
+const BRAND_DARK = "#4f35d8";
+const BRAND_DEEP = "#20124d";
+const BRAND_SOFT = "#f4f0ff";
+const BRAND_SOFTER = "#faf8ff";
+const BRAND_BORDER = "#ded4ff";
+const INK = "#111827";
 const TEXT = "#334155";
 const MUTED = "#64748b";
-const LINE = "#e7e5f4";
+const SOFT_TEXT = "#94a3b8";
+const LINE = "#e8e3ff";
+const CARD = "#ffffff";
 
 const styles = StyleSheet.create({
   page: {
-    fontSize: 9.1,
+    fontSize: 9,
     color: INK,
-    lineHeight: 1.2,
-    paddingTop: HEADER_H + 14,
+    lineHeight: 1.22,
+    paddingTop: HEADER_H + 16,
     paddingBottom: FOOTER_H + 14,
     paddingHorizontal: PAGE_PADDING_X,
     backgroundColor: "#fcfbff",
   },
 
-  /* Header (fixed) */
+  /* Header */
   headerWrap: {
     position: "absolute",
     top: 0,
@@ -123,24 +129,56 @@ const styles = StyleSheet.create({
     height: HEADER_H,
     backgroundColor: BRAND,
     paddingHorizontal: PAGE_PADDING_X,
-    paddingVertical: 14,
+    paddingVertical: 13,
     flexDirection: "row",
     alignItems: "center",
   },
-  headerLeft: { flex: 1, alignItems: "flex-start", justifyContent: "center" },
+  headerLeft: {
+    flex: 1,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
   brandText: {
     color: "#ffffff",
-    fontSize: 22,
+    fontSize: 23,
     fontWeight: 900,
     fontFamily: "Helvetica-Bold",
-    letterSpacing: -0.6,
+    letterSpacing: -0.8,
+  },
+  brandTagline: {
+    marginTop: 2,
+    color: "#efeaff",
+    fontSize: 7.8,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+  },
+  headerRight: {
+    width: 225,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  headerBadge: {
+    borderWidth: 1,
+    borderColor: "#cfc2ff",
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    backgroundColor: "#795cff",
+  },
+  headerRightText: {
+    color: "#efeaff",
+    fontSize: 7.6,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  headerTitle: {
+    marginTop: 2,
+    color: "#ffffff",
+    fontSize: 9.8,
+    fontWeight: 900,
   },
 
-  headerRight: { width: 220, alignItems: "flex-end", justifyContent: "center" },
-  headerRightText: { color: "#efeaff", fontSize: 8.8, letterSpacing: 0.9 },
-  headerTitle: { color: "#ffffff", fontSize: 10.2, fontWeight: 800 },
-
-  /* Footer (fixed) */
+  /* Footer */
   footerWrap: {
     position: "absolute",
     bottom: 0,
@@ -152,7 +190,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderTopWidth: 1,
     borderTopColor: BRAND_BORDER,
-    backgroundColor: "#faf8ff",
+    backgroundColor: BRAND_SOFT,
   },
   footerGrid: {
     flexDirection: "row",
@@ -161,22 +199,127 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   footerCol: { flex: 1 },
-  footerSmall: { fontSize: 7.4, color: TEXT, lineHeight: 1.18 },
-  footerMuted: { fontSize: 7.4, color: MUTED, lineHeight: 1.18 },
+  footerSmall: {
+    fontSize: 7.25,
+    color: TEXT,
+    lineHeight: 1.18,
+  },
+  footerMuted: {
+    fontSize: 7.25,
+    color: MUTED,
+    lineHeight: 1.18,
+  },
 
   sigBlock: { marginTop: 5 },
-  sigImg: { width: 110, height: 28, objectFit: "contain" },
-  sigName: { fontSize: 7.4, color: INK, fontWeight: 800 },
-
-  /* Titles */
-  h1: {
-    fontSize: 13.2,
-    fontWeight: 900,
-    letterSpacing: -0.2,
-    marginBottom: 4,
-    color: BRAND_DARK,
+  sigImg: {
+    width: 112,
+    height: 28,
+    objectFit: "contain",
   },
-  sub: { fontSize: 9.1, color: MUTED, marginBottom: 9 },
+  sigName: {
+    fontSize: 7.3,
+    color: INK,
+    fontWeight: 800,
+  },
+
+  /* Premium top section */
+  heroCard: {
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: CARD,
+    borderWidth: 1,
+    borderColor: BRAND_BORDER,
+  },
+  heroTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  heroLeft: {
+    flex: 1,
+  },
+  heroKicker: {
+    color: BRAND_DARK,
+    fontSize: 7.8,
+    fontWeight: 900,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 5,
+  },
+  h1: {
+    fontSize: 17,
+    fontWeight: 900,
+    fontFamily: "Helvetica-Bold",
+    letterSpacing: -0.45,
+    color: BRAND_DEEP,
+    marginBottom: 5,
+  },
+  sub: {
+    fontSize: 8.8,
+    color: MUTED,
+    lineHeight: 1.35,
+  },
+  heroPolicyBox: {
+    width: 150,
+    borderRadius: 12,
+    backgroundColor: BRAND_SOFT,
+    borderWidth: 1,
+    borderColor: BRAND_BORDER,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  heroPolicyLabel: {
+    color: BRAND_DARK,
+    fontSize: 7.2,
+    fontWeight: 900,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  heroPolicyValue: {
+    color: BRAND_DEEP,
+    fontSize: 10,
+    fontWeight: 900,
+  },
+  heroDuration: {
+    marginTop: 7,
+    paddingTop: 7,
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+  },
+  heroDurationText: {
+    color: MUTED,
+    fontSize: 8.2,
+    fontWeight: 800,
+  },
+
+  summaryStrip: {
+    marginTop: 11,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+    flexDirection: "row",
+    gap: 8,
+  },
+  summaryCell: {
+    flex: 1,
+  },
+  summaryLabel: {
+    color: SOFT_TEXT,
+    fontSize: 7.2,
+    fontWeight: 900,
+    letterSpacing: 0.75,
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
+  summaryValue: {
+    color: INK,
+    fontSize: 8.5,
+    fontWeight: 800,
+    lineHeight: 1.25,
+  },
 
   /* Two-column layout */
   columns: {
@@ -188,69 +331,108 @@ const styles = StyleSheet.create({
   colRight: { flex: 1.02 },
 
   /* Sections */
-  section: { marginBottom: 9 },
+  section: {
+    marginBottom: 10,
+  },
+  sectionCard: {
+    marginBottom: 10,
+    padding: 11,
+    borderRadius: 13,
+    backgroundColor: CARD,
+    borderWidth: 1,
+    borderColor: BRAND_BORDER,
+  },
   sectionTitle: {
-    fontSize: 10.0,
+    fontSize: 10.2,
     fontWeight: 900,
-    marginBottom: 5,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 6,
     color: BRAND_DARK,
   },
-  para: { color: TEXT },
+  para: {
+    color: TEXT,
+    lineHeight: 1.28,
+  },
 
-  /* Key-value table (compact) */
+  /* Key-value table */
   kvWrap: {
     borderWidth: 1,
     borderColor: BRAND_BORDER,
-    borderRadius: 10,
+    borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#ffffff",
+    backgroundColor: CARD,
   },
-  kvRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: BRAND_BORDER },
-  kvRowFirst: { flexDirection: "row" },
+  kvRow: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+  },
+  kvRowFirst: {
+    flexDirection: "row",
+  },
   kvK: {
     width: "42%",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 6.5,
+    paddingHorizontal: 9,
     backgroundColor: BRAND_SOFT,
     color: BRAND_DARK,
-    fontSize: 8.5,
-    fontWeight: 700,
+    fontSize: 8.2,
+    fontWeight: 800,
   },
   kvV: {
     width: "58%",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    fontSize: 9.1,
+    paddingVertical: 6.5,
+    paddingHorizontal: 9,
+    fontSize: 8.8,
     color: INK,
+    fontWeight: 700,
   },
 
-  metaLine: { fontSize: 8.5, color: MUTED },
-  metaStrong: { color: BRAND_DARK, fontWeight: 900 },
-
   /* Declarations */
+  declBlock: {
+    padding: 11,
+    borderRadius: 13,
+    backgroundColor: CARD,
+    borderWidth: 1,
+    borderColor: BRAND_BORDER,
+  },
   declTitle: {
-    fontSize: 10.0,
+    fontSize: 10.2,
     fontWeight: 900,
+    fontFamily: "Helvetica-Bold",
     marginBottom: 5,
     color: BRAND_DARK,
   },
   declIntro: {
-    fontSize: 8.6,
+    fontSize: 8.45,
     color: TEXT,
     marginBottom: 7,
-    lineHeight: 1.22,
+    lineHeight: 1.24,
   },
   groupTitle: {
-    fontSize: 9.2,
+    fontSize: 9.25,
     fontWeight: 900,
+    color: BRAND_DEEP,
     marginTop: 6,
     marginBottom: 4,
-    color: BRAND_DARK,
   },
 
-  itemRow: { flexDirection: "row", marginBottom: 3 },
-  itemKey: { width: 16, fontSize: 8.4, fontWeight: 900, color: BRAND_DARK },
-  itemText: { flex: 1, fontSize: 8.6, color: TEXT, lineHeight: 1.18 },
+  itemRow: {
+    flexDirection: "row",
+    marginBottom: 3.2,
+  },
+  itemKey: {
+    width: 17,
+    fontSize: 8.25,
+    fontWeight: 900,
+    color: BRAND_DARK,
+  },
+  itemText: {
+    flex: 1,
+    fontSize: 8.35,
+    color: TEXT,
+    lineHeight: 1.2,
+  },
 
   divider: {
     marginTop: 8,
@@ -259,7 +441,14 @@ const styles = StyleSheet.create({
     backgroundColor: LINE,
   },
 
-  belowColumns: { marginTop: 10 },
+  belowColumns: {
+    marginTop: 11,
+    padding: 11,
+    borderRadius: 13,
+    backgroundColor: CARD,
+    borderWidth: 1,
+    borderColor: BRAND_BORDER,
+  },
 });
 
 function Header() {
@@ -267,18 +456,26 @@ function Header() {
     <View style={styles.headerWrap} fixed>
       <View style={styles.headerLeft}>
         <Text style={styles.brandText}>Coverza</Text>
+        <Text style={styles.brandTagline}>Coverage that connects</Text>
       </View>
 
       <View style={styles.headerRight}>
-        <Text style={styles.headerRightText}>PROPOSAL</Text>
-        <Text style={styles.headerTitle}>Statement of Fact &amp; Declaration</Text>
+        <View style={styles.headerBadge}>
+          <Text style={styles.headerRightText}>Proposal</Text>
+          <Text style={styles.headerTitle}>Statement of Fact</Text>
+        </View>
       </View>
     </View>
   );
 }
 
-function Footer({ baseUrl, signatureUrl }: { baseUrl: string; signatureUrl?: string | null }) {
-  // Default to your uploaded signature in /public/brand/signature.png
+function Footer({
+  baseUrl,
+  signatureUrl,
+}: {
+  baseUrl: string;
+  signatureUrl?: string | null;
+}) {
   const sigSrc = signatureUrl
     ? signatureUrl.startsWith("http")
       ? signatureUrl
@@ -443,31 +640,49 @@ function ProposalDoc(input: ProposalPdfInput) {
         <Header />
         <Footer baseUrl={input.baseUrl} signatureUrl={input.signatureUrl ?? null} />
 
-        <Text style={styles.h1}>Statement of Fact</Text>
-        <Text style={styles.sub}>Important: Please read carefully.</Text>
+        <View style={styles.heroCard}>
+          <View style={styles.heroTop}>
+            <View style={styles.heroLeft}>
+              <Text style={styles.heroKicker}>Temporary motor insurance</Text>
+              <Text style={styles.h1}>Statement of Fact</Text>
+              <Text style={styles.sub}>
+                Please read this document carefully. It records the information used to assess your temporary insurance.
+              </Text>
+            </View>
+
+            <View style={styles.heroPolicyBox}>
+              <Text style={styles.heroPolicyLabel}>Policy number</Text>
+              <Text style={styles.heroPolicyValue}>{input.policyNumber}</Text>
+
+              <View style={styles.heroDuration}>
+                <Text style={styles.heroPolicyLabel}>Duration</Text>
+                <Text style={styles.heroDurationText}>{durationHuman(input.durationMs)}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.summaryStrip}>
+            <View style={styles.summaryCell}>
+              <Text style={styles.summaryLabel}>Vehicle</Text>
+              <Text style={styles.summaryValue}>{vehicleLine}</Text>
+            </View>
+
+            <View style={styles.summaryCell}>
+              <Text style={styles.summaryLabel}>Starts</Text>
+              <Text style={styles.summaryValue}>{formatLongUKDateTime(input.startAtISO)}</Text>
+            </View>
+
+            <View style={styles.summaryCell}>
+              <Text style={styles.summaryLabel}>Ends</Text>
+              <Text style={styles.summaryValue}>{formatLongUKDateTime(input.endAtISO)}</Text>
+            </View>
+          </View>
+        </View>
 
         <View style={styles.columns}>
           {/* LEFT COLUMN */}
           <View style={styles.colLeft}>
-            <View style={styles.section}>
-              <Text style={styles.metaLine}>
-                Policy number: <Text style={styles.metaStrong}>{input.policyNumber}</Text>
-              </Text>
-              <Text style={[styles.metaLine, { marginTop: 2 }]}>
-                Vehicle: <Text style={styles.metaStrong}>{vehicleLine}</Text>
-              </Text>
-              <Text style={[styles.metaLine, { marginTop: 2 }]}>
-                Start: <Text style={styles.metaStrong}>{formatLongUKDateTime(input.startAtISO)}</Text>
-              </Text>
-              <Text style={[styles.metaLine, { marginTop: 2 }]}>
-                End: <Text style={styles.metaStrong}>{formatLongUKDateTime(input.endAtISO)}</Text>
-              </Text>
-              <Text style={[styles.metaLine, { marginTop: 2 }]}>
-                Duration: <Text style={styles.metaStrong}>{durationHuman(input.durationMs)}</Text>
-              </Text>
-            </View>
-
-            <View style={styles.section}>
+            <View style={styles.sectionCard}>
               <Text style={styles.sectionTitle}>Important</Text>
               <Text style={styles.para}>
                 This Statement of Fact is a record of information given by you which has been used to assess the risk and
@@ -505,7 +720,9 @@ function ProposalDoc(input: ProposalPdfInput) {
 
           {/* RIGHT COLUMN */}
           <View style={styles.colRight}>
-            <DeclarationPart1 />
+            <View style={styles.declBlock}>
+              <DeclarationPart1 />
+            </View>
           </View>
         </View>
 
