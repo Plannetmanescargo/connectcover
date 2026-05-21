@@ -35,7 +35,7 @@ export default function Footer() {
               className="inline-flex items-center gap-2 rounded-xl transition-opacity hover:opacity-95"
             >
               <Image
-                src="/brand/Connectcoverbig.png"
+                src="/brand/connectcoverbig.png"
                 alt=""
                 width={42}
                 height={42}

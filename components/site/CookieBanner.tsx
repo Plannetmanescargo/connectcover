@@ -48,7 +48,7 @@ export default function CookieBanner() {
               We use cookies to keep the site working, understand usage, and improve
               your experience. You can accept all or reject all. Read our{" "}
               <Link
-                href="/privacy-policy"
+                href="/privacy"
                 className="font-semibold text-slate-900 underline underline-offset-2"
               >
                 Privacy Policy
