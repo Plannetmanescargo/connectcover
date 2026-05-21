@@ -1,20 +1,11 @@
 /* /app/page.tsx */
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import QuoteWidget from "@/components/quote/QuoteWidget";
-
-/* =========================================================
-   GoTempCover — Homepage (50k polish pass)
-   - Keeps your current layout exactly (How it works left, image only under quote)
-   - Premium rhythm + alignment + micro-accessibility
-   - Reduced-motion friendly (no hover scaling/parallax when reduced)
-   - Image card feels intentional (taller aspect + matched shadow language)
-   - Cleaner separation between chips -> how it works
-========================================================= */
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
@@ -27,48 +18,72 @@ const fadeUp = {
   }),
 };
 
-const fadeIn = {
-  hidden: { opacity: 0 },
-  show: (d = 0) => ({
-    opacity: 1,
-    transition: { duration: 0.7, ease: easeOut, delay: d },
-  }),
-};
-
 const complianceLine =
-  "Eligibility, underwriting and acceptance apply. You’ll review details before payment.";
+  "Eligibility, underwriting and acceptance apply. You’ll review your details before payment.";
 
-const HERO_CHIPS = [
+const HERO_POINTS = [
+  "Choose exact start times",
+  "Flexible duration from 1 hour up to 12 months",
+  "Documents issued instantly after purchase",
+] as const;
+
+const FEATURE_CARDS = [
+  {
+    title: "Choose your timing",
+    desc: "Set your cover to start when you need it, with flexible duration options from 1 hour to 12 months.",
+    icon: <IconClock />,
+  },
+  {
+    title: "Flexible cover",
+    desc: "Arrange temporary insurance around specific journeys, short-term use, learner practice or extra vehicle access.",
+    icon: <IconBolt />,
+  },
+  {
+    title: "Documents, instantly",
+    desc: "After purchase, your certificate and policy documents are issued straight away and sent to your email.",
+    icon: <IconDoc />,
+  },
+  {
+    title: "Easy retrieval",
+    desc: "Need your documents again later? Retrieve your policy details quickly without waiting around.",
+    icon: <IconSearch />,
+  },
+] as const;
+
+const STEPS = [
+  {
+    n: 1,
+    title: "Check your vehicle",
+    desc: "Enter your registration and confirm the vehicle details.",
+    icon: <IconCar />,
+  },
+  {
+    n: 2,
+    title: "Choose your cover",
+    desc: "Pick when it starts and how long you need it for.",
+    icon: <IconClock />,
+  },
+  {
+    n: 3,
+    title: "See your quote",
+    desc: "Review your details and check the price before you continue.",
+    icon: <IconShield />,
+  },
+  {
+    n: 4,
+    title: "Get your documents",
+    desc: "Pay securely and receive your documents instantly after purchase.",
+    icon: <IconDoc />,
+  },
+] as const;
+
+const USE_CASES = [
   "Borrowing a car",
   "Learner practice",
   "Short-term van use",
   "Cover needed today",
-] as const;
-
-const PROOF = [
-  { title: "Exact start & end times", desc: "Choose precisely when your cover begins and ends.", dot: "bg-indigo-500" },
-  { title: "Secure checkout", desc: "Pay safely using our encrypted online checkout.", dot: "bg-blue-500" },
-  { title: "Instant documents", desc: "Certificate and policy documents issued immediately after purchase.", dot: "bg-emerald-500" },
-] as const;
-
-const PRODUCT_LINKS = [
-  { href: "/car", label: "Car cover" },
-  { href: "/van", label: "Van cover" },
-  { href: "/learner", label: "Learner cover" },
-  { href: "/impound", label: "Impound cover" },
-] as const;
-
-const TRUST_ROWS = [
-  "Transparent journey — review before you pay",
-  "Documents issued instantly after purchase and emailed",
-  "Support available when you need it (Mon–Sat)",
-] as const;
-
-const HELP_TOPICS = [
-  "How to retrieve documents using your policy reference",
-  "Changing cover dates before purchase",
-  "Vehicle not found — entering details manually",
-  "Eligibility and insurer acceptance",
+  "Extra vehicle access",
+  "Specific time-window cover",
 ] as const;
 
 const FAQS = [
@@ -78,19 +93,15 @@ const FAQS = [
   },
   {
     q: "What do I need to get a quote?",
-    a: "Your vehicle registration, your cover dates/times, and your basic driver details. If lookup can’t find your vehicle, you can enter make/model manually.",
+    a: "Usually your vehicle registration, cover start details, duration and your driver information. If vehicle lookup does not find your details, you can enter them manually.",
   },
   {
     q: "Can I choose an exact start time?",
-    a: "Yes — you pick the exact start and end time. If you’re starting immediately, use Start now to select a convenient time.",
+    a: "Yes. You can choose when your cover should start, including a specific date and time.",
   },
   {
     q: "How do I retrieve my policy documents later?",
-    a: "Use Retrieve policy in the header or footer. You can access documents using your details or policy reference.",
-  },
-  {
-    q: "Is everyone eligible?",
-    a: "Eligibility depends on driver and vehicle details, underwriting rules, and acceptance by the insurer. You’ll see what’s available as you progress.",
+    a: "Use Retrieve policy to access your certificate and policy documents using your details or policy reference.",
   },
 ] as const;
 
@@ -99,36 +110,31 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen text-slate-900">
-      {/* a11y: skip link */}
       <a
         href="#quote"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-slate-900 focus:shadow-lg focus:ring-4 focus:ring-blue-200/60"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-white focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-slate-900 focus:shadow-lg"
       >
         Skip to quote
       </a>
 
       <main className="bg-wash">
-        <StickyMiniCta />
-
         {/* HERO */}
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-sky-400/10 via-blue-300/10 to-indigo-300/10 animate-gradient" />
-          <ParallaxTexture />
-          <AuroraOrbs />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(108,76,243,0.14),transparent_36%),radial-gradient(circle_at_85%_10%,rgba(74,96,245,0.10),transparent_28%),linear-gradient(to_bottom,rgba(255,255,255,0.72),rgba(248,250,252,0.96))]" />
 
-          <div className="relative z-10 container-app pt-10 sm:pt-14 lg:pt-16 pb-10 sm:pb-14">
-            <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+          <div className="container-app relative z-10 pb-12 pt-10 sm:pb-16 sm:pt-14 lg:pb-20 lg:pt-18">
+            <div className="grid gap-10 xl:grid-cols-[minmax(0,1.02fr)_minmax(420px,0.98fr)] xl:items-start">
               {/* Left */}
-              <div className="min-w-0">
+              <div className="min-w-0 pt-2 sm:pt-4">
                 <motion.div
                   initial="hidden"
                   animate="show"
                   variants={fadeUp}
                   custom={0.02}
-                  className="inline-flex items-center gap-2 rounded-full bg-white/75 border border-slate-200 px-4 py-1.5 text-[12px] text-slate-600 shadow-sm backdrop-blur"
+                  className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.14)] bg-white/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(108,76,243)] backdrop-blur"
                 >
-                  <span className="h-2 w-2 rounded-full bg-blue-500" />
-                  Help available when it matters
+                  <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+                  Coverage that connects
                 </motion.div>
 
                 <motion.h1
@@ -136,13 +142,9 @@ export default function HomePage() {
                   animate="show"
                   variants={fadeUp}
                   custom={0.08}
-                  className="mt-5 text-4xl sm:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight leading-[1.06]"
+                  className="mt-6 max-w-[9.5ch] text-[3.25rem] font-extrabold leading-[0.94] tracking-[-0.065em] text-slate-950 sm:text-[4.15rem] lg:text-[4.9rem]"
                 >
-                  Temporary insurance cover,{" "}
-                  <span className="bg-gradient-to-r from-blue-700 to-sky-500 bg-clip-text text-transparent">
-                    made simple
-                  </span>
-                  .
+                  Temporary cover that fits around you
                 </motion.h1>
 
                 <motion.p
@@ -150,10 +152,11 @@ export default function HomePage() {
                   animate="show"
                   variants={fadeUp}
                   custom={0.14}
-                  className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl"
+                  className="mt-6 max-w-[33rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]"
                 >
-                  Choose your cover window to the minute. Review your details, see a clear price, then pay securely.
-                  Your Certificate and documents are issued instantly after purchase and emailed to you.
+                  Choose when your cover starts, set the duration you need, and
+                  see your quote in minutes. Documents are issued instantly after
+                  purchase, so everything stays clear from quote to cover.
                 </motion.p>
 
                 <motion.div
@@ -161,14 +164,17 @@ export default function HomePage() {
                   animate="show"
                   variants={fadeUp}
                   custom={0.18}
-                  className="mt-7 flex flex-col sm:flex-row gap-3"
+                  className="mt-8 flex flex-col gap-3 sm:flex-row"
                 >
                   <motion.div
                     whileHover={reduceMotion ? undefined : { scale: 1.02 }}
                     whileTap={reduceMotion ? undefined : { scale: 0.985 }}
                   >
-                    <Link className="btn-primary w-full sm:w-auto" href="#quote">
-                      Start a quote
+                    <Link
+                      className="btn-primary btn-primary-lg w-full text-white sm:w-auto"
+                      href="#quote"
+                    >
+                      Start your quote
                     </Link>
                   </motion.div>
 
@@ -176,55 +182,118 @@ export default function HomePage() {
                     whileHover={reduceMotion ? undefined : { scale: 1.01 }}
                     whileTap={reduceMotion ? undefined : { scale: 0.985 }}
                   >
-                    <Link className="btn-ghost w-full sm:w-auto" href="/retrieve-policy">
+                    <Link
+                      className="btn-ghost w-full sm:w-auto"
+                      href="/retrieve-policy"
+                    >
                       Retrieve policy
                     </Link>
                   </motion.div>
                 </motion.div>
 
+<motion.div
+  initial="hidden"
+  animate="show"
+  variants={fadeUp}
+  custom={0.22}
+  className="mt-8 max-w-[35rem]"
+>
+  <div className="flex flex-col gap-4 border-t border-slate-200/80 pt-5">
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[rgba(108,76,243,0.14)] bg-[rgba(108,76,243,0.08)] text-[rgb(108,76,243)]">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path
+            d="M2.5 6.2 4.8 8.5 9.5 3.8"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      <p className="text-sm leading-6 text-slate-700">
+        Choose exact start times, flexible duration, and get your documents instantly.
+      </p>
+    </div>
+
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[rgba(108,76,243,0.14)] bg-[rgba(108,76,243,0.08)] text-[rgb(108,76,243)]">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path
+            d="M2.5 6.2 4.8 8.5 9.5 3.8"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      <p className="text-sm leading-6 text-slate-700">
+        Simple journey designed to keep cover clear from quote to documents.
+      </p>
+    </div>
+  </div>
+</motion.div>
+
                 <motion.div
                   initial="hidden"
                   animate="show"
                   variants={fadeUp}
-                  custom={0.22}
-                  className="mt-7 grid gap-3 sm:grid-cols-3 max-w-xl"
-                >
-                  {PROOF.map((p) => (
-                    <ProofCard key={p.title} title={p.title} desc={p.desc} dot={p.dot} />
-                  ))}
-                </motion.div>
-
-                <div className="mt-6 text-[12px] text-slate-500 max-w-xl">{complianceLine}</div>
-
-                <motion.div
-                  initial="hidden"
-                  animate="show"
-                  variants={fadeIn}
                   custom={0.26}
-                  className="mt-6 flex flex-wrap gap-2 max-w-xl"
+                  className="mt-6 max-w-[34rem] space-y-2 text-[12px] leading-6 text-slate-500"
                 >
-                  {HERO_CHIPS.map((t) => (
-                    <Chip key={t}>{t}</Chip>
-                  ))}
+                  <div>{complianceLine}</div>
+                  <div className="text-slate-400">
+                    Flexible temporary insurance for clearer, more confident cover.
+                  </div>
                 </motion.div>
 
-                {/* premium separator: chips -> how it works */}
-                <div className="mt-5 h-px w-full max-w-xl bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-
-                {/* How it works panel (under the chips) */}
                 <motion.div
                   initial="hidden"
                   animate="show"
                   variants={fadeUp}
                   custom={0.3}
-                  className="mt-5"
-                  id="how"
+                  className="mt-8 grid max-w-[35rem] grid-cols-3 gap-3"
                 >
-                  <HowItWorksPanel />
+                  <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm">
+                    <div className="relative aspect-[4/5] w-full">
+                      <Image
+                        src="/images/hero-car-1.png"
+                        alt="Driving in the city with Coverza"
+                        fill
+                        sizes="(min-width: 1280px) 11vw, (min-width: 1024px) 14vw, 33vw"
+                        className="object-cover object-center"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm">
+                    <div className="relative aspect-[4/5] w-full">
+                      <Image
+                        src="/images/hero-car-2.png"
+                        alt="Flexible temporary vehicle cover"
+                        fill
+                        sizes="(min-width: 1280px) 11vw, (min-width: 1024px) 14vw, 33vw"
+                        className="object-cover object-center"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm">
+                    <div className="relative aspect-[4/5] w-full">
+                      <Image
+                        src="/images/hero-car-3.png"
+                        alt="Temporary insurance designed for short-term use"
+                        fill
+                        sizes="(min-width: 1280px) 11vw, (min-width: 1024px) 14vw, 33vw"
+                        className="object-cover object-center"
+                      />
+                    </div>
+                  </div>
                 </motion.div>
               </div>
 
-              {/* Right: Quote + Hero Image */}
+              {/* Right */}
               <motion.div
                 initial="hidden"
                 animate="show"
@@ -233,198 +302,206 @@ export default function HomePage() {
                 id="quote"
                 className="scroll-mt-24"
               >
-                <div className="relative rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70 p-6 sm:p-7">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-12 rounded-t-3xl bg-gradient-to-b from-sky-100/60 to-transparent" />
-                  <div className="relative">
+                <div className="relative rounded-[2rem] border border-slate-200/90 bg-white/86 p-3 shadow-[0_30px_80px_rgba(15,23,42,0.10)] backdrop-blur sm:p-4">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-24 rounded-t-[2rem] bg-gradient-to-b from-[rgba(108,76,243,0.10)] to-transparent" />
+                  <div className="relative rounded-[1.5rem] border border-slate-200 bg-white p-4 sm:p-5">
                     <QuoteWidget />
                   </div>
                 </div>
 
-                {/* image only (as you want) */}
-                <HeroImageCard />
+                <div className="mt-5">
+                  <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm backdrop-blur sm:p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          Clear from quote to documents
+                        </div>
+                        <div className="mt-2 text-lg font-extrabold tracking-tight text-slate-950 sm:text-xl">
+                          Trusted online journey
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                          Set your start time, choose your duration, review your
+                          details, and retrieve your documents whenever you need them.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          Timing
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-slate-950">
+                          Exact start times
+                        </div>
+                      </div>
+
+                      <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          Documents
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-slate-950">
+                          Issued instantly
+                        </div>
+                      </div>
+
+                      <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          Access
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-slate-950">
+                          Easy retrieval
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* TRUST / WHY */}
-        <section className="section">
-          <div className="container-app">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm">
-              <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
-                <div>
-                  <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-                    Built like a proper insurer journey
-                  </h2>
-                  <p className="mt-3 text-sm sm:text-base text-slate-600 max-w-xl">
-                    Clear timing, clear pricing, and documents you can actually find when you need them. No messy
-                    steps, no guesswork.
-                  </p>
+        {/* WHY CONNECT COVER */}
+        <section className="section relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(108,76,243,0.08),transparent_30%),radial-gradient(circle_at_88%_18%,rgba(74,96,245,0.06),transparent_26%),linear-gradient(to_bottom,rgba(255,255,255,0.72),rgba(248,250,252,0.92))]" />
 
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    <Pill icon={<IconShield />}>Secure checkout</Pill>
-                    <Pill icon={<IconClock />}>Exact times</Pill>
-                    <Pill icon={<IconDoc />}>Instant documents</Pill>
-                    <Pill icon={<IconSearch />}>Easy retrieval</Pill>
-                  </div>
-
-                  <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-extrabold text-slate-900">Straightforward</div>
-                        <p className="mt-1 text-sm text-slate-600">{complianceLine}</p>
-                      </div>
-                      <span className="badge">Clear</span>
-                    </div>
-
-                    <div className="mt-4 grid gap-2 text-[13px] text-slate-700">
-                      {TRUST_ROWS.map((t) => (
-                        <TrustRow key={t} text={t} />
-                      ))}
-                    </div>
-                  </div>
+          <div className="container-app relative z-10">
+            <div className="grid gap-12 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] xl:items-start">
+              {/* Left */}
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.12)] bg-white/75 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(108,76,243)] backdrop-blur">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+                  Why Coverza
                 </div>
 
-                {/* Keep ONE “Confidence” panel */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                        Confidence
-                      </div>
-                      <div className="mt-2 text-lg sm:text-xl font-extrabold text-slate-900">
-                        Clear cover, fast documents
-                      </div>
-                      <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                        Set your window precisely. After purchase, documents are issued instantly and emailed.
-                      </p>
-                    </div>
-                    <span className="badge">Premium</span>
-                  </div>
-
-                  <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                    <MiniStat label="Quote" value="Clear pricing" />
-                    <MiniStat label="Documents" value="Instant" />
-                    <MiniStat label="Policy Access" value="Self-serve" />
-                  </div>
-
-                  <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <Link className="btn-primary justify-center" href="#quote">
-                      Start a quote
-                    </Link>
-                    <Link className="btn-ghost justify-center" href="/retrieve-policy">
-                      Retrieve policy
-                    </Link>
-                  </div>
-
-                  <div className="mt-4 text-[12px] text-slate-500">
-                    Underwriting rules and insurer acceptance apply.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* STEPS */}
-        <section className="section">
-          <div className="container-app">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm">
-              <div className="text-center max-w-2xl mx-auto">
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-                  A clean quote journey
+                <h2 className="mt-5 max-w-[12ch] text-3xl font-extrabold leading-[0.97] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:text-[4rem]">
+                  A clearer way to arrange temporary cover
                 </h2>
-                <p className="mt-3 text-sm sm:text-base text-slate-600">
-                  From registration to documents — in four clear steps.
+
+                <p className="mt-5 max-w-[35rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+                  Coverza combines a calmer editorial feel with a modern,
+                  product-led journey — making temporary insurance easier to quote,
+                  easier to understand and easier to access later.
                 </p>
               </div>
 
-              <div className="mt-10 grid gap-8 md:grid-cols-4">
-                <StepCard
-                  n={1}
-                  title="Vehicle"
-                  desc="Enter your registration and confirm vehicle details."
-                  icon={<IconCar />}
-                />
-                <StepCard n={2} title="Driver" desc="Add your details so quotes are personalised." icon={<IconId />} />
-                <StepCard n={3} title="Options" desc="Pick the best-value option for your cover period." icon={<IconBolt />} />
-                <StepCard
-                  n={4}
-                  title="Documents"
-                  desc="Pay securely — documents issued instantly after purchase."
-                  icon={<IconDoc />}
-                />
-              </div>
-
-              <div className="mt-10 flex justify-center">
-                <Link href="#quote" className="btn-primary">
-                  Start a quote
-                </Link>
-              </div>
-
-              <div className="mt-4 text-center text-[12px] text-slate-500">{complianceLine}</div>
-            </div>
-          </div>
-        </section>
-
-        {/* SUPPORT */}
-        <section className="section">
-          <div className="container-app">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 shadow-sm">
-              <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-                <div>
-                  <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Need help?</h2>
-                  <p className="mt-3 text-sm sm:text-base text-slate-600 max-w-xl">
-                    We can help with quotes, documents and policy retrieval.
-                  </p>
-
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    <InfoCard
-                      title="Email"
-                      value="support@gotempcover.com"
-                      helper="We usually reply within one business day."
-                      icon={<IconMail />}
-                      href="mailto:support@gotempcover.com"
-                    />
-                    <InfoCard
-                      title="Opening hours"
-                      value="Mon–Sat, 9am–5pm"
-                      helper="Closed Sundays & bank holidays."
-                      icon={<IconClock />}
-                    />
-                  </div>
-
-                  <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <Link className="btn-ghost justify-center" href="/contact">
-                      Contact us
-                    </Link>
-                    <Link className="btn-ghost justify-center" href="/help-support">
-                      Help centre
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-6 sm:p-7">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">Help topics</div>
-                      <div className="mt-2 text-xl font-extrabold tracking-tight text-slate-900">Quick answers</div>
+              {/* Right */}
+              <div className="xl:pt-1">
+                <div className="grid gap-0 border-t border-slate-200/80">
+                  <div className="grid gap-4 py-6 sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-8 lg:py-7">
+                    <div className="flex items-center justify-between sm:block">
+                      <div className="inline-flex items-center gap-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          01
+                        </span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]/60 sm:hidden" />
+                      </div>
+                      <div className="mt-0 sm:mt-7 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Timing
+                      </div>
                     </div>
-                    <span className="badge">Support</span>
+
+                    <div>
+                      <div className="flex items-start gap-3">
+                        <span className="mt-2 hidden h-2 w-2 shrink-0 rounded-full bg-[rgb(108,76,243)]/60 sm:block" />
+                        <div>
+                          <div className="text-[1.18rem] font-semibold leading-[1.08] tracking-[-0.03em] text-slate-950 sm:text-[1.34rem]">
+                            Choose exact start times around your plans
+                          </div>
+                          <p className="mt-2.5 max-w-[37rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                            Arrange cover for when you actually need it, without
+                            adjusting your day around rigid options.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="mt-4 grid gap-2 text-sm text-slate-700">
-                    {HELP_TOPICS.map((t) => (
-                      <Reason key={t} text={t} />
-                    ))}
+                  <div className="grid gap-4 border-t border-slate-200/80 py-6 sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-8 lg:py-7">
+                    <div className="flex items-center justify-between sm:block">
+                      <div className="inline-flex items-center gap-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          02
+                        </span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-[rgb(74,96,245)]/60 sm:hidden" />
+                      </div>
+                      <div className="mt-0 sm:mt-7 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Flexibility
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-start gap-3">
+                        <span className="mt-2 hidden h-2 w-2 shrink-0 rounded-full bg-[rgb(74,96,245)]/60 sm:block" />
+                        <div>
+                          <div className="text-[1.18rem] font-semibold leading-[1.08] tracking-[-0.03em] text-slate-950 sm:text-[1.34rem]">
+                            From 1 hour to 12 months, with one clear journey
+                          </div>
+                          <p className="mt-2.5 max-w-[37rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                            Short-term cover should adapt to real driving needs,
+                            whether it’s a quick trip, temporary use, or a longer stop-gap.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
-                    <div className="text-sm font-extrabold text-slate-900">Already purchased cover?</div>
-                    <p className="mt-1 text-sm text-slate-600">Retrieve your Certificate and policy documents anytime.</p>
-                    <Link className="btn-primary mt-4 justify-center w-full" href="/retrieve-policy">
-                      Retrieve policy
-                    </Link>
+                  <div className="grid gap-4 border-t border-slate-200/80 py-6 sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-8 lg:py-7">
+                    <div className="flex items-center justify-between sm:block">
+                      <div className="inline-flex items-center gap-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          03
+                        </span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]/45 sm:hidden" />
+                      </div>
+                      <div className="mt-0 sm:mt-7 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Clarity
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-start gap-3">
+                        <span className="mt-2 hidden h-2 w-2 shrink-0 rounded-full bg-[rgb(108,76,243)]/45 sm:block" />
+                        <div>
+                          <div className="text-[1.18rem] font-semibold leading-[1.08] tracking-[-0.03em] text-slate-950 sm:text-[1.34rem]">
+                            Review everything clearly before payment
+                          </div>
+                          <p className="mt-2.5 max-w-[37rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                            Vehicle details, timing and quote information are presented
+                            in a way that feels readable and easy to check.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 border-t border-b border-slate-200/80 py-6 sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-8 lg:py-7">
+                    <div className="flex items-center justify-between sm:block">
+                      <div className="inline-flex items-center gap-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          04
+                        </span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-400/60 sm:hidden" />
+                      </div>
+                      <div className="mt-0 sm:mt-7 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Documents
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-start gap-3">
+                        <span className="mt-2 hidden h-2 w-2 shrink-0 rounded-full bg-slate-400/60 sm:block" />
+                        <div>
+                          <div className="text-[1.18rem] font-semibold leading-[1.08] tracking-[-0.03em] text-slate-950 sm:text-[1.34rem]">
+                            Issued instantly and easy to retrieve later
+                          </div>
+                          <p className="mt-2.5 max-w-[37rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                            Once purchased, your documents are available straight away
+                            and remain easy to access whenever you need them again.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -432,93 +509,375 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* FAQ */}
-        <section className="section">
-          <div className="container-app">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <div className="max-w-2xl">
-                  <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-                    Questions, answered
-                  </h2>
-                  <p className="mt-2 text-sm sm:text-base text-slate-600">
-                    Everything you need to know before you buy temporary cover.
-                  </p>
+{/* CHOOSE THE COVER THAT FITS */}
+<section className="section">
+  <div className="container-app">
+    <div className="mx-auto max-w-3xl text-center">
+      <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.14)] bg-white/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(108,76,243)] backdrop-blur">
+        <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+        Choose the cover that fits
+      </div>
+
+      <h2 className="mt-6 text-4xl font-extrabold tracking-[-0.055em] text-slate-950 sm:text-5xl lg:text-[4rem]">
+        Flexible cover for different driving needs
+      </h2>
+
+      <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+        Whether you need cover for a car, van or learner driving, Coverza
+        keeps the experience clear, flexible and easy to manage online.
+      </p>
+    </div>
+
+    <div className="mt-12 grid gap-5 lg:grid-cols-3">
+      <CoverOptionCard
+        eyebrow="Learner cover"
+        title="Learner driver insurance"
+        desc="Temporary learner cover designed for short-term practice in a way that feels straightforward, flexible and easy to arrange."
+        points={[
+          "Ideal for short-term practice",
+          "Clear quote journey",
+          "Instant documents after purchase",
+        ]}
+        href="/learner"
+        cta="Explore learner cover"
+        icon={<IconId />}
+      />
+
+      <CoverOptionCard
+        eyebrow="Car cover"
+        title="Temporary car insurance"
+        desc="Flexible short-term car cover for borrowing a car, driving today, or arranging insurance around a specific plan."
+        points={[
+          "Choose exact start times",
+          "From 1 hour to 12 months",
+          "Documents issued instantly",
+        ]}
+        href="/car"
+        cta="Explore car cover"
+        icon={<IconCar />}
+        featured
+      />
+
+      <CoverOptionCard
+        eyebrow="Van cover"
+        title="Temporary van insurance"
+        desc="Short-term van cover for practical use, moving plans, work needs, or temporary access to a vehicle you only need for a set period."
+        points={[
+          "Flexible short-term options",
+          "Built for practical vehicle use",
+          "Retrieve documents later anytime",
+        ]}
+        href="/van"
+        cta="Explore van cover"
+        icon={<IconBolt />}
+      />
+    </div>
+
+    <div className="mt-10 flex justify-center">
+      <Link href="#quote" className="btn-primary !text-white">
+        Start your quote
+      </Link>
+    </div>
+  </div>
+</section>
+
+        {/* WHEN CONNECT COVER MAKES SENSE */}
+        <section className="section relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(108,76,243,0.05),transparent_24%),linear-gradient(to_bottom,rgba(255,255,255,0.72),rgba(248,250,252,0.94))]" />
+
+          <div className="container-app relative z-10">
+            <div className="mx-auto max-w-3xl text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.12)] bg-white/75 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(108,76,243)] backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+                When Coverza makes sense
+              </div>
+
+              <h2 className="mt-6 text-4xl font-extrabold tracking-[-0.055em] text-slate-950 sm:text-5xl lg:text-[4rem]">
+                Built for real short-term driving moments
+              </h2>
+
+              <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+                Temporary cover is usually arranged for a specific reason. Coverza
+                fits the situations people actually need it for.
+              </p>
+            </div>
+
+            <div className="mt-12 grid gap-5 md:grid-cols-2">
+              <motion.div
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="group rounded-[1.8rem] border border-slate-200/80 bg-white/78 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur transition-all duration-300 hover:border-[rgba(108,76,243,0.18)] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] sm:p-7"
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Borrowing
                 </div>
+                <div className="mt-3 text-[1.45rem] font-semibold leading-[1.08] tracking-[-0.035em] text-slate-950">
+                  Borrowing a car for the day
+                </div>
+                <p className="mt-3 max-w-[32rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                  Ideal when you need short-term cover for a car you do not drive regularly.
+                </p>
+              </motion.div>
 
-                <Link href="/more/faq" className="btn-ghost hidden sm:inline-flex">
-                  Visit FAQs
-                </Link>
-              </div>
+              <motion.div
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="group rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(245,242,255,0.92),rgba(255,255,255,0.82))] p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur transition-all duration-300 hover:border-[rgba(108,76,243,0.18)] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] sm:p-7"
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Learner
+                </div>
+                <div className="mt-3 text-[1.45rem] font-semibold leading-[1.08] tracking-[-0.035em] text-slate-950">
+                  Learner practice in a familiar vehicle
+                </div>
+                <p className="mt-3 max-w-[32rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                  Useful for learners who want more flexibility around when and where they practise.
+                </p>
+              </motion.div>
 
-              <div className="mt-6 grid gap-3">
-                {FAQS.map((f) => (
-                  <FaqItem key={f.q} q={f.q} a={f.a} />
-                ))}
-              </div>
+              <motion.div
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="group rounded-[1.8rem] border border-slate-200/80 bg-white/78 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur transition-all duration-300 hover:border-[rgba(108,76,243,0.18)] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] sm:p-7"
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Practical use
+                </div>
+                <div className="mt-3 text-[1.45rem] font-semibold leading-[1.08] tracking-[-0.035em] text-slate-950">
+                  Short-term van cover for a specific job
+                </div>
+                <p className="mt-3 max-w-[32rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                  A clearer option when you only need van cover for a defined period or task.
+                </p>
+              </motion.div>
 
-              <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <Link href="#quote" className="btn-primary justify-center">
-                  Start a quote
-                </Link>
-                <Link href="/retrieve-policy" className="btn-ghost justify-center">
-                  Retrieve policy
-                </Link>
-              </div>
-
-              <div className="mt-8 flex flex-col gap-2 text-[12px] text-slate-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
-                {[
-                  "Eligibility and underwriting apply",
-                  "Always read your policy documents carefully",
-                  "You’ll review details before payment",
-                ].map((t) => (
-                  <div key={t} className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                    <span>{t}</span>
-                  </div>
-                ))}
-              </div>
+              <motion.div
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="group rounded-[1.8rem] border border-slate-200/80 bg-white/78 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur transition-all duration-300 hover:border-[rgba(108,76,243,0.18)] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] sm:p-7"
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Immediate cover
+                </div>
+                <div className="mt-3 text-[1.45rem] font-semibold leading-[1.08] tracking-[-0.035em] text-slate-950">
+                  Cover starting today
+                </div>
+                <p className="mt-3 max-w-[32rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                  Helpful when you need to arrange temporary insurance quickly and keep everything simple.
+                </p>
+              </motion.div>
             </div>
           </div>
         </section>
 
-        {/* FINAL CTA */}
-        <section className="section">
-          <div className="container-app">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-              <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Ready when you are.</h2>
-                  <p className="mt-3 text-sm sm:text-base text-slate-600 max-w-xl">
-                    Start in seconds. Confirm details, pick the best-value option for your period, then pay securely.
-                  </p>
+                {/* TESTIMONIALS */}
+        <section className="section relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(108,76,243,0.05),transparent_24%),radial-gradient(circle_at_82%_20%,rgba(74,96,245,0.04),transparent_22%),linear-gradient(to_bottom,rgba(255,255,255,0.72),rgba(248,250,252,0.94))]" />
 
-                  <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <Link className="btn-primary justify-center" href="#quote">
-                      Start a quote
-                    </Link>
-                    <Link className="btn-ghost justify-center" href="/retrieve-policy">
-                      Retrieve policy
-                    </Link>
-                  </div>
+          <div className="container-app relative z-10">
+            <div className="mx-auto max-w-3xl text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.12)] bg-white/75 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(108,76,243)] backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+                Driver stories
+              </div>
 
-                  <div className="mt-4 text-[12px] text-slate-500">{complianceLine}</div>
+              <h2 className="mt-6 text-4xl font-extrabold tracking-[-0.055em] text-slate-950 sm:text-5xl lg:text-[4rem]">
+                Trusted by drivers who need cover quickly
+              </h2>
+
+              <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+                Real short-term cover is often arranged for a real-life reason.
+                Here are a few examples of how Coverza can help.
+              </p>
+            </div>
+
+            <div className="mt-12 grid gap-5 lg:grid-cols-3">
+              <TestimonialCard
+                name="Amir"
+                location="Birmingham"
+                scenario="Borrowing a car"
+                quote="I needed cover for a family car for the day and wanted something quick and easy to sort. The whole journey felt clear, and the documents came through straight after payment."
+              />
+
+              <TestimonialCard
+                name="Sophie"
+                location="Leeds"
+                scenario="Learner practice"
+                quote="I wanted temporary learner cover so I could get extra practice in a familiar car. It felt much easier to follow than I expected and was simple to arrange on my phone."
+                featured
+              />
+
+              <TestimonialCard
+                name="Daniel"
+                location="Bristol"
+                scenario="Same-day cover"
+                quote="I needed temporary cover starting that day and didn’t want a long process. Being able to choose the timing and get documents instantly made it feel very straightforward."
+              />
+            </div>
+
+            <div className="mt-10 flex flex-col items-center gap-3">
+              <div className="text-[12px] text-slate-500">
+                Short-term cover for real situations, with a clearer online journey.
+              </div>
+
+              <Link href="#quote" className="btn-primary !text-white">
+                Start your quote
+              </Link>
+            </div>
+          </div>
+        </section>
+
+
+        {/* FINAL QUESTIONS / SUPPORT */}
+        <section className="section relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(108,76,243,0.05),transparent_24%),radial-gradient(circle_at_88%_0%,rgba(74,96,245,0.04),transparent_24%)]" />
+
+          <div className="container-app relative z-10">
+            {/* TOP ROW */}
+            <div className="grid gap-12 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] xl:items-start">
+              {/* Left */}
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.12)] bg-white/75 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(108,76,243)] backdrop-blur">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+                  Questions and support
                 </div>
 
-                <div className="rounded-2xl bg-slate-50/70 border border-slate-200 p-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[12px] font-extrabold text-slate-900">Popular reasons</div>
-                    <span className="badge">Common</span>
-                  </div>
-                  <div className="mt-3 grid gap-2 text-sm text-slate-700">
-                    <Reason text="Borrowing a car for the day" />
-                    <Reason text="Short-term van use for work or moving" />
-                    <Reason text="Learner driving practice" />
-                    <Reason text="Cover needed quickly for a specific time window" />
+                <h2 className="mt-5 max-w-[15ch] text-3xl font-extrabold leading-[0.94] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:text-[4rem]">
+                  Clear help, right when you need it
+                </h2>
+
+                <p className="mt-5 max-w-[36rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+                  The final part of the journey should feel just as clear as the
+                  first. Find quick answers, retrieve your documents later, or
+                  get support if you need a hand.
+                </p>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link
+                    href="/more/faq"
+                    className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    View full FAQs
+                  </Link>
+
+                  <Link
+                    href="/help-support"
+                    className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    Help centre
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right */}
+              <div className="min-w-0">
+                <div className="border-t border-slate-200/80">
+                  <FaqLineItem
+                    question="How quickly can I get temporary cover?"
+                    answer="Most people can complete the journey in minutes. Once purchased, documents are issued instantly."
+                  />
+                  <FaqLineItem
+                    question="Can I choose an exact start time?"
+                    answer="Yes. You can choose exactly when your temporary cover should begin, so it fits around your plans."
+                  />
+                  <FaqLineItem
+                    question="How do I retrieve my documents later?"
+                    answer="If you have already purchased cover, you can retrieve your policy documents again through the retrieval journey without starting over."
+                  />
+                  <FaqLineItem
+                    question="What details do I need to start?"
+                    answer="Usually your registration and the main driver and cover details needed to begin your quote."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* BOTTOM ROW - SINGLE CENTERED SUPPORT / RETRIEVAL CARD */}
+            <div className="mx-auto mt-12 max-w-[980px]">
+              <div className="rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(245,242,255,0.88),rgba(255,255,255,0.97))] p-6 shadow-[0_14px_36px_rgba(15,23,42,0.05)] sm:p-8 lg:p-10">
+                <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-10">
+                  {/* Left */}
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Already purchased cover?
+                    </div>
+
+                    <h3 className="mt-3 text-[2rem] font-extrabold leading-[0.96] tracking-[-0.05em] text-slate-950 sm:text-[2.35rem] lg:whitespace-nowrap">
+                      Retrieve documents or get support anytime
+                    </h3>
+
+                    <p className="mt-4 max-w-[40rem] text-[1rem] leading-8 text-slate-600">
+                      If you have already bought cover, you can retrieve your policy
+                      documents again without needing to start over. If you need help,
+                      our support team is also easy to reach.
+                    </p>
+
+                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-[1.15rem] border border-slate-200/80 bg-white/85 px-4 py-4">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          Retrieval
+                        </div>
+                        <div className="mt-2 text-sm font-semibold text-slate-950">
+                          Access later
+                        </div>
+                      </div>
+
+                      <div className="rounded-[1.15rem] border border-slate-200/80 bg-white/85 px-4 py-4">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          Documents
+                        </div>
+                        <div className="mt-2 text-sm font-semibold text-slate-950">
+                          Issued instantly
+                        </div>
+                      </div>
+
+                      <div className="rounded-[1.15rem] border border-slate-200/80 bg-white/85 px-4 py-4">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          Support
+                        </div>
+                        <div className="mt-2 text-sm font-semibold text-slate-950">
+                          Help available
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                      <Link href="/retrieve-policy" className="btn-primary !text-white">
+                        Retrieve policy
+                      </Link>
+
+                      <Link href="#quote" className="btn-ghost">
+                        Start your quote
+                      </Link>
+
+                      <a href="mailto:support@coverza.com" className="btn-ghost">
+                        Contact support
+                      </a>
+                    </div>
                   </div>
 
-                  <div className="mt-4 text-[12px] text-slate-500">
-                    Tip: Have your reg and dates ready — most people finish in a few minutes.
+                  {/* Right */}
+                  <div className="rounded-[1.5rem] border border-slate-200/80 bg-white/88 px-6 py-6 shadow-[0_8px_20px_rgba(15,23,42,0.03)]">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      Email support
+                    </div>
+
+                    <div className="mt-3 whitespace-nowrap text-[1.02rem] font-semibold tracking-[-0.02em] text-slate-950">
+                      support@coverza.com
+                    </div>
+
+                    <p className="mt-3 text-sm leading-7 text-slate-600">
+                      Reach out if you need help with your quote, documents, or retrieval.
+                    </p>
+
+                    <div className="mt-5">
+                      <a
+                        href="mailto:support@coverza.com"
+                        className="btn-ghost w-full justify-center"
+                      >
+                        Email support
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -530,198 +889,68 @@ export default function HomePage() {
   );
 }
 
-/* =========================================================
-   Sticky CTA
-========================================================= */
-
-const StickyMiniCta = React.memo(function StickyMiniCta() {
-  const [show, setShow] = useState(false);
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 260);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
+function HeroPoint({ text }: { text: string }) {
   return (
-    <div
-      className={[
-        "fixed top-0 left-0 right-0 z-40",
-        "bg-white/90 backdrop-blur-md border-b border-slate-200/70",
-        "transition-all duration-500",
-        show ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full",
-        reduceMotion ? "transition-none" : "",
-      ].join(" ")}
-      role="region"
-      aria-label="Quick quote bar"
-    >
-      <div className="container-app py-2.5 flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <div className="text-xs font-extrabold text-slate-900">GoTempCover</div>
-          <div className="text-[11px] text-slate-500 truncate">Temporary motor cover, without the hassle</div>
-        </div>
-        <Link href="#quote" className="btn-primary text-xs" aria-label="Start a quote">
-          Start quote
-        </Link>
-      </div>
-    </div>
-  );
-});
-
-/* =========================================================
-   Visual texture
-========================================================= */
-
-const ParallaxTexture = React.memo(function ParallaxTexture() {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const reduce = useReducedMotion();
-
-  useEffect(() => {
-    if (reduce) return;
-    const onScroll = () => {
-      if (ref.current) ref.current.style.transform = `translateY(${window.scrollY * 0.18}px)`;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [reduce]);
-
-  return (
-    <div
-      ref={ref}
-      className="absolute inset-0 opacity-[0.14] pointer-events-none"
-      style={{
-        backgroundImage: "radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.12) 1px, transparent 0)",
-        backgroundSize: "22px 22px",
-      }}
-    />
-  );
-});
-
-function AuroraOrbs() {
-  return (
-    <div className="pointer-events-none absolute inset-0">
-      <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-300/20 blur-3xl" />
-      <div className="absolute top-10 -right-24 h-80 w-80 rounded-full bg-blue-300/20 blur-3xl" />
-      <div className="absolute -bottom-28 left-1/3 h-96 w-96 rounded-full bg-emerald-200/12 blur-3xl" />
-    </div>
-  );
-}
-
-/* =========================================================
-   Hero image card (under quote)
-========================================================= */
-
-function HeroImageCard() {
-  return (
-    <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/40">
-      <div className="relative aspect-[4/5] sm:aspect-[16/12] w-full">
-        <Image
-          src="/images/hero-car.jpg"
-          alt="Car driving in city — GoTempCover temporary insurance"
-          fill
-          priority
-          sizes="(min-width: 1024px) 44vw, 100vw"
-          className="object-cover object-[35%_50%] sm:object-center"
-        />
-      </div>
-    </div>
-  );
-}
-
-
-/* =========================================================
-   How it works panel
-========================================================= */
-
-function HowItWorksPanel() {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white/70 backdrop-blur p-6 sm:p-7">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">How it works</div>
-          <h2 className="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
-            Clear steps. Clear price. Clear documents.
-          </h2>
-          <p className="mt-2 text-sm sm:text-base text-slate-600 leading-relaxed">
-            Built for quick, time-boxed cover — without the usual confusion around dates and documents.
-          </p>
-        </div>
-        <span className="badge">Simple</span>
-      </div>
-
-      <div className="mt-6 grid gap-3">
-        <Benefit text="Enter your reg and confirm your vehicle" />
-        <Benefit text="Choose exact start and end time" />
-        <Benefit text="Select the best-value option for your period" />
-        <Benefit text="Pay securely — documents issued instantly" />
-      </div>
-
-      <div className="mt-7 grid gap-3 sm:grid-cols-2">
-        {PRODUCT_LINKS.map((p) => (
-          <Link key={p.href} className="btn-ghost justify-center" href={p.href}>
-            {p.label}
-          </Link>
-        ))}
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white px-5 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-[12px] font-extrabold text-slate-900">Good to know</div>
-          <span className="badge">UK</span>
-        </div>
-        <div className="mt-2 text-[13px] text-slate-700 leading-relaxed">
-          Always check your Certificate of Motor Insurance and policy documents before driving. Cover is subject to
-          eligibility and acceptance.
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================
-   Small UI bits
-========================================================= */
-
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white/70 backdrop-blur px-3 py-1.5 text-[12px] font-semibold text-slate-700">
-      {children}
-    </span>
-  );
-}
-
-function ProofCard({ title, desc, dot }: { title: string; desc: string; dot: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur px-4 py-3 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm">
       <div className="flex items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${dot}`} />
-        <div className="text-[12px] font-extrabold text-slate-900">{title}</div>
+        <span className="h-2 w-2 rounded-full bg-[rgb(108,76,243)]" />
+        <div className="text-[12px] font-semibold text-slate-900">{text}</div>
       </div>
-      <div className="mt-1 text-[12px] text-slate-600">{desc}</div>
     </div>
   );
 }
 
-const Benefit = ({ text }: { text: string }) => (
-  <div className="flex items-start gap-3">
-    <span className="mt-0.5 h-6 w-6 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-100">
-      ✓
-    </span>
-    <div className="text-sm text-slate-700">{text}</div>
-  </div>
-);
+function FeatureCard({
+  title,
+  desc,
+  icon,
+}: {
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-5">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm">
+        {icon}
+      </div>
+      <div className="mt-4 text-base font-extrabold text-slate-900">{title}</div>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{desc}</p>
+    </div>
+  );
+}
 
-function StepCard({ n, title, desc, icon }: { n: number; title: string; desc: string; icon: React.ReactNode }) {
+function StepCard({
+  n,
+  title,
+  desc,
+  icon,
+}: {
+  n: number;
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+}) {
   return (
     <div className="text-center">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 shadow-sm">
         {icon}
       </div>
-      <div className="mt-5 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+      <div className="mt-5 text-xl font-extrabold tracking-tight text-slate-900">
         {n}. {title}
       </div>
-      <div className="mt-2 text-sm text-slate-600 leading-relaxed">{desc}</div>
+      <div className="mt-2 text-sm leading-6 text-slate-600">{desc}</div>
+    </div>
+  );
+}
+
+function UseCaseCard({ text }: { text: string }) {
+  return (
+    <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
+      <div className="flex items-start gap-3">
+        <span className="mt-1 h-2 w-2 rounded-full bg-[rgb(108,76,243)]" />
+        <div className="text-sm font-medium text-slate-800">{text}</div>
+      </div>
     </div>
   );
 }
@@ -736,95 +965,35 @@ function FaqItem({ q, a }: { q: string; a: string }) {
             +
           </span>
         </div>
-        <div className="mt-1 text-[12px] text-slate-500">Click to expand</div>
       </summary>
-      <div className="mt-3 text-sm text-slate-700 leading-relaxed">{a}</div>
+      <div className="mt-3 text-sm leading-6 text-slate-700">{a}</div>
     </details>
   );
 }
 
-const Reason = ({ text }: { text: string }) => (
-  <div className="flex items-start gap-3">
-    <span className="mt-1 h-2 w-2 rounded-full bg-slate-300" />
-    <div>{text}</div>
-  </div>
-);
-
-function Pill({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700">
-      {icon ? <span className="text-slate-700">{icon}</span> : null}
-      {children}
-    </span>
-  );
-}
-
-function TrustRow({ text }: { text: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-emerald-700">
-        ✓
-      </span>
-      <div>{text}</div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 text-base font-extrabold text-slate-900">{value}</div>
-    </div>
-  );
-}
-
-function InfoCard({
-  title,
+function InfoRow({
+  label,
   value,
-  helper,
-  icon,
   href,
 }: {
-  title: string;
+  label: string;
   value: string;
-  helper?: string;
-  icon?: React.ReactNode;
-  href?: string;
+  href: string;
 }) {
-  const inner = (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 hover:bg-slate-50/50 transition">
-      <div className="grid grid-cols-[1fr_auto_auto] items-start gap-4">
-        <div className="min-w-0">
-          <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">{title}</div>
-          <div className="mt-1 text-base font-extrabold text-slate-900 break-words">{value}</div>
-          {helper ? <div className="mt-1 text-[12px] text-slate-500">{helper}</div> : null}
-        </div>
-
-        <span className="w-1" aria-hidden="true" />
-
-        {icon ? (
-          <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-900 shadow-sm">
-            {icon}
-          </div>
-        ) : null}
+  return (
+    <Link
+      href={href}
+      className="rounded-[1rem] border border-slate-200 bg-white px-4 py-3 transition hover:bg-slate-50"
+    >
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+        {label}
       </div>
-    </div>
-  );
-
-  return href ? (
-    <a href={href} className="block rounded-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-200/60">
-      {inner}
-    </a>
-  ) : (
-    <div>{inner}</div>
+      <div className="mt-1 text-sm font-semibold text-slate-900">{value}</div>
+    </Link>
   );
 }
 
-/* =========================================================
-   Inline icons (no libs required)
-========================================================= */
-
+/* Icons */
 function IconCar() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -837,22 +1006,6 @@ function IconCar() {
       />
       <path d="M8 13h0" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
       <path d="M16 13h0" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconId() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5v-9Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path d="M8 15c.8-1.2 2-2 4-2s3.2.8 4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M10 10.2a2 2 0 1 0 4 0a2 2 0 0 0-4 0Z" stroke="currentColor" strokeWidth="2" />
-      <path d="M16.5 9h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M16.5 12h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -877,19 +1030,6 @@ function IconClock() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z" stroke="currentColor" strokeWidth="2" />
       <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconMail() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M5 7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v9A2.5 2.5 0 0 1 16.5 19h-9A2.5 2.5 0 0 1 5 16.5v-9Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path d="M7 8l5 4 5-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -927,5 +1067,224 @@ function IconSearch() {
       <path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" stroke="currentColor" strokeWidth="2" />
       <path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
+  );
+}
+
+function IconId() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5v-9Z"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path d="M8 15c.8-1.2 2-2 4-2s3.2.8 4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 10.2a2 2 0 1 0 4 0a2 2 0 0 0-4 0Z" stroke="currentColor" strokeWidth="2" />
+      <path d="M16.5 9h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16.5 12h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CoverOptionCard({
+  eyebrow,
+  title,
+  desc,
+  points,
+  href,
+  cta,
+  icon,
+  featured = false,
+}: {
+  eyebrow: string;
+  title: string;
+  desc: string;
+  points: string[];
+  href: string;
+  cta: string;
+  icon: React.ReactNode;
+  featured?: boolean;
+}) {
+  return (
+    <motion.div
+      whileHover={{ y: -8 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="group relative h-full"
+    >
+      <div
+        className={[
+          "relative flex h-full flex-col overflow-hidden rounded-[2rem] border p-6 sm:p-7",
+          "transition-all duration-300",
+          featured
+            ? "border-[rgba(108,76,243,0.18)] bg-[linear-gradient(180deg,rgba(245,242,255,0.95),rgba(255,255,255,0.98))] shadow-[0_22px_60px_rgba(108,76,243,0.12)]"
+            : "border-slate-200 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.06)] group-hover:border-[rgba(108,76,243,0.18)] group-hover:shadow-[0_20px_50px_rgba(15,23,42,0.10)]",
+        ].join(" ")}
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[rgba(108,76,243,0.08)] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+        <div className="relative flex h-full flex-col">
+          <div
+            className={[
+              "inline-flex h-13 w-13 items-center justify-center rounded-[1.2rem] border text-[rgb(108,76,243)] shadow-sm transition-all duration-300",
+              featured
+                ? "border-[rgba(108,76,243,0.18)] bg-white shadow-[0_10px_26px_rgba(108,76,243,0.10)]"
+                : "border-slate-200 bg-[rgba(248,250,252,0.9)] group-hover:scale-105 group-hover:border-[rgba(108,76,243,0.20)] group-hover:bg-white",
+            ].join(" ")}
+          >
+            {icon}
+          </div>
+
+          <div className="mt-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+            {eyebrow}
+          </div>
+
+          <h3 className="mt-2 text-[1.9rem] font-extrabold tracking-[-0.04em] text-slate-950">
+            {title}
+          </h3>
+
+          <p className="mt-3 text-[1.02rem] leading-8 text-slate-600">
+            {desc}
+          </p>
+
+          <div className="mt-6 space-y-3">
+            {points.map((point) => (
+              <div key={point} className="flex items-start gap-3">
+                <span className="mt-[0.55rem] h-2 w-2 rounded-full bg-[rgb(108,76,243)] transition-transform duration-300 group-hover:scale-125" />
+                <span className="text-sm leading-7 text-slate-700">{point}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 pt-2">
+            <Link
+              href={href}
+              className={[
+                "inline-flex min-h-[3.25rem] w-full items-center justify-center rounded-[1rem] border px-5 py-3 text-base font-semibold transition-all duration-300",
+                featured
+  ? "border-transparent bg-[linear-gradient(135deg,rgb(108,76,243)_0%,rgb(74,96,245)_100%)] !text-white shadow-[0_16px_34px_rgba(79,52,217,0.20)] group-hover:brightness-[1.03]"
+                  
+                  : "border-slate-200 bg-white text-slate-900 group-hover:border-[rgba(108,76,243,0.18)] group-hover:bg-[rgba(108,76,243,0.04)] group-hover:text-[rgb(108,76,243)]",
+              ].join(" ")}
+            >
+              {cta}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function TestimonialCard({
+  name,
+  location,
+  scenario,
+  quote,
+  featured = false,
+}: {
+  name: string;
+  location: string;
+  scenario: string;
+  quote: string;
+  featured?: boolean;
+}) {
+  return (
+    <motion.div
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="group h-full"
+    >
+      <div
+        className={[
+          "flex h-full flex-col rounded-[1.9rem] border p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur transition-all duration-300 sm:p-7",
+          featured
+            ? "border-[rgba(108,76,243,0.18)] bg-[linear-gradient(180deg,rgba(245,242,255,0.95),rgba(255,255,255,0.92))] shadow-[0_18px_46px_rgba(108,76,243,0.10)]"
+            : "border-slate-200/80 bg-white/78 hover:border-[rgba(108,76,243,0.16)] hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]",
+        ].join(" ")}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold tracking-[-0.02em] text-slate-950 shadow-sm">
+              {name.charAt(0)}
+            </div>
+
+            <div>
+              <div className="text-base font-semibold tracking-[-0.02em] text-slate-950">
+                {name} from {location}
+              </div>
+              <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                {scenario}
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-1 text-[rgb(108,76,243)]">
+            <span className="h-2 w-2 rounded-full bg-current opacity-100" />
+            <span className="h-2 w-2 rounded-full bg-current opacity-80" />
+            <span className="h-2 w-2 rounded-full bg-current opacity-60" />
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <p className="text-[1.02rem] leading-8 text-slate-700">
+            “{quote}”
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function FaqCard({
+  question,
+  answer,
+}: {
+  question: string;
+  answer: string;
+}) {
+  return (
+    <details className="group rounded-[1.4rem] border border-slate-200/80 bg-white/78 px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] transition-all duration-300 open:bg-white">
+      <summary className="cursor-pointer list-none">
+        <div className="flex items-start justify-between gap-4">
+          <div className="text-[1rem] font-semibold tracking-[-0.02em] text-slate-950">
+            {question}
+          </div>
+
+          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition-transform duration-300 group-open:rotate-45">
+            +
+          </span>
+        </div>
+      </summary>
+
+      <div className="mt-3 max-w-[42rem] text-sm leading-7 text-slate-600">
+        {answer}
+      </div>
+    </details>
+  );
+}
+
+function FaqLineItem({
+  question,
+  answer,
+}: {
+  question: string;
+  answer: string;
+}) {
+  return (
+    <details className="group border-b border-slate-200/80 py-5">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
+        <span className="text-[1rem] font-semibold tracking-[-0.02em] text-slate-950 sm:text-[1.04rem]">
+          {question}
+        </span>
+
+        <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition group-open:rotate-45">
+          +
+        </span>
+      </summary>
+
+      <div className="max-w-[42rem] pt-3 pr-10 text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+        {answer}
+      </div>
+    </details>
   );
 }

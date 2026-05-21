@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import PageShell from "@/components/site/PageShell";
 import Link from "next/link";
+import PageShell from "@/components/site/PageShell";
 
 /* =========================================================
    Types
@@ -13,8 +13,8 @@ type QuoteDraft = {
   make: string;
   model: string;
   year: string;
-  startAt: string; // datetime-local
-  endAt: string; // datetime-local
+  startAt: string;
+  endAt: string;
   savedAt?: string;
 };
 
@@ -30,10 +30,10 @@ type AddressStructured = {
 
 type CustomerDetails = {
   fullName: string;
-  dob: string; // YYYY-MM-DD
+  dob: string;
   email: string;
   licenceType: DrivingLicenceType;
-  address: string; // computed
+  address: string;
 };
 
 type PriceOptionKey = "hour" | "day" | "week" | "month";
@@ -60,7 +60,10 @@ const RATES = {
 ========================================================= */
 
 function moneyGBP(n: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+  }).format(n);
 }
 
 function validEmail(email: string) {
@@ -74,7 +77,15 @@ function parseDateTimeLocal(dt: string) {
 
 function prettyDateTime(dt: string) {
   if (!dt) return "";
-  return dt.replace("T", " ");
+  const d = new Date(dt);
+  if (Number.isNaN(d.getTime())) return dt.replace("T", " ");
+  return d.toLocaleString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function clampMin(n: number, min: number) {
@@ -107,7 +118,7 @@ function calcAge(dobISO: string) {
 
 function makeQuoteRef() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "GTC-";
+  let out = "CC-";
   for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
   return out;
 }
@@ -128,14 +139,213 @@ function buildAddressString(a: AddressStructured) {
 }
 
 /* =========================================================
-   Small UI bits (ghost/light standard)
+   UI bits
 ========================================================= */
 
-function SoftChip({ children }: { children: React.ReactNode }) {
+function MetaChip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-white px-3 py-1 text-[11px] font-extrabold text-slate-700 border border-slate-200">
+    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700">
       {children}
     </span>
+  );
+}
+
+function SectionIntro({
+  eyebrow,
+  title,
+  copy,
+  wide = false,
+}: {
+  eyebrow: string;
+  title: string;
+  copy?: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className="max-w-[60rem]">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+        {eyebrow}
+      </div>
+
+      <h2
+        className={[
+          "mt-4 text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl",
+          wide
+            ? "max-w-[20ch] lg:max-w-[18ch] lg:text-[4rem]"
+            : "max-w-[15ch] lg:max-w-[13ch] lg:text-[3.85rem]",
+        ].join(" ")}
+      >
+        {title}
+      </h2>
+
+      {copy ? (
+        <p className="mt-4 max-w-[46rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+          {copy}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ProgressRail({
+  active,
+}: {
+  active: 1 | 2 | 3;
+}) {
+  const items = [
+    { n: 1, label: "Review cover" },
+    { n: 2, label: "Confirm details" },
+    { n: 3, label: "Secure checkout" },
+  ] as const;
+
+  return (
+    <div className="rounded-[1.5rem] border border-slate-200/80 bg-white/86 p-4 shadow-sm sm:p-5">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+        {items.map((item, idx) => (
+          <div key={item.n} className={idx === items.length - 1 ? "" : "contents"}>
+            <div className="flex min-w-0 items-center gap-3">
+              <span
+                className={[
+                  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-extrabold transition",
+                  item.n < active
+                    ? "border-[rgba(108,76,243,0.18)] bg-[rgba(108,76,243,0.10)] text-[rgb(108,76,243)]"
+                    : item.n === active
+                    ? "border-[rgb(108,76,243)] bg-[rgb(108,76,243)] text-white"
+                    : "border-slate-200 bg-white text-slate-400",
+                ].join(" ")}
+              >
+                {item.n < active ? "✓" : item.n}
+              </span>
+
+              <div className="min-w-0">
+                <div
+                  className={[
+                    "text-[11px] font-semibold uppercase tracking-[0.16em]",
+                    item.n <= active ? "text-slate-900" : "text-slate-500",
+                  ].join(" ")}
+                >
+                  {item.label}
+                </div>
+              </div>
+            </div>
+
+            {idx < items.length - 1 ? (
+              <div className="hidden h-px w-10 bg-slate-200 md:block" />
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SummaryStat({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="rounded-[1.2rem] border border-slate-200/80 bg-white/84 px-4 py-4">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+        {label}
+      </div>
+      <div
+        className={[
+          "mt-2 break-words",
+          strong
+            ? "text-[1.05rem] font-extrabold tracking-tight text-slate-950"
+            : "text-sm font-semibold text-slate-950",
+        ].join(" ")}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function AssuranceRow({ items }: { items: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-slate-600">
+      {items.map((item) => (
+        <div key={item} className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+          <span>{item}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PriceCard({
+  option,
+  isSelected,
+  isBest,
+  onSelect,
+}: {
+  option: PriceOption;
+  isSelected: boolean;
+  isBest: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={isSelected}
+      className={[
+        "relative rounded-[1.55rem] border p-6 text-left transition-all duration-200",
+        isSelected
+          ? "border-[rgba(108,76,243,0.18)] bg-[linear-gradient(180deg,rgba(248,245,255,0.92),rgba(255,255,255,0.98))] shadow-[0_12px_32px_rgba(108,76,243,0.08)]"
+          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm",
+      ].join(" ")}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="text-[1.02rem] font-extrabold tracking-[-0.02em] text-slate-950">
+              {option.label}
+            </div>
+
+            {isBest ? (
+              <span className="inline-flex items-center rounded-full border border-[rgba(108,76,243,0.14)] bg-[rgba(108,76,243,0.08)] px-2 py-0.5 text-[11px] font-extrabold text-[rgb(108,76,243)]">
+                Best value
+              </span>
+            ) : null}
+
+            {isSelected ? (
+              <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-extrabold text-slate-700">
+                Selected
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-2 text-[13px] leading-6 text-slate-600">
+            {option.helper}
+          </div>
+
+          <div className="mt-4 text-[13px] text-slate-600">
+            <span className="font-semibold text-slate-900">{option.units}</span>{" "}
+            {option.unitLabel}
+            {option.units === 1 ? "" : "s"} •{" "}
+            <span className="font-semibold text-slate-900">
+              {moneyGBP(option.unitPrice)}
+            </span>{" "}
+            / {option.unitLabel}
+          </div>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <div className="text-[2rem] font-extrabold tracking-tight text-slate-950">
+            {moneyGBP(option.total)}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">VAT included</div>
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -145,7 +355,10 @@ function SoftChip({ children }: { children: React.ReactNode }) {
 
 export default function GetQuotePage() {
   const [draft, setDraft] = useState<QuoteDraft | null>(null);
-  const [quoteRef, setQuoteRef] = useState<string>("");
+  const [quoteRef, setQuoteRef] = useState("");
+  const [editingDates, setEditingDates] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PriceOptionKey | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [address, setAddress] = useState<AddressStructured>({
     line1: "",
@@ -163,13 +376,9 @@ export default function GetQuotePage() {
     address: "",
   });
 
-  const [selectedPlan, setSelectedPlan] = useState<PriceOptionKey | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [editingDates, setEditingDates] = useState(false);
-
   const detailsRef = useRef<HTMLDivElement | null>(null);
+  const pricingRef = useRef<HTMLDivElement | null>(null);
 
-  // Load draft + quote ref
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("gtc_quote_draft");
@@ -187,12 +396,10 @@ export default function GetQuotePage() {
     }
   }, []);
 
-  // Keep computed address in sync
   useEffect(() => {
     const addr = buildAddressString(address);
     setCustomer((c) => ({ ...c, address: addr }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address.line1, address.line2, address.town, address.county, address.postcode]);
+  }, [address]);
 
   const durationMs = useMemo(() => {
     if (!draft?.startAt || !draft?.endAt) return 0;
@@ -214,7 +421,9 @@ export default function GetQuotePage() {
   }, [durationMs]);
 
   const pricing = useMemo(() => {
-    if (!durationMs) return { options: [] as PriceOption[], best: null as PriceOption | null };
+    if (!durationMs) {
+      return { options: [] as PriceOption[], best: null as PriceOption | null };
+    }
 
     const H = 60 * 60 * 1000;
     const D = 24 * H;
@@ -227,10 +436,42 @@ export default function GetQuotePage() {
     const months = clampMin(Math.ceil(durationMs / M), 1);
 
     const options: PriceOption[] = [
-      { key: "hour", label: "Hourly", helper: "For short journeys", unitLabel: "hour", unitPrice: RATES.hour, units: hours, total: Number((hours * RATES.hour).toFixed(2)) },
-      { key: "day", label: "Daily", helper: "Most popular", unitLabel: "day", unitPrice: RATES.day, units: days, total: Number((days * RATES.day).toFixed(2)) },
-      { key: "week", label: "Weekly", helper: "Better value", unitLabel: "week", unitPrice: RATES.week, units: weeks, total: Number((weeks * RATES.week).toFixed(2)) },
-      { key: "month", label: "Monthly", helper: "Longer cover", unitLabel: "month", unitPrice: RATES.month, units: months, total: Number((months * RATES.month).toFixed(2)) },
+      {
+        key: "hour",
+        label: "Hourly",
+        helper: "For shorter journeys and tighter cover windows",
+        unitLabel: "hour",
+        unitPrice: RATES.hour,
+        units: hours,
+        total: Number((hours * RATES.hour).toFixed(2)),
+      },
+      {
+        key: "day",
+        label: "Daily",
+        helper: "A popular option for one-day or weekend cover",
+        unitLabel: "day",
+        unitPrice: RATES.day,
+        units: days,
+        total: Number((days * RATES.day).toFixed(2)),
+      },
+      {
+        key: "week",
+        label: "Weekly",
+        helper: "Better value across several days of use",
+        unitLabel: "week",
+        unitPrice: RATES.week,
+        units: weeks,
+        total: Number((weeks * RATES.week).toFixed(2)),
+      },
+      {
+        key: "month",
+        label: "Monthly",
+        helper: "Designed for longer temporary cover periods",
+        unitLabel: "month",
+        unitPrice: RATES.month,
+        units: months,
+        total: Number((months * RATES.month).toFixed(2)),
+      },
     ];
 
     const best = options.reduce((acc, cur) => (cur.total < acc.total ? cur : acc), options[0]);
@@ -247,50 +488,34 @@ export default function GetQuotePage() {
     return pricing.options.find((o) => o.key === selectedPlan) ?? null;
   }, [pricing.options, selectedPlan]);
 
-  const vehicleLine = useMemo(() => {
-    if (!draft?.vrm) return "";
-    const makeModel = [draft.make, draft.model].filter(Boolean).join(" ");
-    const year = draft.year ? ` • ${draft.year}` : "";
-    return `${draft.vrm} • ${makeModel || "Vehicle"}${year}`;
-  }, [draft]);
-
-  const datesLine = useMemo(() => {
-    if (!draft?.startAt || !draft?.endAt) return "";
-    return `${prettyDateTime(draft.startAt)} → ${prettyDateTime(draft.endAt)}`;
-  }, [draft]);
-
   const validations = useMemo(() => {
     const fullNameOk = customer.fullName.trim().length >= 2;
     const emailOk = validEmail(customer.email);
-
     const age = calcAge(customer.dob);
     const dobOk = Boolean(customer.dob) && age !== null && age >= 17;
-
     const line1Ok = address.line1.trim().length >= 4;
     const townOk = address.town.trim().length >= 2;
     const postcodeOk = normalisePostcode(address.postcode).length >= 5;
     const addressOk = line1Ok && townOk && postcodeOk;
-
     const licenceOk = Boolean(customer.licenceType);
     const draftOk = Boolean(draft?.vrm && draft?.startAt && draft?.endAt && durationMs > 0);
     const pricingOk = Boolean(selected);
 
     return {
       fullNameOk,
-      dobOk,
       emailOk,
-      addressOk,
+      dobOk,
       line1Ok,
       townOk,
       postcodeOk,
+      addressOk,
       licenceOk,
       draftOk,
       pricingOk,
-      canContinue: fullNameOk && dobOk && emailOk && addressOk && licenceOk && draftOk && pricingOk,
+      canContinue:
+        fullNameOk && emailOk && dobOk && addressOk && licenceOk && draftOk && pricingOk,
     };
   }, [customer, address, draft, durationMs, selected]);
-
-  const canContinue = validations.canContinue;
 
   function saveDraft(next: QuoteDraft) {
     setDraft(next);
@@ -299,362 +524,428 @@ export default function GetQuotePage() {
     } catch {}
   }
 
-async function onContinueToPayment() {
-  setFormError(null);
+  async function onContinueToPayment() {
+    setFormError(null);
 
-  if (!draft?.vrm) {
-    setFormError(
-      "We couldn’t find your saved vehicle details. Go back and re-enter your reg to continue."
-    );
-    detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    return;
-  }
-
-  if (!draft.startAt || !draft.endAt || !durationMs) {
-    setFormError("Your cover dates need adjusting — end time must be after start time.");
-    detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    return;
-  }
-
-  if (!selected) {
-    setFormError("Choose a pricing option to continue.");
-    return;
-  }
-
-  if (!canContinue) {
-    setFormError("Please complete the details highlighted on the left before continuing.");
-    detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    return;
-  }
-
-  const payload = {
-    quoteRef: quoteRef || makeQuoteRef(),
-    quote: {
-      vrm: draft.vrm,
-      make: draft.make,
-      model: draft.model,
-      year: draft.year,
-      startAt: draft.startAt,
-      endAt: draft.endAt,
-      durationMs,
-    },
-    customer: { ...customer, address: buildAddressString(address) },
-    pricing: {
-      selectedPlan: selected.key,
-      selectedLabel: selected.label,
-      units: selected.units,
-      unitPrice: selected.unitPrice,
-      total: selected.total,
-      rateCard: RATES,
-    },
-    createdAt: new Date().toISOString(),
-  };
-
-  try {
-    sessionStorage.setItem("gtc_checkout_payload", JSON.stringify(payload));
-  } catch {}
-
-  try {
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        quote: {
-          vrm: draft.vrm,
-          make: draft.make || "",
-          model: draft.model || "",
-          year: draft.year || "",
-          // checkout expects ISO timestamps
-          startAt: new Date(draft.startAt).toISOString(),
-          endAt: new Date(draft.endAt).toISOString(),
-          durationMs,
-          totalAmountPence: Math.round((selected.total ?? 0) * 100),
-        },
-        customer: {
-          fullName: customer.fullName,
-          dob: customer.dob,
-          email: customer.email,
-          licenceType: customer.licenceType,
-          address: buildAddressString(address),
-        },
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data?.url) {
-      throw new Error(data?.error || "Failed to start checkout");
+    if (!draft?.vrm) {
+      setFormError(
+        "We couldn’t find your saved vehicle details. Go back and re-enter your reg to continue."
+      );
+      detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
     }
 
-    window.location.href = data.url as string;
-  } catch (err: any) {
-    setFormError(err?.message || "Something went wrong starting checkout.");
-    detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!draft.startAt || !draft.endAt || !durationMs) {
+      setFormError("Your cover dates need adjusting — end time must be after start time.");
+      detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (!selected) {
+      setFormError("Choose a pricing option to continue.");
+      pricingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (!validations.canContinue) {
+      setFormError("Please complete your details before continuing to checkout.");
+      detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    const payload = {
+      quoteRef: quoteRef || makeQuoteRef(),
+      quote: {
+        vrm: draft.vrm,
+        make: draft.make,
+        model: draft.model,
+        year: draft.year,
+        startAt: draft.startAt,
+        endAt: draft.endAt,
+        durationMs,
+      },
+      customer: { ...customer, address: buildAddressString(address) },
+      pricing: {
+        selectedPlan: selected.key,
+        selectedLabel: selected.label,
+        units: selected.units,
+        unitPrice: selected.unitPrice,
+        total: selected.total,
+        rateCard: RATES,
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      sessionStorage.setItem("gtc_checkout_payload", JSON.stringify(payload));
+    } catch {}
+
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          quote: {
+            vrm: draft.vrm,
+            make: draft.make || "",
+            model: draft.model || "",
+            year: draft.year || "",
+            startAt: new Date(draft.startAt).toISOString(),
+            endAt: new Date(draft.endAt).toISOString(),
+            durationMs,
+            totalAmountPence: Math.round((selected.total ?? 0) * 100),
+          },
+          customer: {
+            fullName: customer.fullName,
+            dob: customer.dob,
+            email: customer.email,
+            licenceType: customer.licenceType,
+            address: buildAddressString(address),
+          },
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || "Failed to start checkout");
+      }
+
+      window.location.href = data.url as string;
+    } catch (err: any) {
+      setFormError(err?.message || "Something went wrong starting checkout.");
+      pricingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
-}
 
+  const vehicleTitle =
+    [draft?.make, draft?.model].filter(Boolean).join(" ") || "Vehicle";
 
-  const subtitle = draft?.vrm
-    ? "Review your details, adjust dates if needed, then choose the best-value option."
-    : "We can’t find your saved details — go back and enter your reg + cover dates.";
+  const vehicleLine = draft?.vrm
+    ? `${draft.vrm} • ${vehicleTitle}${draft?.year ? ` • ${draft.year}` : ""}`
+    : "—";
+
+  const datesLine =
+    draft?.startAt && draft?.endAt
+      ? `${prettyDateTime(draft.startAt)} → ${prettyDateTime(draft.endAt)}`
+      : "—";
+
+  const selectedPlanLine = selected
+    ? `${selected.label} • ${selected.units} ${selected.unitLabel}${selected.units === 1 ? "" : "s"}`
+    : "Choose a price option";
 
   return (
     <PageShell
-      eyebrow="Get a quote"
-      title="Your quote — review & continue"
-      subtitle={subtitle}
+      hideHero
       crumbs={[{ label: "Home", href: "/" }, { label: "Get quote" }]}
-      ctaLabel="Back"
-      ctaHref="/"
     >
-      {/* Top header */}
-      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-              Quote reference
+      {/* HERO */}
+      <section className="pt-2 sm:pt-4 lg:pt-6" ref={detailsRef}>
+        <div className="max-w-[76rem]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.14)] bg-white/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)] backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+            Get a quote
+          </div>
+
+          <div className="relative mt-6 max-w-[70rem]">
+            <div className="pointer-events-none absolute inset-x-0 top-[8%] -z-10 opacity-55 sm:top-[12%]">
+              <svg
+                viewBox="0 0 1200 260"
+                className="h-[220px] w-full sm:h-[260px] lg:h-[300px]"
+                fill="none"
+                aria-hidden="true"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M18 152C114 62 222 227 338 152C446 82 548 216 676 142C794 72 906 201 1026 132C1090 96 1142 105 1182 122"
+                  stroke="rgba(108,76,243,0.14)"
+                  strokeWidth="34"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M10 154C108 66 216 224 334 150C444 80 544 214 672 140C792 70 904 198 1024 130C1088 95 1140 103 1190 120"
+                  stroke="rgba(108,76,243,0.28)"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                />
+              </svg>
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <div className="text-base font-extrabold tracking-tight text-slate-900">
+
+            <h1 className="heading-unbalanced relative max-w-[13ch] text-[3.25rem] font-extrabold leading-[0.9] tracking-[-0.07em] text-slate-950 sm:max-w-[11.5ch] sm:text-[4.55rem] lg:max-w-[11ch] lg:text-[5.75rem]">
+              Review your quote and continue
+            </h1>
+          </div>
+
+          <p className="mt-10 max-w-[52rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.12rem]">
+            Confirm your vehicle, cover period and details below, then continue to
+            secure checkout. Documents are issued instantly after purchase and remain
+            easy to retrieve later.
+          </p>
+
+          <div className="mt-8">
+            <ProgressRail active={2} />
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)]">
+            <div className="rounded-[1.7rem] border border-slate-200/80 bg-white/88 p-5 shadow-sm sm:p-6">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <SummaryStat label="Vehicle" value={vehicleLine} strong />
+                <SummaryStat label="Cover period" value={datesLine} />
+                <SummaryStat label="Selected price" value={selectedPlanLine} />
+                <SummaryStat
+                  label="Total today"
+                  value={selected ? moneyGBP(selected.total) : "Choose a price option"}
+                  strong
+                />
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link href="/" className="btn-ghost">
+                  Change vehicle
+                </Link>
+
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => {
+                    setEditingDates((v) => !v);
+                    setFormError(null);
+                  }}
+                >
+                  {editingDates ? "Hide cover dates" : "Edit cover dates"}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-[1.7rem] border border-slate-200/80 bg-white/88 p-5 shadow-sm sm:p-6">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                Quote reference
+              </div>
+              <div className="mt-2 break-words text-[1.08rem] font-semibold tracking-[-0.02em] text-slate-950">
                 {quoteRef || "—"}
               </div>
-              {draft?.vrm ? <SoftChip>Saved on this device</SoftChip> : <SoftChip>Missing</SoftChip>}
-              {durationLabel ? <SoftChip>Duration {durationLabel}</SoftChip> : null}
-            </div>
-            <div className="mt-1 text-[12px] text-slate-500">
-              We’ll use this reference on your confirmation and documents.
+              <div className="mt-3 flex flex-wrap gap-2">
+                <MetaChip>{draft?.vrm ? "Saved on this device" : "Details missing"}</MetaChip>
+                {durationLabel ? <MetaChip>Duration {durationLabel}</MetaChip> : null}
+              </div>
             </div>
           </div>
 
-          {/* Step pill (ghost/light) */}
-          <span className="inline-flex items-center rounded-full bg-white text-slate-700 border border-slate-200 px-3 py-1.5 text-[12px] font-extrabold">
-            Step 1 of 2 • Details
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        {/* LEFT */}
-        <div className="grid gap-6" ref={detailsRef}>
-          {/* Summary */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Summary
+          {editingDates && draft ? (
+            <div className="mt-6 rounded-[1.7rem] border border-slate-200/80 bg-white/92 p-5 shadow-sm sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-base font-extrabold tracking-tight text-slate-950">
+                    Adjust your cover dates
+                  </div>
+                  <p className="mt-1 text-sm leading-7 text-slate-600">
+                    Update your start and end time here and pricing will refresh automatically.
+                  </p>
                 </div>
 
-                <div className="mt-3 rounded-2xl bg-slate-50 px-5 py-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-lg font-extrabold tracking-tight text-slate-900">
-                      {draft?.vrm || "—"}
-                    </div>
-                    {draft?.make || draft?.model ? (
-                      <SoftChip>{`${draft?.make || ""} ${draft?.model || ""}`.trim()}</SoftChip>
-                    ) : (
-                      <SoftChip>Vehicle</SoftChip>
-                    )}
-                    {draft?.year ? <SoftChip>{draft.year}</SoftChip> : null}
-                  </div>
-
-                  <div className="mt-3 text-[13px] text-slate-700">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                      Cover period
-                    </div>
-                    <div className="mt-1 font-semibold text-slate-900">
-                      {draft?.startAt && draft?.endAt ? datesLine : "—"}
-                    </div>
-                    {durationLabel ? (
-                      <div className="mt-1 text-[13px] text-slate-600">
-                        Duration: <span className="font-extrabold text-slate-900">{durationLabel}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
+                <MetaChip>Updates instantly</MetaChip>
               </div>
 
-              <span className="badge">{draft?.vrm ? "Loaded" : "Missing"}</span>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/" className="btn-ghost">
-                Change vehicle
-              </Link>
-
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => {
-                  setEditingDates((v) => !v);
-                  setFormError(null);
-                }}
-              >
-                {editingDates ? "Hide date editor" : "Edit cover dates"}
-              </button>
-            </div>
-
-            {editingDates && draft ? (
-              <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-extrabold text-slate-900">Adjust cover dates</div>
-                    <div className="mt-1 text-sm text-slate-600">We’ll update pricing automatically.</div>
-                  </div>
-                  <SoftChip>Updates instantly</SoftChip>
-                </div>
-
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="label">Start</label>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="min-w-0">
+                  <label className="label">Start</label>
+                  <div className="min-w-0 max-w-full overflow-hidden rounded-[0.95rem]">
                     <input
                       type="datetime-local"
-                      className="input"
+                      className="input block !w-full min-w-0 max-w-full px-3 text-[16px] [appearance:none]"
                       value={draft.startAt}
                       onChange={(e) => saveDraft({ ...draft, startAt: e.target.value })}
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <label className="label">End</label>
+                <div className="min-w-0">
+                  <label className="label">End</label>
+                  <div className="min-w-0 max-w-full overflow-hidden rounded-[0.95rem]">
                     <input
                       type="datetime-local"
-                      className="input"
+                      className="input block !w-full min-w-0 max-w-full px-3 text-[16px] [appearance:none]"
                       value={draft.endAt}
                       onChange={(e) => saveDraft({ ...draft, endAt: e.target.value })}
                     />
                   </div>
+                </div>
+              </div>
 
-                  {durationMs <= 0 ? (
-                    <div className="sm:col-span-2 text-sm text-red-600">
-                      End date/time must be after start date/time.
+              {durationMs <= 0 ? (
+                <div className="field-error mt-3">
+                  End date and time must be after the start date and time.
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => {
+                    const now = new Date();
+                    now.setMinutes(Math.ceil(now.getMinutes() / 5) * 5, 0, 0);
+                    saveDraft({ ...draft, startAt: toDatetimeLocalValue(now) });
+                  }}
+                >
+                  Start now
+                </button>
+
+                <button type="button" className="btn-ghost" onClick={() => setEditingDates(false)}>
+                  Done
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-6">
+            <AssuranceRow
+              items={[
+                "Secure checkout next",
+                "Instant documents after payment",
+                "Retrieve policy anytime",
+              ]}
+            />
+          </div>
+
+          <div className="mt-12 h-px w-full bg-[linear-gradient(90deg,rgba(226,232,240,0),rgba(226,232,240,0.95),rgba(226,232,240,0))]" />
+        </div>
+      </section>
+
+      {/* YOUR DETAILS */}
+      <section className="mt-16">
+        <SectionIntro
+          eyebrow="Your details"
+          title="Add the details for your documents"
+          copy="We’ll use these details for your quote, confirmation and policy documents."
+          wide
+        />
+
+        <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.86fr)]">
+          <div className="rounded-[1.9rem] border border-slate-200/80 bg-white/88 p-6 shadow-sm sm:p-8">
+            <div className="grid gap-6">
+              <div className="rounded-[1.45rem] border border-slate-200/80 bg-slate-50/55 p-5 sm:p-6">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Driver details
+                </div>
+
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="label" htmlFor="fullName">
+                      Full name
+                    </label>
+                    <input
+                      id="fullName"
+                      className="input"
+                      placeholder="e.g. John Smith"
+                      value={customer.fullName}
+                      onChange={(e) => {
+                        setCustomer((c) => ({ ...c, fullName: e.target.value }));
+                        setFormError(null);
+                      }}
+                    />
+                    {!validations.fullNameOk && customer.fullName ? (
+                      <div className="field-error">
+                        Enter your full name as it appears on your licence.
+                      </div>
+                    ) : (
+                      <div className="field-help">
+                        Make sure this matches your licence for documents.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <label className="label" htmlFor="dob">
+                      Date of birth
+                    </label>
+                    <div className="min-w-0 max-w-full overflow-hidden rounded-[0.95rem]">
+                      <input
+                        id="dob"
+                        type="date"
+                        className="input block !w-full min-w-0 max-w-full px-3 text-[16px] [appearance:none]"
+                        value={customer.dob}
+                        onChange={(e) => {
+                          setCustomer((c) => ({ ...c, dob: e.target.value }));
+                          setFormError(null);
+                        }}
+                      />
                     </div>
-                  ) : null}
 
-                  <div className="sm:col-span-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={() => {
-                        const now = new Date();
-                        now.setMinutes(Math.ceil(now.getMinutes() / 5) * 5, 0, 0);
-                        saveDraft({ ...draft, startAt: toDatetimeLocalValue(now) });
+                    {customer.dob && !validations.dobOk ? (
+                      <div className="field-error">You must be 17+ to continue.</div>
+                    ) : (
+                      <div className="field-help">We use this to confirm driver eligibility.</div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <label className="label" htmlFor="licenceType">
+                      Driving licence type
+                    </label>
+                    <select
+                      id="licenceType"
+                      className="input"
+                      value={customer.licenceType}
+                      onChange={(e) => {
+                        setCustomer((c) => ({
+                          ...c,
+                          licenceType: e.target.value as DrivingLicenceType,
+                        }));
+                        setFormError(null);
                       }}
                     >
-                      Start now
-                    </button>
+                      <option value="UK">UK</option>
+                      <option value="International">International</option>
+                      <option value="Learner">Learner</option>
+                    </select>
+                    <div className="field-help">
+                      This helps route you to the correct cover journey.
+                    </div>
+                  </div>
 
-                    <button type="button" className="btn-ghost" onClick={() => setEditingDates(false)}>
-                      Done
-                    </button>
+                  <div className="sm:col-span-2">
+                    <label className="label" htmlFor="email">
+                      Email
+                    </label>
+                    <input
+                      id="email"
+                      className="input"
+                      placeholder="e.g. name@email.com"
+                      inputMode="email"
+                      value={customer.email}
+                      onChange={(e) => {
+                        setCustomer((c) => ({ ...c, email: e.target.value }));
+                        setFormError(null);
+                      }}
+                    />
+                    {customer.email && !validations.emailOk ? (
+                      <div className="field-error">Enter a valid email address.</div>
+                    ) : (
+                      <div className="field-help">
+                        We’ll send your documents and confirmation here.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            ) : null}
-          </div>
 
-          {/* Customer form */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-base font-extrabold tracking-tight text-slate-900">Your details</div>
-                <p className="mt-1 text-sm text-slate-600">
-                  We’ll use these for your documents and confirmation email.
-                </p>
-              </div>
-              <span className="badge">Secure</span>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="label" htmlFor="fullName">Full name</label>
-                <input
-                  id="fullName"
-                  className="input"
-                  placeholder="e.g. John Smith"
-                  value={customer.fullName}
-                  onChange={(e) => {
-                    setCustomer((c) => ({ ...c, fullName: e.target.value }));
-                    setFormError(null);
-                  }}
-                />
-                {!validations.fullNameOk && customer.fullName ? (
-                  <div className="field-error">Enter your full name as it appears on your licence.</div>
-                ) : (
-                  <div className="field-hint">Make sure this matches your licence for documents.</div>
-                )}
-              </div>
-
-              <div>
-                <label className="label" htmlFor="dob">Date of birth</label>
-                <input
-                  id="dob"
-                  type="date"
-                  className="input"
-                  value={customer.dob}
-                  onChange={(e) => {
-                    setCustomer((c) => ({ ...c, dob: e.target.value }));
-                    setFormError(null);
-                  }}
-                />
-                {customer.dob && !validations.dobOk ? (
-                  <div className="field-error">You must be 17+ to continue.</div>
-                ) : (
-                  <div className="field-hint">We use this to confirm driver eligibility.</div>
-                )}
-              </div>
-
-              <div>
-                <label className="label" htmlFor="licenceType">Driving licence type</label>
-                <select
-                  id="licenceType"
-                  className="input"
-                  value={customer.licenceType}
-                  onChange={(e) => {
-                    setCustomer((c) => ({ ...c, licenceType: e.target.value as DrivingLicenceType }));
-                    setFormError(null);
-                  }}
-                >
-                  <option value="UK">UK</option>
-                  <option value="International">International</option>
-                  <option value="Learner">Learner</option>
-                </select>
-                <div className="field-hint">This helps route you to the correct cover journey.</div>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="label" htmlFor="email">Email</label>
-                <input
-                  id="email"
-                  className="input"
-                  placeholder="e.g. name@email.com"
-                  inputMode="email"
-                  value={customer.email}
-                  onChange={(e) => {
-                    setCustomer((c) => ({ ...c, email: e.target.value }));
-                    setFormError(null);
-                  }}
-                />
-                {customer.email && !validations.emailOk ? (
-                  <div className="field-error">Enter a valid email address.</div>
-                ) : (
-                  <div className="field-hint">We’ll send your documents and confirmation here.</div>
-                )}
-              </div>
-
-              {/* Address */}
-              <div className="sm:col-span-2">
-                <div className="flex items-end justify-between gap-3">
-                  <label className="label">Address</label>
-                  <span className="text-[12px] text-slate-500">For documents</span>
+              <div className="rounded-[1.45rem] border border-slate-200/80 bg-slate-50/55 p-5 sm:p-6">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Address
                 </div>
 
-                <div className="mt-2 grid gap-4 sm:grid-cols-2">
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
                   <div className="sm:col-span-2">
+                    <label className="label">Address line 1</label>
                     <input
                       className="input"
                       placeholder="Address line 1 (house number + street)"
                       value={address.line1}
-                      onChange={(e) => { setAddress((a) => ({ ...a, line1: e.target.value })); setFormError(null); }}
+                      onChange={(e) => {
+                        setAddress((a) => ({ ...a, line1: e.target.value }));
+                        setFormError(null);
+                      }}
                     />
                     {address.line1 && !validations.line1Ok ? (
                       <div className="field-error">Add your house number + street.</div>
@@ -662,20 +953,28 @@ async function onContinueToPayment() {
                   </div>
 
                   <div className="sm:col-span-2">
+                    <label className="label">Address line 2</label>
                     <input
                       className="input"
                       placeholder="Address line 2 (optional)"
                       value={address.line2}
-                      onChange={(e) => { setAddress((a) => ({ ...a, line2: e.target.value })); setFormError(null); }}
+                      onChange={(e) => {
+                        setAddress((a) => ({ ...a, line2: e.target.value }));
+                        setFormError(null);
+                      }}
                     />
                   </div>
 
                   <div>
+                    <label className="label">Town / City</label>
                     <input
                       className="input"
                       placeholder="Town / City"
                       value={address.town}
-                      onChange={(e) => { setAddress((a) => ({ ...a, town: e.target.value })); setFormError(null); }}
+                      onChange={(e) => {
+                        setAddress((a) => ({ ...a, town: e.target.value }));
+                        setFormError(null);
+                      }}
                     />
                     {address.town && !validations.townOk ? (
                       <div className="field-error">Enter your town/city.</div>
@@ -683,237 +982,220 @@ async function onContinueToPayment() {
                   </div>
 
                   <div>
+                    <label className="label">County</label>
                     <input
                       className="input"
                       placeholder="County (optional)"
                       value={address.county}
-                      onChange={(e) => { setAddress((a) => ({ ...a, county: e.target.value })); setFormError(null); }}
+                      onChange={(e) => {
+                        setAddress((a) => ({ ...a, county: e.target.value }));
+                        setFormError(null);
+                      }}
                     />
                   </div>
 
                   <div className="sm:col-span-2">
+                    <label className="label">Postcode</label>
                     <input
                       className="input"
                       placeholder="Postcode"
                       value={address.postcode}
-                      onChange={(e) => { setAddress((a) => ({ ...a, postcode: normalisePostcode(e.target.value) })); setFormError(null); }}
+                      onChange={(e) => {
+                        setAddress((a) => ({
+                          ...a,
+                          postcode: normalisePostcode(e.target.value),
+                        }));
+                        setFormError(null);
+                      }}
                     />
                     {address.postcode && !validations.postcodeOk ? (
                       <div className="field-error">Enter a valid UK postcode.</div>
                     ) : (
-                      <div className="field-hint">We’ll format this automatically.</div>
+                      <div className="field-help">We’ll format this automatically.</div>
                     )}
                   </div>
-                </div>
-
-                <div className="mt-4 rounded-2xl bg-slate-50 px-5 py-4">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    Document address
-                  </div>
-                  <div className="mt-1 text-[13px] text-slate-700">{customer.address || "—"}</div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* RIGHT */}
-        <div className="lg:sticky lg:top-24 h-fit">
-          <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
-            <div className="flex items-start justify-between gap-4 px-6 pt-6">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-base font-extrabold tracking-tight text-slate-900">Your price</h3>
-                  <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-[11px] font-extrabold text-slate-700 border border-slate-200">
-                    Checkout next
-                  </span>
-                </div>
-
-                <p className="mt-1 text-sm text-slate-600">
-                  Pick the option that suits your cover period.
-                </p>
-
-                {draft?.vrm ? (
-                  <p className="mt-2 truncate text-[12px] text-slate-500">{vehicleLine}</p>
-                ) : null}
-              </div>
+          <div className="rounded-[1.9rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(245,242,255,0.70),rgba(255,255,255,0.96))] p-6 shadow-sm sm:p-8">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Checkout overview
             </div>
 
-            <div className="px-6 pb-6">
-              {!durationMs ? (
-                <div className="mt-6 text-sm text-slate-600">
-                  Add valid start/end dates to see pricing.
-                </div>
-              ) : (
-                <>
-                  <div className="mt-4 text-[12px] text-slate-500">
-                    Based on your selected dates. VAT included.
-                  </div>
+            <h3 className="mt-3 text-[1.8rem] font-extrabold leading-[0.96] tracking-[-0.04em] text-slate-950">
+              A final review before payment
+            </h3>
 
-                  {/* Options */}
-                  <div className="mt-4 overflow-hidden rounded-2xl bg-slate-50/60 ring-1 ring-slate-200/60">
-                    {pricing.options.map((opt, idx) => {
-                      const isSelected = selectedPlan === opt.key;
-                      const isBest = pricing.best?.key === opt.key;
+            <p className="mt-4 text-sm leading-7 text-slate-600">
+              Your selected price, cover period and document email are shown here.
+              Once payment is complete, your documents are issued straight away.
+            </p>
 
-                      return (
-                        <button
-                          key={opt.key}
-                          type="button"
-                          onClick={() => {
-                            setSelectedPlan(opt.key);
-                            setFormError(null);
-                          }}
-                          className={[
-                            "relative w-full text-left px-5 py-4",
-                            "transition-[background-color,box-shadow,transform] duration-200",
-                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20",
-                            idx !== 0 ? "border-t border-slate-200/70" : "",
-                            isSelected
-                              ? "bg-white ring-1 ring-inset ring-blue-200 shadow-[0_1px_0_0_rgba(15,23,42,0.02)]"
-                              : "bg-transparent hover:bg-white/60 hover:translate-y-[-1px]",
-                          ].join(" ")}
-                          aria-pressed={isSelected}
-                        >
-                          {isSelected ? (
-                            <span className="absolute left-0 top-0 h-full w-1 bg-blue-600/90" aria-hidden="true" />
-                          ) : null}
+            <div className="mt-6 grid gap-3">
+              <SummaryStat label="Selected plan" value={selectedPlanLine} />
+              <SummaryStat
+                label="Total today"
+                value={selected ? moneyGBP(selected.total) : "Choose a price option"}
+                strong
+              />
+              <SummaryStat label="Document email" value={customer.email || "—"} />
+            </div>
 
-                          <div className="flex items-start gap-4">
-                            <span
-                              className={[
-                                "mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition",
-                                isSelected ? "border-blue-600 bg-blue-600" : "border-slate-300 bg-white",
-                              ].join(" ")}
-                              aria-hidden="true"
-                            >
-                              <span className={["h-2 w-2 rounded-full", isSelected ? "bg-white" : "bg-transparent"].join(" ")} />
-                            </span>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <div className="text-sm font-extrabold text-slate-900">{opt.label}</div>
-
-                                {isBest ? (
-                                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-extrabold text-blue-800 border border-blue-100">
-                                    Best value
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[11px] font-extrabold text-slate-700 border border-slate-200">
-                                    {opt.helper}
-                                  </span>
-                                )}
-
-                                {isSelected ? (
-                                  <span className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[11px] font-extrabold text-slate-700 border border-slate-200">
-                                    Selected
-                                  </span>
-                                ) : null}
-                              </div>
-
-                              <div className="mt-1 text-[13px] text-slate-600">
-                                <span className="font-semibold text-slate-900">{opt.units}</span>{" "}
-                                {opt.unitLabel}
-                                {opt.units === 1 ? "" : "s"} •{" "}
-                                <span className="font-semibold text-slate-900">{moneyGBP(opt.unitPrice)}</span> /{" "}
-                                {opt.unitLabel}
-                              </div>
-                            </div>
-
-                            <div className="shrink-0 text-right">
-                              <div className="text-xl font-extrabold tracking-tight text-slate-900">
-                                {moneyGBP(opt.total)}
-                              </div>
-                              <div className="mt-0.5 text-[11px] text-slate-400">VAT included</div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Selected total */}
-                  <div className="mt-6 flex items-end justify-between gap-6 border-t border-slate-200 pt-6">
-                    <div className="min-w-0">
-                      <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                        Total today
-                      </div>
-                      <div className="mt-1 text-sm text-slate-700">
-                        {selected ? (
-                          <>
-                            {selected.units} {selected.unitLabel}
-                            {selected.units === 1 ? "" : "s"} • {selected.label.toLowerCase()}
-                          </>
-                        ) : (
-                          "Choose an option"
-                        )}
-                      </div>
-                      <div className="mt-1 text-[12px] text-slate-500">
-                        You’ll review everything before paying.
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-3xl font-extrabold tracking-tight text-slate-900">
-                        {selected ? moneyGBP(selected.total) : "—"}
-                      </div>
-                      <div className="text-[12px] text-slate-500">VAT included</div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {formError ? (
-                <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  <div className="font-extrabold">Action needed</div>
-                  <div className="mt-1">{formError}</div>
-                </div>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={onContinueToPayment}
-                disabled={!canContinue}
-                className={`btn-primary mt-6 w-full ${!canContinue ? "opacity-60 cursor-not-allowed" : ""}`}
-              >
-                Continue to checkout
-              </button>
-
-              <div className="mt-3 text-[12px] text-slate-500">
-                Next step: secure payment, then instant documents by email.
+            <div className="mt-6 rounded-[1.25rem] border border-slate-200/80 bg-white/84 px-5 py-5">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                After payment
               </div>
-
-              {/* Trust strip (light + consistent) */}
-              <div className="mt-5 flex flex-col gap-2 text-[12px] text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
-                {["Secure checkout", "Instant documents after purchase", "Retrieve policy anytime"].map((t) => (
-                  <div key={t} className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                    <span>{t}</span>
+              <div className="mt-3 grid gap-2 text-sm text-slate-700">
+                {[
+                  "Secure payment",
+                  "Policy created",
+                  "Documents emailed instantly",
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-3">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+                    <span>{item}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Mobile sticky CTA */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md">
-        <div className="container-app py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-[11px] text-slate-500">Total</div>
-            <div className="truncate text-sm font-extrabold text-slate-900">
-              {selected ? moneyGBP(selected.total) : "Choose a price option"}
+            <div className="mt-6 text-[12px] leading-6 text-slate-500">
+              You can still review your details before payment.
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onContinueToPayment}
-            disabled={!canContinue}
-            className={`btn-primary ${!canContinue ? "opacity-60 cursor-not-allowed" : ""}`}
-          >
-            Continue
-          </button>
+        </div>
+      </section>
+
+      {/* CHOOSE YOUR PRICE */}
+      <section className="mt-16" ref={pricingRef}>
+        <SectionIntro
+          eyebrow="Choose your price"
+          title="Pick the option that fits your cover period"
+          copy="Based on your selected dates. VAT included. You’ll review everything again before payment."
+          wide
+        />
+
+        <div className="mt-8 grid gap-4 lg:grid-cols-2">
+          {durationMs ? (
+            pricing.options.map((opt) => (
+              <PriceCard
+                key={opt.key}
+                option={opt}
+                isSelected={selectedPlan === opt.key}
+                isBest={pricing.best?.key === opt.key}
+                onSelect={() => {
+                  setSelectedPlan(opt.key);
+                  setFormError(null);
+                }}
+              />
+            ))
+          ) : (
+            <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 text-sm text-slate-600 lg:col-span-2">
+              Add valid start and end dates to see pricing.
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 rounded-[1.9rem] border border-[rgba(108,76,243,0.10)] bg-[linear-gradient(180deg,rgba(245,242,255,0.72),rgba(255,255,255,0.94))] p-6 shadow-sm sm:p-8">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Total today
+              </div>
+
+              <div className="mt-2 text-sm leading-7 text-slate-700">
+                {selected ? (
+                  <>
+                    {selected.units} {selected.unitLabel}
+                    {selected.units === 1 ? "" : "s"} • {selected.label.toLowerCase()}
+                  </>
+                ) : (
+                  "Choose a price option"
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {[
+                  "Secure payment",
+                  "Policy created after checkout",
+                  "Documents emailed instantly",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-[1.1rem] border border-slate-200/80 bg-white/84 px-4 py-4 text-sm font-semibold text-slate-950"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="text-left lg:text-right">
+              <div className="text-4xl font-extrabold tracking-tight text-slate-950">
+                {selected ? moneyGBP(selected.total) : "—"}
+              </div>
+              <div className="mt-1 text-[12px] text-slate-500">VAT included</div>
+            </div>
+          </div>
+
+          {formError ? (
+            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="font-extrabold">Action needed</div>
+              <div className="mt-1">{formError}</div>
+            </div>
+          ) : null}
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={onContinueToPayment}
+              disabled={!validations.canContinue}
+              className={`btn-primary ${!validations.canContinue ? "cursor-not-allowed opacity-60" : ""}`}
+            >
+              Continue to checkout
+            </button>
+
+            <Link href="/" className="btn-ghost">
+              Start again
+            </Link>
+          </div>
+
+          <div className="mt-4 text-[12px] leading-6 text-slate-500">
+            Next step: secure payment, then instant documents by email.
+          </div>
+        </div>
+      </section>
+
+      {/* MOBILE CTA SPACER */}
+      <div className="h-28 lg:hidden" />
+
+      {/* MOBILE CTA */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+        <div className="container-app py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                {selected ? selected.label : "Quote"}
+              </div>
+              <div className="truncate text-sm font-extrabold text-slate-900">
+                {selected ? `${selected.label} • ${moneyGBP(selected.total)}` : "Choose a price option"}
+              </div>
+              <div className="mt-0.5 text-[11px] text-slate-500">
+                Secure checkout next
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onContinueToPayment}
+              disabled={!validations.canContinue}
+              className={`btn-primary ${!validations.canContinue ? "cursor-not-allowed opacity-60" : ""}`}
+            >
+              Continue
+            </button>
+          </div>
         </div>
       </div>
     </PageShell>

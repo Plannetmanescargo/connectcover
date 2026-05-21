@@ -13,15 +13,17 @@ export default function PageShell({
   ctaLabel,
   ctaHref,
   ctaVariant = "ghost",
+  hideHero = false,
 }: {
   eyebrow?: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   crumbs?: Crumb[];
   children?: React.ReactNode;
   ctaLabel?: string;
   ctaHref?: string;
   ctaVariant?: CtaVariant;
+  hideHero?: boolean;
 }) {
   const ctaClass = ctaVariant === "primary" ? "btn-primary" : "btn-ghost";
 
@@ -56,36 +58,40 @@ export default function PageShell({
         </nav>
       ) : null}
 
-      <div className="card-soft p-6 sm:p-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="max-w-2xl min-w-0">
-            {eyebrow ? (
-              <div className="badge mb-4">
-                <span className="h-2 w-2 rounded-full bg-sky-500" />
-                <span className="font-extrabold">{eyebrow}</span>
-              </div>
-            ) : null}
+      {!hideHero ? (
+        <div className="card-soft p-6 sm:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-2xl min-w-0">
+              {eyebrow ? (
+                <div className="badge mb-4">
+                  <span className="h-2 w-2 rounded-full bg-sky-500" />
+                  <span className="font-extrabold">{eyebrow}</span>
+                </div>
+              ) : null}
 
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-              {title}
-            </h1>
+              {title ? (
+                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                  {title}
+                </h1>
+              ) : null}
 
-            {subtitle ? (
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                {subtitle}
-              </p>
+              {subtitle ? (
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
+
+            {ctaLabel && ctaHref ? (
+              <Link className={`${ctaClass} w-full sm:w-auto`} href={ctaHref}>
+                {ctaLabel}
+              </Link>
             ) : null}
           </div>
-
-          {ctaLabel && ctaHref ? (
-            <Link className={`${ctaClass} w-full sm:w-auto`} href={ctaHref}>
-              {ctaLabel}
-            </Link>
-          ) : null}
         </div>
-      </div>
+      ) : null}
 
-      {children ? <div className="mt-6">{children}</div> : null}
+      {children ? <div className={hideHero ? "" : "mt-6"}>{children}</div> : null}
     </div>
   );
 }

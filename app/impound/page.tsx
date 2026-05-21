@@ -3,599 +3,632 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
-import QuoteWidget from "@/components/quote/QuoteWidget";
 
 type Term = "hourly" | "daily" | "weekly" | "monthly";
 
-/* =========================================================
-   Small UI helpers
-========================================================= */
+const TERM_CONTENT: Record<
+  Term,
+  {
+    label: string;
+    title: string;
+    intro: string;
+    bullets: string[];
+    useCases: { title: string; desc: string }[];
+    faqs: { q: string; a: string }[];
+  }
+> = {
+  hourly: {
+    label: "Hourly",
+    title: "Short-term impound cover for a few hours",
+    intro:
+      "Useful when you only need temporary impound insurance for a short collection window after arranging vehicle release.",
+    bullets: [
+      "Choose an exact start time",
+      "Useful for short release windows",
+      "Documents issued instantly after purchase",
+    ],
+    useCases: [
+      {
+        title: "Same-day vehicle collection",
+        desc: "A clear option when you need cover to collect a vehicle from an impound or recovery yard within a short time window.",
+      },
+      {
+        title: "Short release appointments",
+        desc: "Helpful when your collection is booked for a specific time and you only need short-term cover around that appointment.",
+      },
+      {
+        title: "Last-minute impound release",
+        desc: "Useful when you need to arrange insurance quickly in order to move forward with collecting the vehicle.",
+      },
+      {
+        title: "Single collection journeys",
+        desc: "A practical fit when the main need is to release and drive the vehicle away rather than arrange longer cover immediately.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Can I get impound insurance for just a few hours?",
+        a: "Yes. Hourly impound cover can be useful when you only need insurance around a short collection window, subject to eligibility and insurer acceptance.",
+      },
+      {
+        q: "Can I choose exactly when my impound cover starts?",
+        a: "Yes. You can choose an exact start time during the quote journey so the policy fits around your collection plans.",
+      },
+      {
+        q: "Is temporary impound insurance useful for releasing a vehicle the same day?",
+        a: "Yes. It can be a practical option when you need short-term cover to collect a vehicle from impound as soon as release arrangements are in place.",
+      },
+      {
+        q: "Will I get my documents straight away?",
+        a: "Yes. Once cover is purchased, your policy documents are issued instantly and can also be retrieved later.",
+      },
+      {
+        q: "What if vehicle lookup does not find my vehicle?",
+        a: "You can continue by entering the vehicle details manually if registration lookup does not return a result.",
+      },
+      {
+        q: "Can I still retrieve my policy documents later?",
+        a: "Yes. If you have already purchased cover, you can retrieve your documents again later without needing to start over.",
+      },
+    ],
+  },
 
-function Pill({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-full bg-slate-900/5 px-2.5 py-1 text-[11px] font-extrabold text-slate-700 ring-1 ring-slate-200">
-      {children}
-    </span>
-  );
-}
+  daily: {
+    label: "Daily",
+    title: "One-day impound insurance cover",
+    intro:
+      "Designed for situations where you need a full day of impound cover to manage release, collection and short-term onward arrangements.",
+    bullets: [
+      "Cover for a full day",
+      "Useful for release and collection plans",
+      "Documents issued instantly after purchase",
+    ],
+    useCases: [
+      {
+        title: "Vehicle release days",
+        desc: "A practical option when you need enough time to complete the release process and collect the vehicle in the same day.",
+      },
+      {
+        title: "Coordinating paperwork and collection",
+        desc: "Helpful when you need temporary cover while arranging the steps needed for release and pickup.",
+      },
+      {
+        title: "Short onward journeys",
+        desc: "Useful when you need impound insurance that covers the collection day and immediate next steps.",
+      },
+      {
+        title: "Planned release appointments",
+        desc: "A clear fit when your impound collection is booked for a set date and you want the cover arranged around it.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is daily impound insurance suitable for a release day?",
+        a: "Yes. Daily impound cover can be a useful fit when you need insurance across the collection day rather than only for a shorter time window.",
+      },
+      {
+        q: "Can I arrange impound cover for later today?",
+        a: "Yes. You can choose your start time during the quote journey, subject to eligibility and insurer acceptance.",
+      },
+      {
+        q: "Do documents arrive straight after purchase?",
+        a: "Yes. Your documents are issued instantly after purchase and can also be retrieved later if needed.",
+      },
+      {
+        q: "Can I still continue if registration lookup fails?",
+        a: "Yes. You can enter the vehicle details manually and continue your quote.",
+      },
+    ],
+  },
 
-function Stars({ label = "Excellent" }: { label?: string }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full bg-white/80 border border-slate-200 px-4 py-1.5 text-[12px] text-slate-600 shadow-sm backdrop-blur">
-      <span className="font-extrabold text-slate-900">{label}</span>
-      <span className="text-slate-400">•</span>
-      <span className="tracking-[2px] text-amber-500" aria-hidden="true">
-        ★★★★★
-      </span>
-      <span className="sr-only">Five star rating</span>
-      <span className="text-slate-400">•</span>
-      <span>Customer reviews</span>
-    </div>
-  );
-}
+  weekly: {
+    label: "Weekly",
+    title: "Short-term weekly impound cover",
+    intro:
+      "A clearer option when you need temporary cover across several days after release, without moving into a longer-term arrangement straight away.",
+    bullets: [
+      "Suitable for several days of cover",
+      "Useful after release",
+      "Documents issued instantly after purchase",
+    ],
+    useCases: [
+      {
+        title: "After-release arrangements",
+        desc: "Useful when you want temporary cover for a few days after collecting a vehicle from impound.",
+      },
+      {
+        title: "Sorting next steps",
+        desc: "Helpful when you need cover while arranging storage, repairs, sale, or longer-term insurance.",
+      },
+      {
+        title: "Short-term transition cover",
+        desc: "A more flexible option when a week of cover makes more sense than arranging daily policies.",
+      },
+      {
+        title: "Between immediate release and longer plans",
+        desc: "Practical when you need breathing room after collection without committing straight away to something longer-term.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is weekly impound cover available?",
+        a: "Yes. Weekly impound cover can be useful when you need temporary insurance for several consecutive days after release.",
+      },
+      {
+        q: "Can I still choose when the cover begins?",
+        a: "Yes. Start times are chosen during the quote journey so your cover can fit around your release and collection plans.",
+      },
+      {
+        q: "How quickly do I receive documents?",
+        a: "Once purchased, documents are issued instantly and can be accessed again later if needed.",
+      },
+      {
+        q: "What if I cannot find my vehicle using the registration?",
+        a: "If the lookup does not return the vehicle, you can continue by entering the details manually.",
+      },
+    ],
+  },
 
-function TrustStrip() {
-  const items = [
-    "Secure checkout (Stripe)",
-    "Documents available instantly after purchase",
-    "Policy retrieval anytime",
-    "Clear steps before you pay",
-  ];
+  monthly: {
+    label: "Monthly",
+    title: "Longer temporary impound cover",
+    intro:
+      "Ideal when you need impound-related cover for a longer temporary period while keeping the journey clear, flexible and easy to manage.",
+    bullets: [
+      "Useful for longer temporary needs",
+      "Clear short-term alternative",
+      "Documents issued instantly after purchase",
+    ],
+    useCases: [
+      {
+        title: "Longer post-release arrangements",
+        desc: "Helpful when you need temporary cover for a longer defined period after collecting a vehicle from impound.",
+      },
+      {
+        title: "Time to arrange next insurance steps",
+        desc: "A practical option when you want cover in place while deciding on the longer-term future of the vehicle.",
+      },
+      {
+        title: "Temporary access after release",
+        desc: "Useful when the vehicle has been released but still only needs short-term insurance for a defined period.",
+      },
+      {
+        title: "Longer short-term planning",
+        desc: "A cleaner option when your needs go beyond a few days but still are not permanent.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Can I get impound insurance for a longer period?",
+        a: "Yes. Monthly impound cover is designed for longer temporary needs while keeping the quote journey clear and flexible.",
+      },
+      {
+        q: "Can I choose my cover start date and time?",
+        a: "Yes. You choose when cover starts during the quote flow.",
+      },
+      {
+        q: "Are policy documents issued immediately?",
+        a: "Yes. Once you purchase cover, documents are issued instantly and can be retrieved later.",
+      },
+      {
+        q: "Can I continue if vehicle lookup is unavailable?",
+        a: "Yes. Manual entry is available if registration lookup does not return the vehicle.",
+      },
+    ],
+  },
+};
 
-  return (
-    <div className="mt-5 grid gap-2 text-[12px] text-slate-600">
-      {items.map((t) => (
-        <div key={t} className="flex items-center gap-2 leading-snug">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          <span>{t}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SegmentedOption({
+function DurationButton({
   active,
   label,
-  sub,
   onClick,
 }: {
-  active?: boolean;
+  active: boolean;
   label: string;
-  sub?: string;
-  onClick?: () => void;
+  onClick: () => void;
 }) {
-  // Premium: selected feels “active”, but never dark/cheap.
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={!!active}
+      aria-pressed={active}
       className={[
-        "relative w-full rounded-2xl px-3 py-2.5 text-left transition",
-        "ring-1 ring-slate-200 bg-white hover:bg-slate-50",
-        active ? "ring-emerald-200 bg-emerald-50/40" : "",
+        "inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition",
+        active
+          ? "border border-[rgba(108,76,243,0.18)] bg-[rgba(108,76,243,0.08)] text-slate-950 shadow-sm"
+          : "border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50",
       ].join(" ")}
     >
-      <div className="flex items-start gap-2">
-        <span
-          className={[
-            "mt-1 h-2 w-2 rounded-full transition",
-            active ? "bg-emerald-500" : "bg-slate-300",
-          ].join(" ")}
-          aria-hidden="true"
-        />
-        <div className="min-w-0">
-          <div className="text-[12px] font-extrabold text-slate-900">{label}</div>
-          {sub ? <div className="mt-0.5 text-[11px] text-slate-500 leading-snug">{sub}</div> : null}
-        </div>
-      </div>
-
-      {active ? (
-        <span
-          className="pointer-events-none absolute inset-x-4 -bottom-px h-[2px] rounded-full bg-emerald-500/80"
-          aria-hidden="true"
-        />
-      ) : null}
+      {label}
     </button>
   );
 }
 
-function CheckItem({ title, desc }: { title: string; desc: string }) {
+function FaqItem({ question, answer }: { question: string; answer: string }) {
   return (
-    <div className="flex gap-3">
-      <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
-      <div className="min-w-0">
-        <div className="text-sm font-extrabold text-slate-900">{title}</div>
-        <div className="mt-1 text-sm text-slate-600 leading-relaxed">{desc}</div>
-      </div>
-    </div>
-  );
-}
+    <details className="group border-t border-slate-200/80 py-5">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
+        <span className="pr-4 text-[1.02rem] font-semibold tracking-[-0.02em] text-slate-950 sm:text-[1.08rem]">
+          {question}
+        </span>
 
-function StepRow({ n, text }: { n: number; text: string }) {
-  return (
-    <div className="flex gap-2 text-[13px] text-slate-700">
-      <span className="mt-[2px] inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-[11px] font-extrabold">
-        {n}
-      </span>
-      <span className="leading-relaxed">{text}</span>
-    </div>
-  );
-}
-
-function MiniFaq({ q, a }: { q: string; a: string }) {
-  return (
-    <details className="group rounded-2xl border border-slate-200 bg-white px-5 py-4">
-      <summary className="cursor-pointer list-none">
-        <div className="flex items-start justify-between gap-4">
-          <div className="text-sm font-extrabold text-slate-900">{q}</div>
-          <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition group-open:rotate-45">
-            +
-          </span>
-        </div>
-        <div className="mt-1 text-[12px] text-slate-500">Click to expand</div>
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition group-open:rotate-45">
+          +
+        </span>
       </summary>
-      <div className="mt-3 text-sm text-slate-700 leading-relaxed">{a}</div>
+
+      <p className="mt-3 max-w-[48rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+        {answer}
+      </p>
     </details>
   );
 }
 
-function InfoCard({
-  title,
-  value,
-  helper,
-  icon,
-}: {
-  title: string;
-  value: string;
-  helper?: string;
-  icon: React.ReactNode;
-}) {
-  // grid prevents icon squish
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <div className="grid grid-cols-[1fr_auto_auto] items-start gap-4">
-        <div className="min-w-0">
-          <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">{title}</div>
-          <div className="mt-1 text-base font-extrabold text-slate-900 break-words">{value}</div>
-          {helper ? <div className="mt-1 text-[12px] text-slate-500">{helper}</div> : null}
-        </div>
-        <span className="w-1" aria-hidden="true" />
-        <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-900 shadow-sm">
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================
-   Page
-========================================================= */
-
 export default function ImpoundPage() {
-  const [term, setTerm] = useState<Term>("daily");
+  const [term, setTerm] = useState<Term>("hourly");
 
   useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    const t = sp.get("term");
-    if (t === "hourly" || t === "daily" || t === "weekly" || t === "monthly") setTerm(t);
+    const params = new URLSearchParams(window.location.search);
+    const nextTerm = params.get("term");
+
+    if (
+      nextTerm === "hourly" ||
+      nextTerm === "daily" ||
+      nextTerm === "weekly" ||
+      nextTerm === "monthly"
+    ) {
+      setTerm(nextTerm);
+    }
   }, []);
 
-  const content = useMemo(() => {
-    const map: Record<
-      Term,
-      { label: string; headline: string; sub: string; useCases: { t: string; d: string }[]; termHint: string }
-    > = {
-      hourly: {
-        label: "Hourly",
-        termHint: "Short window",
-        headline: "Impound cover for quick release collection",
-        sub: "Best for a controlled window — collection, paperwork, and a direct journey after release.",
-        useCases: [
-          { t: "Release appointment", d: "Collect and drive away the same day." },
-          { t: "Short trip home", d: "Direct route from compound to your chosen location." },
-          { t: "Time-sensitive pickups", d: "Cover for a brief window when timing is tight." },
-        ],
-      },
-      daily: {
-        label: "Daily",
-        termHint: "Most practical",
-        headline: "Daily impound cover for release and onward travel",
-        sub: "A solid option when timing is uncertain — cover for release, admin, and travel.",
-        useCases: [
-          { t: "Compound delays", d: "If release time is not guaranteed." },
-          { t: "Same-day admin", d: "Time for payment, checks, and paperwork." },
-          { t: "One-day journey", d: "Drive home and sort follow-up later." },
-        ],
-      },
-      weekly: {
-        label: "Weekly",
-        termHint: "Bridge cover",
-        headline: "Weekly cover for impound release and short-term use",
-        sub: "Useful if you need a few days after release to arrange longer-term insurance.",
-        useCases: [
-          { t: "Between policies", d: "Bridge cover while setting up annual insurance." },
-          { t: "Repairs & checks", d: "Time to service or inspect the vehicle after release." },
-          { t: "Short arrangements", d: "Temporary use with no annual commitment." },
-        ],
-      },
-      monthly: {
-        label: "Monthly",
-        termHint: "More runway",
-        headline: "Monthly impound cover for extended temporary needs",
-        sub: "For longer temporary use after release — clean pricing, no annual lock-in.",
-        useCases: [
-          { t: "Sorting replacement cover", d: "Time to compare longer-term options properly." },
-          { t: "Extended temporary use", d: "If you’ll rely on the vehicle for a few weeks." },
-          { t: "Admin + stability", d: "One window while you organise next steps." },
-        ],
-      },
-    };
-
-    return map[term];
-  }, [term]);
+  const content = useMemo(() => TERM_CONTENT[term], [term]);
 
   return (
     <PageShell
-      eyebrow="Impound Insurance"
-      title="Impound cover to help release your vehicle"
-      subtitle="Clear steps, exact cover times, and documents available instantly after purchase."
+      hideHero
       crumbs={[{ label: "Home", href: "/" }, { label: "Impound" }]}
-      ctaLabel="Get a quote"
-      ctaHref="/impound#quote"
     >
-      {/* HERO (premium + compliance-safe) */}
-      <section className="relative overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-sky-400/10 via-blue-300/10 to-indigo-300/10" />
-        <div className="relative p-6 sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 max-w-2xl">
-              <div className="flex flex-wrap items-center gap-2">
-                <Pill>Clear checklist</Pill>
-                <Pill>Exact start & end times</Pill>
-                <Pill>UK documents</Pill>
-              </div>
+      {/* HERO */}
+      <section className="pt-2 sm:pt-4 lg:pt-6">
+        <div className="max-w-[76rem]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.14)] bg-white/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)] backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+            Impound insurance
+          </div>
 
-              <h2 className="mt-4 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-                {content.headline}
-              </h2>
-              <p className="mt-2 text-sm sm:text-base text-slate-600 leading-relaxed">{content.sub}</p>
-
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <Stars label="Excellent" />
-                <div className="text-[12px] text-slate-500">
-                  Reviews shown as placeholder until integrated.
-                </div>
-              </div>
-
-              <TrustStrip />
-
-              <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <Link href="#quote" className="btn-primary justify-center">
-                  Start a quote
-                </Link>
-                <Link href="/help-support" className="btn-ghost justify-center">
-                  Help & support
-                </Link>
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 text-sm text-slate-700">
-                <div className="font-extrabold text-slate-900">Important</div>
-                <div className="mt-1 leading-relaxed">
-                  Requirements vary by compound and situation. Always confirm with the impound operator
-                  exactly what documents they need before attending.
-                </div>
-              </div>
+          <div className="relative mt-6 max-w-[70rem]">
+            <div className="pointer-events-none absolute inset-x-0 top-[8%] -z-10 opacity-55 sm:top-[12%]">
+              <svg
+                viewBox="0 0 1200 260"
+                className="h-[220px] w-full sm:h-[260px] lg:h-[300px]"
+                fill="none"
+                aria-hidden="true"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M18 152C114 62 222 227 338 152C446 82 548 216 676 142C794 72 906 201 1026 132C1090 96 1142 105 1182 122"
+                  stroke="rgba(108,76,243,0.14)"
+                  strokeWidth="34"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M10 154C108 66 216 224 334 150C444 80 544 214 672 140C792 70 904 198 1024 130C1088 95 1140 103 1190 120"
+                  stroke="rgba(108,76,243,0.28)"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                />
+              </svg>
             </div>
 
-            {/* Selector */}
-            <div className="w-full max-w-[520px] shrink-0">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                  Choose cover type
-                </div>
-                <Pill>{content.termHint}</Pill>
+            <h1 className="heading-unbalanced relative max-w-[14ch] text-[3.25rem] font-extrabold leading-[0.9] tracking-[-0.07em] text-slate-950 sm:max-w-[12.5ch] sm:text-[4.55rem] lg:max-w-[12.5ch] lg:text-[5.85rem]">
+              Impound insurance, on your timing
+            </h1>
+          </div>
+
+          <p className="mt-10 max-w-[52rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.14rem]">
+            Choose when cover should start, select the duration you need, and move
+            through a clearer quote journey built for vehicle release and short-term
+            impound collection needs.
+          </p>
+
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Link href="/get-quote" className="btn-primary btn-primary-lg !text-white">
+              Start your quote
+            </Link>
+
+            <Link href="/retrieve-policy" className="btn-ghost">
+              Retrieve policy
+            </Link>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-x-7 gap-y-3 text-sm font-medium text-slate-700">
+            {[
+              "Choose exact start times",
+              "From 1 hour to 12 months",
+              "Documents issued instantly",
+            ].map((item) => (
+              <div key={item} className="inline-flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 text-[12px] leading-6 text-slate-500">
+            Eligibility, underwriting and insurer acceptance apply.
+          </div>
+
+          <div className="mt-12 h-px w-full bg-[linear-gradient(90deg,rgba(226,232,240,0),rgba(226,232,240,0.95),rgba(226,232,240,0))]" />
+        </div>
+      </section>
+
+      {/* COVER LENGTH */}
+      <section className="mt-16">
+        <div className="grid gap-10 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] xl:items-start">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+              Choose cover length
+            </div>
+
+            <h2 className="mt-4 max-w-[12ch] text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:max-w-[11ch] lg:text-[4.3rem]">
+              Find the impound cover that fits
+            </h2>
+
+            <p className="mt-5 max-w-[36rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+              Hourly, daily, weekly or monthly — choose the length that makes
+              sense for your release and collection plans, then get a quote in minutes.
+            </p>
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex flex-wrap gap-3">
+              <DurationButton
+                active={term === "hourly"}
+                label="Hourly"
+                onClick={() => setTerm("hourly")}
+              />
+              <DurationButton
+                active={term === "daily"}
+                label="Daily"
+                onClick={() => setTerm("daily")}
+              />
+              <DurationButton
+                active={term === "weekly"}
+                label="Weekly"
+                onClick={() => setTerm("weekly")}
+              />
+              <DurationButton
+                active={term === "monthly"}
+                label="Monthly"
+                onClick={() => setTerm("monthly")}
+              />
+            </div>
+
+            <div className="mt-6 rounded-[1.8rem] border border-slate-200/80 bg-white/88 p-6 shadow-sm sm:p-7">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                {content.label} cover
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <SegmentedOption active={term === "hourly"} label="Hourly" sub="Quick pickup window" onClick={() => setTerm("hourly")} />
-                <SegmentedOption active={term === "daily"} label="Daily" sub="Most flexible day" onClick={() => setTerm("daily")} />
-                <SegmentedOption active={term === "weekly"} label="Weekly" sub="Bridge to annual" onClick={() => setTerm("weekly")} />
-                <SegmentedOption active={term === "monthly"} label="Monthly" sub="More time to sort" onClick={() => setTerm("monthly")} />
-              </div>
+              <h3 className="mt-2 text-[1.8rem] font-extrabold leading-[1.02] tracking-[-0.04em] text-slate-950 sm:text-[2.1rem]">
+                {content.title}
+              </h3>
 
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="text-sm font-extrabold text-slate-900">Four simple steps</div>
-                <div className="mt-2 grid gap-2">
-                  <StepRow n={1} text="Enter your reg and confirm vehicle details." />
-                  <StepRow n={2} text="Choose your exact cover times (and term)." />
-                  <StepRow n={3} text="Review details and pay securely." />
-                  <StepRow n={4} text="Access documents instantly after purchase." />
-                </div>
+              <p className="mt-3 max-w-[42rem] text-[1rem] leading-8 text-slate-600">
+                {content.intro}
+              </p>
 
-                <div className="mt-4">
-                  <Link href="#quote" className="btn-primary w-full justify-center">
-                    Get a quote
-                  </Link>
-                  <div className="mt-2 text-center text-[12px] text-slate-500">
-                    Takes ~2 minutes • Choose exact times
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {content.bullets.map((bullet) => (
+                  <div
+                    key={bullet}
+                    className="rounded-[1.15rem] border border-slate-200/80 bg-slate-50/55 px-4 py-4 text-sm font-semibold leading-6 text-slate-950"
+                  >
+                    {bullet}
                   </div>
-                </div>
+                ))}
+              </div>
+
+              <div className="mt-6">
+                <Link href="/get-quote" className="btn-primary !text-white">
+                  Get a quote
+                </Link>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Use cases */}
-      <section className="mt-10">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="text-sm font-extrabold text-slate-900">Common reasons</div>
-            <p className="mt-1 text-sm text-slate-600">
-              Why people choose {content.label.toLowerCase()} impound cover.
-            </p>
+      {/* USE CASES */}
+      <section className="mt-16">
+        <div className="max-w-[56rem]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+            When impound cover makes sense
           </div>
-          <Link href="#quote" className="btn-ghost hidden sm:inline-flex">
-            Start a quote
-          </Link>
+
+          <h2 className="mt-4 max-w-[16ch] text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:max-w-[15ch] lg:text-[4rem]">
+            Built for real vehicle release needs
+          </h2>
+
+          <p className="mt-4 max-w-[44rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+            Impound insurance is usually arranged for a specific release or collection
+            reason. Here are some of the common situations it can fit.
+          </p>
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          {content.useCases.map((x) => (
-            <div key={x.t} className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <div className="text-sm font-extrabold text-slate-900">{x.t}</div>
-              <p className="mt-2 text-sm text-slate-600 leading-relaxed">{x.d}</p>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          {content.useCases.map((item) => (
+            <div
+              key={item.title}
+              className="rounded-[1.7rem] border border-slate-200/80 bg-white/84 px-6 py-6 shadow-sm"
+            >
+              <div className="text-[1.15rem] font-semibold tracking-[-0.03em] text-slate-950 sm:text-[1.28rem]">
+                {item.title}
+              </div>
+              <p className="mt-2.5 max-w-[34rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                {item.desc}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Checklist + What we provide */}
-      <section className="mt-10 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <div className="text-sm font-extrabold text-slate-900">What you’ll usually need</div>
-          <p className="mt-1 text-sm text-slate-600">
-            Most compounds ask for some combination of the following.
-          </p>
+      {/* GET QUOTE CTA */}
+      <section id="quote" className="mt-16 scroll-mt-24">
+        <div className="rounded-[2rem] border border-[rgba(108,76,243,0.10)] bg-[linear-gradient(180deg,rgba(245,242,255,0.72),rgba(255,255,255,0.94))] px-6 py-10 shadow-sm sm:px-8 sm:py-12 lg:px-10 lg:py-14">
+          <div className="mx-auto max-w-5xl text-center">
+            <h2 className="heading-unbalanced text-center text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:text-[3.8rem]">
+              Start your impound insurance quote
+            </h2>
 
-          <div className="mt-5 grid gap-4">
-            <CheckItem title="Proof of identity" desc="Driving licence or other accepted ID (rules vary)." />
-            <CheckItem title="Proof of address" desc="Often requested — bring recent proof if you have it." />
-            <CheckItem title="Authority to collect" desc="If you’re not the keeper, you may need permission/letter." />
-            <CheckItem title="Payment method" desc="Some compounds require specific payment types — confirm ahead." />
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 text-sm text-slate-700">
-            <div className="font-extrabold text-slate-900">Tip</div>
-            <div className="mt-1 leading-relaxed">
-              Call the compound first and ask for their exact checklist — it avoids wasted trips.
+            <div className="mx-auto mt-5 max-w-[38rem]">
+              <p className="text-center text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+                Move into the quote journey to choose your timing, confirm your
+                vehicle details, and review the cover that fits your release plans.
+              </p>
             </div>
-          </div>
-        </div>
 
-        <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <div className="text-sm font-extrabold text-slate-900">What GoTempCover provides</div>
-          <p className="mt-1 text-sm text-slate-600">
-            After purchase, your documentation is available instantly and sent by email.
-          </p>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/get-quote" className="btn-primary !text-white">
+                Get a quote
+              </Link>
 
-          <div className="mt-5 grid gap-4">
-            <CheckItem title="Instant documents" desc="Available immediately after purchase (and emailed to you)." />
-            <CheckItem title="Policy retrieval anytime" desc="Access documents later using your details/policy reference." />
-            <CheckItem title="Exact cover times" desc="Choose precise start & end times for your release window." />
-            <CheckItem title="Clear journey" desc="You’ll review everything before payment." />
-          </div>
+              <Link href="/retrieve-policy" className="btn-ghost">
+                Retrieve policy
+              </Link>
+            </div>
 
-          <div className="mt-5 flex flex-col gap-2 text-[12px] text-slate-600">
-            {["Secure checkout (Stripe)", "Instant documents", "Policy retrieval anytime"].map((t) => (
-              <div key={t} className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>{t}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 flex flex-col sm:flex-row gap-3">
-            <Link href="#quote" className="btn-primary justify-center w-full sm:w-auto">
-              Start a quote
-            </Link>
-            <Link href="/retrieve-policy" className="btn-ghost justify-center w-full sm:w-auto">
-              Retrieve policy
-            </Link>
+            <div className="mt-5 text-[12px] leading-6 text-slate-500">
+              Clear steps, secure checkout, and documents issued instantly after purchase.
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Mini FAQ */}
-      <section className="mt-10">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-                Impound FAQs
-              </h3>
-              <p className="mt-2 text-sm sm:text-base text-slate-600">
-                Quick answers before you attend the compound.
-              </p>
-            </div>
-
-            <Link href="/help-support" className="btn-ghost hidden sm:inline-flex">
-              Visit help centre
-            </Link>
+      {/* FAQ */}
+      <section className="mt-16">
+        <div className="max-w-[54rem]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+            Impound cover questions
           </div>
 
-          <div className="mt-6 grid gap-3">
-            <MiniFaq
-              q="Will the compound accept my documents?"
-              a="Acceptance depends on the compound’s rules and your situation. Always confirm their requirements before attending."
-            />
-            <MiniFaq
-              q="How fast do I get documents after paying?"
-              a="After purchase, your documents are available instantly and sent to your email."
-            />
-            <MiniFaq
-              q="Can I choose exact cover times?"
-              a="Yes — you choose exact start and end times to match your release window."
-            />
-            <MiniFaq
-              q="What if vehicle lookup can’t find my car?"
-              a="No problem — you can enter make and model manually and continue."
-            />
-          </div>
+          <h2 className="mt-4 max-w-[15ch] text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:max-w-[14ch] lg:text-[4rem]">
+            Clear help, before and after purchase
+          </h2>
 
-          <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <Link href="#quote" className="btn-primary justify-center">
-              Start a quote
-            </Link>
-            <Link href="/help-support" className="btn-ghost justify-center">
-              Help & support
-            </Link>
-          </div>
+          <p className="mt-4 max-w-[42rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+            Whether you are starting a quote or retrieving documents later,
+            support should feel just as clear as the rest of the journey.
+          </p>
+        </div>
+
+        <div className="mt-8 rounded-[1.8rem] border border-slate-200/80 bg-white/88 px-6 py-2 shadow-sm sm:px-8">
+          {content.faqs.map((item) => (
+            <FaqItem key={item.q} question={item.q} answer={item.a} />
+          ))}
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/more/faq"
+            className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
+          >
+            View full FAQs
+          </Link>
+
+          <Link
+            href="/help-support"
+            className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
+          >
+            Help centre
+          </Link>
         </div>
       </section>
 
-      {/* Support block (email + hours) */}
-      <section className="mt-10">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-                Need a hand?
+      {/* SUPPORT / RETRIEVAL */}
+      <section className="mt-12">
+        <div className="rounded-[1.9rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(245,242,255,0.88),rgba(255,255,255,0.96))] p-6 shadow-sm sm:p-8 lg:p-10">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Already purchased cover?
+              </div>
+
+              <h3 className="mt-3 max-w-[18ch] text-[1.9rem] font-extrabold leading-[0.96] tracking-[-0.045em] text-slate-950 sm:text-[2.35rem]">
+                Retrieve documents or get support anytime
               </h3>
-              <p className="mt-2 text-sm sm:text-base text-slate-600">
-                If you’re unsure what to enter, we can help you through the quote flow.
+
+              <p className="mt-4 max-w-[38rem] text-[1rem] leading-8 text-slate-600">
+                If you have already bought impound cover, you can retrieve your policy
+                documents again without needing to start over. If you need help,
+                our support team is also easy to reach.
               </p>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <InfoCard
-                  title="Email"
-                  value="support@gotempcover.com"
-                  helper="We usually reply within one business day."
-                  icon={<IconMail />}
-                />
-                <InfoCard
-                  title="Opening hours"
-                  value="Mon–Sat, 9am–5pm"
-                  helper="Closed Sundays & bank holidays."
-                  icon={<IconClock />}
-                />
-              </div>
-
-              <div className="mt-5 flex flex-col sm:flex-row gap-3">
-                <Link href="/contact" className="btn-ghost justify-center">
-                  Contact us
-                </Link>
-                <Link href="/help-support" className="btn-ghost justify-center">
-                  Help centre
-                </Link>
-              </div>
-
-              <div className="mt-3 text-[12px] text-slate-500">
-                Please don’t share card details by email.
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-6">
-              <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                Before you go
-              </div>
-
-              <ul className="mt-3 grid gap-2 text-sm text-slate-700">
-                {[
-                  "Call the compound and confirm their exact document checklist",
-                  "Bring ID and (if requested) proof of address",
-                  "If you’re not the keeper, bring authority to collect",
-                  "Choose cover times that match your release window",
-                ].map((t) => (
-                  <li key={t} className="flex items-start gap-3">
-                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-slate-300" />
-                    <span className="leading-relaxed">{t}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="text-sm font-extrabold text-slate-900">Already bought cover?</div>
-                <p className="mt-1 text-sm text-slate-600">
-                  Retrieve your policy documents anytime.
-                </p>
-                <Link href="/retrieve-policy" className="btn-primary mt-4 w-full justify-center">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Link href="/retrieve-policy" className="btn-primary !text-white">
                   Retrieve policy
                 </Link>
+
+                <Link href="/get-quote" className="btn-ghost">
+                  Start your quote
+                </Link>
+
+                <Link href="/contact" className="btn-ghost">
+                  Contact support
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-[1.4rem] border border-slate-200/80 bg-white/84 p-5">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                Email support
+              </div>
+
+              <div className="mt-2 text-[1.08rem] font-semibold tracking-[-0.02em] text-slate-950">
+                support@connectcover.com
+              </div>
+
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                Reach out if you need help with your quote, documents or retrieval.
+              </p>
+
+              <div className="mt-5 rounded-[1.15rem] border border-slate-200/80 bg-slate-50/60 px-4 py-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Opening hours
+                </div>
+                <div className="mt-2 text-sm font-semibold text-slate-950">
+                  Mon–Sat, 9am–7pm
+                </div>
+                <div className="mt-1 text-sm leading-6 text-slate-600">
+                  Closed Sundays & bank holidays
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <a
+                  href="mailto:support@connectcover.com"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  Email support
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Quote */}
-      <section id="quote" className="mt-10 scroll-mt-24 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="text-base font-extrabold tracking-tight text-slate-900">Get your quote</div>
-            <p className="mt-1 text-sm text-slate-600">
-              Enter your reg, confirm your vehicle, then pick your exact cover dates.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <QuoteWidget />
-        </div>
-      </section>
-
-      {/* Compliance strip */}
+      {/* COMPLIANCE */}
       <div className="mt-8 flex flex-col gap-2 text-[12px] text-slate-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
         {[
-          "Requirements vary by compound and situation",
           "Eligibility and underwriting apply",
+          "You’ll review details before payment",
           "Always read your policy documents carefully",
-        ].map((t) => (
-          <div key={t} className="flex items-center gap-2">
+        ].map((item) => (
+          <div key={item} className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-            <span>{t}</span>
+            <span>{item}</span>
           </div>
         ))}
       </div>
     </PageShell>
-  );
-}
-
-/* =========================================================
-   Inline icons (no libs)
-========================================================= */
-
-function IconMail() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5v-9Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M6.8 8.2 12 12l5.2-3.8"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconClock() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
   );
 }

@@ -6,8 +6,6 @@ type SendPolicyEmailInput = {
   policyNumber: string;
   certificateUrl: string;
   proposalUrl: string;
-
-  // Optional nice-to-haves (use later when you want richer emails)
   vrm?: string | null;
   make?: string | null;
   model?: string | null;
@@ -37,7 +35,6 @@ function isHttpUrl(s: string) {
 
 function cleanPdfUrl(url: string, label: string) {
   if (!url || !isHttpUrl(url)) throw new Error(`${label} must be a valid http(s) URL`);
-  // Basic “looks like pdf” check (works for your public supabase URLs)
   if (!/\.pdf(\?|#|$)/i.test(url)) throw new Error(`${label} must point to a .pdf`);
   return url;
 }
@@ -73,12 +70,6 @@ function vehicleLine(input: SendPolicyEmailInput) {
   return parts.length ? parts.join(" ") : null;
 }
 
-/**
- * Premium insurer-style email:
- * - HTML + text fallback
- * - Attachments (certificate + statement) using Resend `path`
- * - Deliverability-friendly: no tracking pixels, minimal external assets, table-based layout
- */
 export async function sendPolicyEmail(input: SendPolicyEmailInput) {
   const apiKey = requireEnv("RESEND_API_KEY");
   const from = requireEnv("RESEND_FROM");
@@ -90,18 +81,16 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
   const certificateUrl = cleanPdfUrl(input.certificateUrl, "certificateUrl");
   const proposalUrl = cleanPdfUrl(input.proposalUrl, "proposalUrl");
 
-  const brandName = "GoTempCover";
-  const supportEmail = replyTo || "support@gotempcover.co.uk";
+  const brandName = "Connect Cover";
+  const supportEmail = replyTo || "support@connectcover.com";
   const policyNumber = input.policyNumber.trim();
 
   const veh = vehicleLine(input);
   const start = fmtDateTime(input.startAtISO);
   const end = fmtDateTime(input.endAtISO);
 
-  // Subject line: insurer-style, clear and short
   const subject = `Cover confirmed — Policy ${policyNumber}`;
 
-  // Plain-text fallback
   const textLines: string[] = [
     `${brandName} — Cover confirmed`,
     "",
@@ -121,13 +110,13 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
     `• Certificate: ${certificateUrl}`,
     `• Statement of Fact: ${proposalUrl}`,
     "",
-    "Next steps (please read):",
-    "1) Please review your Certificate and Statement of Fact to ensure all details are accurate.",
+    "Next steps:",
+    "1) Review your Certificate and Statement of Fact carefully to ensure all details are correct.",
     "2) Save the PDFs to your device and keep the Certificate accessible while the vehicle is in use.",
-    "3) If any detail is incorrect, contact us immediately so we can advise on the appropriate next steps.",
+    "3) If any detail is incorrect, contact us immediately so we can advise on the right next step.",
     "",
     "Motor Insurance Database (MID / askMID / Navigate):",
-    "MID records are updated several times daily. Please allow up to a few hours for your cover to appear on MID following purchase.",
+    "MID records are updated several times daily. Please allow a few hours for your cover to appear after purchase.",
     "If you are asked to provide proof of insurance, your Certificate of Motor Insurance is legal evidence of cover.",
     "",
     `Questions or concerns? Reply to this email or contact ${supportEmail}.`,
@@ -135,7 +124,7 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
     "Regulatory & legal information:",
     "We hereby certify that the policy satisfies the requirements of the relevant law applicable in Great Britain, Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.",
     "",
-    "GoTempCover Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.",
+    "Connect Cover Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.",
     "Details about our regulation by the Financial Conduct Authority and Prudential Regulation Authority are available on request.",
     "",
     "Registered in England and Wales as ACCELERANT INSURANCE UK LIMITED. Reg. No. 03326800. Registered Address: One, Fleet Place, London, England, EC4M 7WS. Authorised and regulated by the Financial Conduct Authority (207658).",
@@ -149,16 +138,15 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
 
   const text = textLines.join("\n");
 
-  // HTML email (table-based = consistent across Gmail/Outlook)
   const safePolicy = escapeHtml(policyNumber);
   const safeVeh = veh ? escapeHtml(veh) : null;
   const safeStart = start ? escapeHtml(start) : null;
   const safeEnd = end ? escapeHtml(end) : null;
   const safeSupport = escapeHtml(supportEmail);
-
   const safeCertUrl = escapeHtml(certificateUrl);
   const safePropUrl = escapeHtml(proposalUrl);
   const safeTo = escapeHtml(input.to);
+  const safeBrand = escapeHtml(brandName);
 
   const html = `
 <!doctype html>
@@ -169,10 +157,9 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
     <meta name="x-apple-disable-message-reformatting" />
     <meta name="color-scheme" content="light dark" />
     <meta name="supported-color-schemes" content="light dark" />
-    <title>${brandName} — Policy ${safePolicy}</title>
+    <title>${safeBrand} — Policy ${safePolicy}</title>
   </head>
   <body style="margin:0;padding:0;background:#f6f7fb;">
-    <!-- Preheader (hidden) -->
     <div style="display:none;font-size:1px;color:#f6f7fb;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
       Cover confirmed. Policy ${safePolicy}. Documents attached and available via secure links.
     </div>
@@ -180,8 +167,6 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f7fb;">
       <tr>
         <td align="center" style="padding:28px 12px;">
-
-          <!-- Container -->
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="640" style="width:640px;max-width:100%;">
 
             <!-- Header -->
@@ -189,10 +174,15 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
               <td style="padding:0 4px 14px 4px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                   <tr>
-                    <td align="left" style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#0f172a;font-weight:900;font-size:16px;letter-spacing:-0.2px;">
-                      ${brandName}
+                    <td align="left">
+                      <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#6c4cf3;font-weight:900;font-size:17px;letter-spacing:-0.2px;">
+                        ${safeBrand}
+                      </div>
+                      <div style="margin-top:3px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#64748b;font-size:12px;">
+                        Temporary insurance, made clearer
+                      </div>
                     </td>
-                    <td align="right" style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#64748b;font-size:12px;">
+                    <td align="right" style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#64748b;font-size:12px;vertical-align:top;">
                       Policy <span style="font-weight:900;color:#0f172a;">${safePolicy}</span>
                     </td>
                   </tr>
@@ -200,45 +190,39 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
               </td>
             </tr>
 
-            <!-- Card -->
             <tr>
               <td style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;overflow:hidden;box-shadow:0 10px 28px rgba(15,23,42,0.08);">
-
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                   <tr>
                     <td style="padding:18px 18px 0 18px;">
-                      <span style="display:inline-block;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:6px 10px;border-radius:999px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12px;font-weight:900;">
+                      <span style="display:inline-block;background:#f3efff;color:#6c4cf3;border:1px solid #ddd3ff;padding:6px 10px;border-radius:999px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12px;font-weight:900;">
                         Payment received
                       </span>
 
                       <div style="height:12px;line-height:12px;font-size:12px;">&nbsp;</div>
 
                       <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:26px;line-height:1.15;letter-spacing:-0.5px;color:#0f172a;font-weight:900;">
-                        Cover confirmed ✅
+                        Your Connect Cover policy is confirmed
                       </div>
 
                       <div style="height:8px;line-height:8px;font-size:8px;">&nbsp;</div>
 
                       <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#475569;font-size:14px;line-height:1.7;">
-                        Your temporary motor insurance is now in force. Your policy documents are attached to this email and available via the buttons below.
+                        Your temporary insurance is now in force. Your policy documents are attached to this email and also available through the buttons below.
                       </div>
                     </td>
                   </tr>
 
-                  <!-- Quick actions -->
                   <tr>
                     <td style="padding:16px 18px 0 18px;">
                       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                         <tr>
-                          <!-- Primary CTA -->
                           <td align="left" style="padding-right:10px;">
                             <a href="${safeCertUrl}"
-                               style="display:inline-block;text-decoration:none;background:#0f172a;color:#ffffff;border:1px solid #0f172a;border-radius:14px;padding:12px 14px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;font-weight:900;">
+                               style="display:inline-block;text-decoration:none;background:#6c4cf3;color:#ffffff;border:1px solid #6c4cf3;border-radius:14px;padding:12px 14px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;font-weight:900;box-shadow:0 10px 24px rgba(108,76,243,0.18);">
                               Download certificate (PDF)
                             </a>
                           </td>
-
-                          <!-- Secondary CTA (ghost/light) -->
                           <td align="left">
                             <a href="${safePropUrl}"
                                style="display:inline-block;text-decoration:none;background:#ffffff;color:#0f172a;border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;font-weight:900;">
@@ -252,7 +236,6 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                     </td>
                   </tr>
 
-                  <!-- Details -->
                   <tr>
                     <td style="padding:0 18px 18px 18px;">
                       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;">
@@ -326,7 +309,6 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                         </tr>
                       </table>
 
-                      <!-- Documents -->
                       <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
 
                       <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:13px;color:#0f172a;font-weight:950;margin-bottom:8px;">
@@ -344,25 +326,23 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                         </tr>
                       </table>
 
-                      <!-- Next steps -->
                       <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
 
                       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:16px;">
                         <tr>
                           <td style="padding:12px;">
                             <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12px;color:#0f172a;font-weight:950;margin-bottom:6px;">
-                              Next steps (please read)
+                              Next steps
                             </div>
                             <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12.5px;color:#334155;line-height:1.75;">
-                              1) Please review the <strong style="color:#0f172a;">Certificate</strong> and <strong style="color:#0f172a;">Statement of Fact</strong> to ensure your details are accurate.<br/>
+                              1) Review the <strong style="color:#0f172a;">Certificate</strong> and <strong style="color:#0f172a;">Statement of Fact</strong> carefully to ensure your details are correct.<br/>
                               2) Save the PDFs to your device and keep the Certificate accessible while the vehicle is in use.<br/>
-                              3) If any detail is incorrect, contact us immediately so we can advise on the appropriate next steps.
+                              3) If any detail is incorrect, contact us immediately so we can advise on the right next step.
                             </div>
                           </td>
                         </tr>
                       </table>
 
-                      <!-- MID info (placed before support line) -->
                       <div style="height:14px;line-height:14px;font-size:14px;">&nbsp;</div>
 
                       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;">
@@ -372,7 +352,7 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                               Motor Insurance Database (MID / askMID / Navigate)
                             </div>
                             <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:12.5px;color:#334155;line-height:1.75;">
-                              MID records are updated several times daily. Please allow up to a few hours for your cover to appear after purchase.<br/>
+                              MID records are updated several times daily. Please allow a few hours for your cover to appear after purchase.<br/>
                               If you are asked to provide proof of insurance, your <strong style="color:#0f172a;">Certificate of Motor Insurance</strong> is legal evidence of cover.
                             </div>
                           </td>
@@ -384,21 +364,19 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                       <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#475569;font-size:12.5px;line-height:1.75;">
                         Questions or concerns? Reply to this email or contact <span style="font-weight:900;color:#0f172a;">${safeSupport}</span>.
                       </div>
-
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
 
-            <!-- Footer -->
             <tr>
               <td style="padding:14px 6px 0 6px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#64748b;font-size:11px;line-height:1.65;">
                 <div style="padding:12px 10px;border-top:1px solid #e2e8f0;">
                   <div style="font-weight:900;color:#0f172a;margin-bottom:6px;">Questions or concerns?</div>
                   <div>
                     Reply to this email or contact us at
-                    <span style="font-weight:900;color:#0f172a;">${safeSupport}</span>.
+                    <span style="font-weight:900;color:#0f172a;"> ${safeSupport}</span>.
                   </div>
 
                   <div style="height:12px;line-height:12px;font-size:12px;">&nbsp;</div>
@@ -409,7 +387,7 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
                     Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.
                   </div>
                   <div style="margin-top:8px;">
-                    GoTempCover Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the
+                    Connect Cover Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business under the
                     Financial Services Act 2019 and Financial Services Regulations 2020, registered address 5/5 Crutchett’s Ramp, Gibraltar.
                   </div>
                   <div style="margin-top:8px;">
@@ -425,17 +403,15 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
 
                   <div style="font-weight:900;color:#0f172a;margin-bottom:6px;">Confidentiality notice</div>
                   <div>
-                    The content of this email is confidential and intended for the recipient specified in message only.
-                    It is strictly forbidden to share any part of this message with any third party, without the written consent of the sender.
-                    If you received this message by mistake, please reply to this message and then delete it, so that we can help prevent this happening again.
+                    The content of this email is confidential and intended only for the recipient specified.
+                    It is strictly forbidden to share any part of this message with any third party without the written consent of the sender.
+                    If you received this message by mistake, please reply to this email and then delete it so we can help prevent this happening again.
                   </div>
                 </div>
               </td>
             </tr>
 
           </table>
-          <!-- /Container -->
-
         </td>
       </tr>
     </table>
@@ -454,11 +430,11 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
     html,
     attachments: [
       {
-        filename: `certificate-${policyNumber}.pdf`,
+        filename: `connect-cover-certificate-${policyNumber}.pdf`,
         path: certificateUrl,
       },
       {
-        filename: `statement-of-fact-${policyNumber}.pdf`,
+        filename: `connect-cover-statement-of-fact-${policyNumber}.pdf`,
         path: proposalUrl,
       },
     ],

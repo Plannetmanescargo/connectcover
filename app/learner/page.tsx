@@ -3,547 +3,631 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
-import QuoteWidget from "@/components/quote/QuoteWidget";
 
 type Term = "hourly" | "daily" | "weekly" | "monthly";
 
-function SoftChip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-full bg-slate-900/5 px-2.5 py-1 text-[11px] font-extrabold text-slate-700 ring-1 ring-slate-200">
-      {children}
-    </span>
-  );
-}
+const TERM_CONTENT: Record<
+  Term,
+  {
+    label: string;
+    title: string;
+    intro: string;
+    bullets: string[];
+    useCases: { title: string; desc: string }[];
+    faqs: { q: string; a: string }[];
+  }
+> = {
+  hourly: {
+    label: "Hourly",
+    title: "Short-term learner cover for a few hours",
+    intro:
+      "Useful when you only need learner driver insurance for a short practice session in a familiar car.",
+    bullets: [
+      "Choose an exact start time",
+      "Useful for short practice sessions",
+      "Documents issued instantly after purchase",
+    ],
+    useCases: [
+      {
+        title: "Quick practice sessions",
+        desc: "A clear option when you only need learner cover for a short period of supervised driving.",
+      },
+      {
+        title: "Practising in a family car",
+        desc: "Helpful when you want extra time in a familiar vehicle outside of formal lessons.",
+      },
+      {
+        title: "Fitting practice around your day",
+        desc: "Useful when you only need learner insurance for a specific time window.",
+      },
+      {
+        title: "Last-minute learner cover",
+        desc: "Helpful when you want to arrange practice cover starting soon without a long commitment.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Can I get learner driver insurance for just a few hours?",
+        a: "Yes. Hourly learner cover can be a useful fit when you only need insurance for a short supervised practice session.",
+      },
+      {
+        q: "Can I choose exactly when my learner cover starts?",
+        a: "Yes. You can choose an exact start time during the quote journey so the cover fits around your plans.",
+      },
+      {
+        q: "Is learner insurance useful for practising in a parent’s or family car?",
+        a: "Yes. It can be a practical option when you want to practise in a familiar car for a short period, subject to eligibility and insurer acceptance.",
+      },
+      {
+        q: "Will I get my documents straight away?",
+        a: "Yes. Once cover is purchased, your policy documents are issued instantly and can also be retrieved later.",
+      },
+      {
+        q: "What if vehicle lookup does not find the car?",
+        a: "You can continue by entering the vehicle details manually if registration lookup does not return a result.",
+      },
+      {
+        q: "Can I still retrieve my policy documents later?",
+        a: "Yes. If you have already purchased cover, you can retrieve your documents again later without needing to start over.",
+      },
+    ],
+  },
 
-function Stars({ label = "Excellent" }: { label?: string }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full bg-white/80 border border-slate-200 px-4 py-1.5 text-[12px] text-slate-600 shadow-sm backdrop-blur">
-      <span className="font-extrabold text-slate-900">{label}</span>
-      <span className="text-slate-400">•</span>
-      <span className="tracking-[2px] text-amber-500" aria-hidden="true">
-        ★★★★★
-      </span>
-      <span className="sr-only">Five star rating</span>
-      <span className="text-slate-400">•</span>
-      <span>Customer reviews</span>
-    </div>
-  );
-}
+  daily: {
+    label: "Daily",
+    title: "One-day learner driver cover",
+    intro:
+      "Designed for longer practice across a day, whether you are building confidence, preparing for a test, or fitting practice around your schedule.",
+    bullets: [
+      "Cover for a full day",
+      "Useful for one-off practice plans",
+      "Documents issued instantly after purchase",
+    ],
+    useCases: [
+      {
+        title: "Test preparation",
+        desc: "A practical option when you want extra supervised driving before an upcoming test.",
+      },
+      {
+        title: "Weekend practice",
+        desc: "Useful when you want a full day of learner cover in a familiar car.",
+      },
+      {
+        title: "Longer confidence-building sessions",
+        desc: "Helpful when a few hours is not enough and you want more time on the road.",
+      },
+      {
+        title: "Planned practice days",
+        desc: "A clear fit for a specific day of learner driving without a longer commitment.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is daily learner insurance suitable for one-day practice?",
+        a: "Yes. Daily learner cover is designed for situations where you want supervised driving practice across a single day.",
+      },
+      {
+        q: "Can I arrange learner cover for later today?",
+        a: "Yes. You can choose your start time during the quote journey, subject to eligibility and insurer acceptance.",
+      },
+      {
+        q: "Do documents arrive straight after purchase?",
+        a: "Yes. Your documents are issued instantly after purchase and can also be retrieved later if needed.",
+      },
+      {
+        q: "Can I still continue if registration lookup fails?",
+        a: "Yes. You can enter the vehicle details manually and continue your quote.",
+      },
+    ],
+  },
 
-function TrustStrip() {
-  const items = [
-    "Secure checkout (Stripe)",
-    "Documents available instantly after purchase",
-    "Policy retrieval anytime",
-    "Clear steps and pricing before you pay",
-  ];
+  weekly: {
+    label: "Weekly",
+    title: "Short-term weekly learner cover",
+    intro:
+      "A clear option when you want learner driver insurance across several days of practice without moving into a longer arrangement.",
+    bullets: [
+      "Suitable for several days of practice",
+      "Useful for short learning periods",
+      "Documents issued instantly after purchase",
+    ],
+    useCases: [
+      {
+        title: "Practising across a full week",
+        desc: "Useful when you want consistent supervised driving time over several days.",
+      },
+      {
+        title: "Building confidence before a test",
+        desc: "Helpful when you want regular practice in a familiar car across one week.",
+      },
+      {
+        title: "Learning around your schedule",
+        desc: "A more flexible option when a week of learner cover makes more sense than daily cover.",
+      },
+      {
+        title: "Short-term structured practice",
+        desc: "Practical when you want more continuity without committing to something longer-term.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is weekly learner cover available?",
+        a: "Yes. Weekly learner cover can be a useful fit when you want temporary insurance over several consecutive days of supervised practice.",
+      },
+      {
+        q: "Can I still choose when the cover begins?",
+        a: "Yes. Start times are chosen during the quote journey so your learner cover can fit around your plans.",
+      },
+      {
+        q: "How quickly do I receive documents?",
+        a: "Once purchased, documents are issued instantly and can be accessed again later if needed.",
+      },
+      {
+        q: "What if I cannot find the car using the registration?",
+        a: "If the lookup does not return the vehicle, you can continue by entering the details manually.",
+      },
+    ],
+  },
 
-  return (
-    <div className="mt-5 grid gap-2 text-[12px] text-slate-600">
-      {items.map((t) => (
-        <div key={t} className="flex items-center gap-2 leading-snug">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          <span>{t}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+  monthly: {
+    label: "Monthly",
+    title: "Longer temporary learner cover",
+    intro:
+      "Ideal when you want learner insurance for a longer temporary period while keeping the journey clear, flexible and easy to manage.",
+    bullets: [
+      "Useful for longer temporary needs",
+      "Clear short-term alternative",
+      "Documents issued instantly after purchase",
+    ],
+    useCases: [
+      {
+        title: "Longer learning periods",
+        desc: "Helpful when you want learner cover across several weeks of practice in a familiar car.",
+      },
+      {
+        title: "Steady confidence-building",
+        desc: "A practical option when you want more regular driving time over a longer short-term period.",
+      },
+      {
+        title: "Consistent supervised driving",
+        desc: "Useful when you need cover for repeated learner practice over a defined period.",
+      },
+      {
+        title: "Longer short-term planning",
+        desc: "A cleaner option when your needs go beyond a few days but still are not permanent.",
+      },
+    ],
+    faqs: [
+      {
+        q: "Can I get learner insurance for a longer period?",
+        a: "Yes. Monthly learner cover is designed for longer temporary needs while keeping the quote journey clear and flexible.",
+      },
+      {
+        q: "Can I choose my cover start date and time?",
+        a: "Yes. You choose when cover starts during the quote flow.",
+      },
+      {
+        q: "Are policy documents issued immediately?",
+        a: "Yes. Once you purchase cover, documents are issued instantly and can be retrieved later.",
+      },
+      {
+        q: "Can I continue if vehicle lookup is unavailable?",
+        a: "Yes. Manual entry is available if registration lookup does not return the vehicle.",
+      },
+    ],
+  },
+};
 
-function SegmentedOption({
+function DurationButton({
   active,
   label,
-  sub,
   onClick,
 }: {
-  active?: boolean;
+  active: boolean;
   label: string;
-  sub?: string;
-  onClick?: () => void;
+  onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={!!active}
+      aria-pressed={active}
       className={[
-        "relative w-full rounded-2xl px-3 py-2.5 text-left transition",
-        "ring-1 ring-slate-200 bg-white hover:bg-slate-50",
-        active ? "ring-slate-900" : "",
+        "inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition",
+        active
+          ? "border border-[rgba(108,76,243,0.18)] bg-[rgba(108,76,243,0.08)] text-slate-950 shadow-sm"
+          : "border border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50",
       ].join(" ")}
     >
-      <div className="flex items-start gap-2">
-        <span
-          className={[
-            "mt-1 h-2 w-2 rounded-full transition",
-            active ? "bg-emerald-500" : "bg-slate-300",
-          ].join(" ")}
-          aria-hidden="true"
-        />
-        <div className="min-w-0">
-          <div className={["text-[12px] font-extrabold", active ? "text-slate-900" : "text-slate-800"].join(" ")}>
-            {label}
-          </div>
-          {sub ? <div className="mt-0.5 text-[11px] text-slate-500 leading-snug">{sub}</div> : null}
-        </div>
-      </div>
-
-      {active ? (
-        <span
-          className="pointer-events-none absolute inset-x-4 -bottom-px h-[2px] rounded-full bg-slate-900/70"
-          aria-hidden="true"
-        />
-      ) : null}
+      {label}
     </button>
   );
 }
 
-function StepRow({ n, text }: { n: number; text: string }) {
+function FaqItem({ question, answer }: { question: string; answer: string }) {
   return (
-    <div className="flex gap-2 text-[13px] text-slate-700">
-      <span className="mt-[2px] inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-[11px] font-extrabold">
-        {n}
-      </span>
-      <span className="leading-relaxed">{text}</span>
-    </div>
-  );
-}
+    <details className="group border-t border-slate-200/80 py-5">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
+        <span className="pr-4 text-[1.02rem] font-semibold tracking-[-0.02em] text-slate-950 sm:text-[1.08rem]">
+          {question}
+        </span>
 
-function MiniFaq({ q, a }: { q: string; a: string }) {
-  return (
-    <details className="group rounded-2xl border border-slate-200 bg-white px-5 py-4">
-      <summary className="cursor-pointer list-none">
-        <div className="flex items-start justify-between gap-4">
-          <div className="text-sm font-extrabold text-slate-900">{q}</div>
-          <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition group-open:rotate-45">
-            +
-          </span>
-        </div>
-        <div className="mt-1 text-[12px] text-slate-500">Click to expand</div>
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition group-open:rotate-45">
+          +
+        </span>
       </summary>
-      <div className="mt-3 text-sm text-slate-700 leading-relaxed">{a}</div>
-    </details>
-  );
-}
 
-function InfoCard({
-  title,
-  value,
-  helper,
-  icon,
-}: {
-  title: string;
-  value: string;
-  helper?: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      {/* prevents icon squish */}
-      <div className="grid grid-cols-[1fr_auto_auto] items-start gap-4">
-        <div className="min-w-0">
-          <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">{title}</div>
-          <div className="mt-1 text-base font-extrabold text-slate-900 break-words">{value}</div>
-          {helper ? <div className="mt-1 text-[12px] text-slate-500">{helper}</div> : null}
-        </div>
-        <span className="w-1" aria-hidden="true" />
-        <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-900 shadow-sm">
-          {icon}
-        </div>
-      </div>
-    </div>
+      <p className="mt-3 max-w-[48rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+        {answer}
+      </p>
+    </details>
   );
 }
 
 export default function LearnerPage() {
   const [term, setTerm] = useState<Term>("hourly");
 
-  // Optional: /learner?term=monthly etc.
   useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    const t = sp.get("term");
-    if (t === "hourly" || t === "daily" || t === "weekly" || t === "monthly") setTerm(t);
+    const params = new URLSearchParams(window.location.search);
+    const nextTerm = params.get("term");
+
+    if (
+      nextTerm === "hourly" ||
+      nextTerm === "daily" ||
+      nextTerm === "weekly" ||
+      nextTerm === "monthly"
+    ) {
+      setTerm(nextTerm);
+    }
   }, []);
 
-  const content = useMemo(() => {
-    const map: Record<
-      Term,
-      {
-        label: string;
-        headline: string;
-        sub: string;
-        timeHint: string;
-        idealFor: { t: string; d: string }[];
-      }
-    > = {
-      hourly: {
-        label: "Hourly",
-        headline: "Hourly learner insurance for focused practice",
-        sub: "Perfect for short supervised sessions — start and stop exactly when you need.",
-        timeHint: "Quick sessions",
-        idealFor: [
-          { t: "Driving lessons", d: "Extra practice between instructor sessions." },
-          { t: "Test preparation", d: "Targeted practice before your driving test." },
-          { t: "Confidence building", d: "Short sessions in quieter conditions." },
-        ],
-      },
-      daily: {
-        label: "Daily",
-        headline: "Daily learner insurance for full practice days",
-        sub: "Ideal when you want uninterrupted cover for a full day of supervised driving.",
-        timeHint: "Full day practice",
-        idealFor: [
-          { t: "Intensive practice", d: "Multiple sessions in one day." },
-          { t: "Family supervision", d: "Practising with a parent or guardian." },
-          { t: "Skill consolidation", d: "Longer drives and varied road types." },
-        ],
-      },
-      weekly: {
-        label: "Weekly",
-        headline: "Weekly learner insurance without long commitments",
-        sub: "Great value for regular practice across a week — no annual policy required.",
-        timeHint: "Best for momentum",
-        idealFor: [
-          { t: "Consistent learning", d: "Daily practice leading up to your test." },
-          { t: "Shared cars", d: "Driving a family member’s car temporarily." },
-          { t: "Flexible schedules", d: "Practice when it suits you." },
-        ],
-      },
-      monthly: {
-        label: "Monthly",
-        headline: "Monthly learner insurance for extended practice",
-        sub: "Ideal for learners practising regularly over several weeks — flexible and commitment-free.",
-        timeHint: "Longer practice",
-        idealFor: [
-          { t: "Regular practice", d: "Ongoing supervised driving across a month." },
-          { t: "Between instructors", d: "Extra practice outside formal lessons." },
-          { t: "Family vehicles", d: "Temporary learner cover on a shared car." },
-        ],
-      },
-    };
-
-    return map[term];
-  }, [term]);
+  const content = useMemo(() => TERM_CONTENT[term], [term]);
 
   return (
     <PageShell
-      eyebrow="Learner Insurance"
-      title="Learner cover that fits your practice schedule"
-      subtitle="Short-term insurance for supervised driving practice, with instant documents after purchase."
+      hideHero
       crumbs={[{ label: "Home", href: "/" }, { label: "Learner" }]}
-      ctaLabel="Get a quote"
-      ctaHref="/learner#quote"
     >
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-sky-400/10 via-blue-300/10 to-indigo-300/10" />
-        <div className="relative p-6 sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 max-w-2xl">
-              <div className="flex flex-wrap items-center gap-2">
-                <SoftChip>Supervised practice</SoftChip>
-                <SoftChip>Exact start & end times</SoftChip>
-                <SoftChip>Instant documents after purchase</SoftChip>
-              </div>
+      <section className="pt-2 sm:pt-4 lg:pt-6">
+        <div className="max-w-[76rem]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.14)] bg-white/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)] backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+            Learner driver insurance
+          </div>
 
-              <h2 className="mt-4 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-                {content.headline}
-              </h2>
-              <p className="mt-2 text-sm sm:text-base text-slate-600 leading-relaxed">
-                {content.sub}
-              </p>
-
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <Stars label="Excellent" />
-                <div className="text-[12px] text-slate-500">
-                  Reviews shown as placeholder until integrated.
-                </div>
-              </div>
-
-              <TrustStrip />
-
-              <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <Link href="#quote" className="btn-primary justify-center">
-                  Start a quote
-                </Link>
-                <Link href="/retrieve-policy" className="btn-ghost justify-center">
-                  Retrieve a policy
-                </Link>
-              </div>
-
-              <div className="mt-3 text-[12px] text-slate-500">
-                Eligibility, underwriting and insurer acceptance apply.
-              </div>
+          <div className="relative mt-6 max-w-[70rem]">
+            <div className="pointer-events-none absolute inset-x-0 top-[8%] -z-10 opacity-55 sm:top-[12%]">
+              <svg
+                viewBox="0 0 1200 260"
+                className="h-[220px] w-full sm:h-[260px] lg:h-[300px]"
+                fill="none"
+                aria-hidden="true"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M18 152C114 62 222 227 338 152C446 82 548 216 676 142C794 72 906 201 1026 132C1090 96 1142 105 1182 122"
+                  stroke="rgba(108,76,243,0.14)"
+                  strokeWidth="34"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M10 154C108 66 216 224 334 150C444 80 544 214 672 140C792 70 904 198 1024 130C1088 95 1140 103 1190 120"
+                  stroke="rgba(108,76,243,0.28)"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                />
+              </svg>
             </div>
 
-            {/* TERM SELECTOR */}
-            <div className="shrink-0 w-full max-w-[520px]">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                  Choose cover type
-                </div>
-                <SoftChip>{content.timeHint}</SoftChip>
+            <h1 className="heading-unbalanced relative max-w-[14ch] text-[3.25rem] font-extrabold leading-[0.9] tracking-[-0.07em] text-slate-950 sm:max-w-[12.5ch] sm:text-[4.55rem] lg:max-w-[12.5ch] lg:text-[5.85rem]">
+              Learner insurance, on your timing
+            </h1>
+          </div>
+
+          <p className="mt-10 max-w-[52rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.14rem]">
+            Choose when cover should start, select the duration you need, and move
+            through a clearer quote journey built for supervised learner driving.
+          </p>
+
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Link href="/get-quote" className="btn-primary btn-primary-lg !text-white">
+              Start your quote
+            </Link>
+
+            <Link href="/retrieve-policy" className="btn-ghost">
+              Retrieve policy
+            </Link>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-x-7 gap-y-3 text-sm font-medium text-slate-700">
+            {[
+              "Choose exact start times",
+              "From 1 hour to 12 months",
+              "Documents issued instantly",
+            ].map((item) => (
+              <div key={item} className="inline-flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 text-[12px] leading-6 text-slate-500">
+            Eligibility, underwriting and insurer acceptance apply.
+          </div>
+
+          <div className="mt-12 h-px w-full bg-[linear-gradient(90deg,rgba(226,232,240,0),rgba(226,232,240,0.95),rgba(226,232,240,0))]" />
+        </div>
+      </section>
+
+      {/* COVER LENGTH */}
+      <section className="mt-16">
+        <div className="grid gap-10 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] xl:items-start">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+              Choose cover length
+            </div>
+
+            <h2 className="mt-4 max-w-[12ch] text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:max-w-[11ch] lg:text-[4.3rem]">
+              Find the learner cover that fits
+            </h2>
+
+            <p className="mt-5 max-w-[36rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+              Hourly, daily, weekly or monthly — choose the length that makes
+              sense for your practice plans, then get a quote in minutes.
+            </p>
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex flex-wrap gap-3">
+              <DurationButton
+                active={term === "hourly"}
+                label="Hourly"
+                onClick={() => setTerm("hourly")}
+              />
+              <DurationButton
+                active={term === "daily"}
+                label="Daily"
+                onClick={() => setTerm("daily")}
+              />
+              <DurationButton
+                active={term === "weekly"}
+                label="Weekly"
+                onClick={() => setTerm("weekly")}
+              />
+              <DurationButton
+                active={term === "monthly"}
+                label="Monthly"
+                onClick={() => setTerm("monthly")}
+              />
+            </div>
+
+            <div className="mt-6 rounded-[1.8rem] border border-slate-200/80 bg-white/88 p-6 shadow-sm sm:p-7">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                {content.label} cover
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <SegmentedOption active={term === "hourly"} label="Hourly" sub="Short sessions" onClick={() => setTerm("hourly")} />
-                <SegmentedOption active={term === "daily"} label="Daily" sub="Full practice day" onClick={() => setTerm("daily")} />
-                <SegmentedOption active={term === "weekly"} label="Weekly" sub="Build momentum" onClick={() => setTerm("weekly")} />
-                <SegmentedOption active={term === "monthly"} label="Monthly" sub="Ongoing practice" onClick={() => setTerm("monthly")} />
+              <h3 className="mt-2 text-[1.8rem] font-extrabold leading-[1.02] tracking-[-0.04em] text-slate-950 sm:text-[2.1rem]">
+                {content.title}
+              </h3>
+
+              <p className="mt-3 max-w-[42rem] text-[1rem] leading-8 text-slate-600">
+                {content.intro}
+              </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {content.bullets.map((bullet) => (
+                  <div
+                    key={bullet}
+                    className="rounded-[1.15rem] border border-slate-200/80 bg-slate-50/55 px-4 py-4 text-sm font-semibold leading-6 text-slate-950"
+                  >
+                    {bullet}
+                  </div>
+                ))}
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-5">
-                <div className="text-sm font-extrabold text-slate-900">How it works</div>
-                <div className="mt-2 grid gap-2">
-                  <StepRow n={1} text="Enter your reg and confirm your vehicle details (manual entry available)." />
-                  <StepRow n={2} text="Choose exact start/end times — or use a duration to auto-fill." />
-                  <StepRow n={3} text="Review your details, then check out securely." />
-                </div>
-
-                <div className="mt-4">
-                  <Link href="#quote" className="btn-primary w-full justify-center">
-                    Get a quote
-                  </Link>
-                  <div className="mt-2 text-center text-[12px] text-slate-500">
-                    Typically ~2 minutes
-                  </div>
-                </div>
-              </div>
-
-              {/* Learner reassurance */}
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="text-sm font-extrabold text-slate-900">Learner essentials</div>
-                <div className="mt-2 grid gap-2 text-[13px] text-slate-700">
-                  <div className="flex items-start gap-3">
-                    <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>Designed for supervised driving practice.</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>Eligibility depends on learner, vehicle and insurer acceptance.</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>You’ll review details before you pay.</span>
-                  </div>
-                </div>
+              <div className="mt-6">
+                <Link href="/get-quote" className="btn-primary !text-white">
+                  Get a quote
+                </Link>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* IDEAL FOR */}
-      <section className="mt-10">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="text-sm font-extrabold text-slate-900">Ideal for</div>
-            <p className="mt-1 text-sm text-slate-600">
-              Common reasons learners choose {content.label.toLowerCase()} cover.
-            </p>
+      {/* USE CASES */}
+      <section className="mt-16">
+        <div className="max-w-[56rem]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+            When learner cover makes sense
           </div>
-          <Link href="#quote" className="btn-ghost hidden sm:inline-flex">
-            Start a quote
-          </Link>
+
+          <h2 className="mt-4 max-w-[16ch] text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:max-w-[15ch] lg:text-[4rem]">
+            Built for real learner driving needs
+          </h2>
+
+          <p className="mt-4 max-w-[44rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+            Learner insurance is usually arranged for a specific practice reason.
+            Here are some of the common situations it can fit.
+          </p>
         </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          {content.idealFor.map((x) => (
-            <div key={x.t} className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <div className="text-sm font-extrabold text-slate-900">{x.t}</div>
-              <p className="mt-2 text-sm text-slate-600 leading-relaxed">{x.d}</p>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          {content.useCases.map((item) => (
+            <div
+              key={item.title}
+              className="rounded-[1.7rem] border border-slate-200/80 bg-white/84 px-6 py-6 shadow-sm"
+            >
+              <div className="text-[1.15rem] font-semibold tracking-[-0.03em] text-slate-950 sm:text-[1.28rem]">
+                {item.title}
+              </div>
+              <p className="mt-2.5 max-w-[34rem] text-sm leading-7 text-slate-600 sm:text-[0.98rem]">
+                {item.desc}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* MINI FAQ (learner-focused drop-off killers) */}
-      <section className="mt-10">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-                Learner cover FAQs
-              </h3>
-              <p className="mt-2 text-sm sm:text-base text-slate-600">
-                Quick answers before you buy learner insurance.
+      {/* GET QUOTE CTA */}
+      <section id="quote" className="mt-16 scroll-mt-24">
+        <div className="rounded-[2rem] border border-[rgba(108,76,243,0.10)] bg-[linear-gradient(180deg,rgba(245,242,255,0.72),rgba(255,255,255,0.94))] px-6 py-10 shadow-sm sm:px-8 sm:py-12 lg:px-10 lg:py-14">
+          <div className="mx-auto max-w-5xl text-center">
+            <h2 className="heading-unbalanced text-center text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:text-[3.8rem]">
+              Start your learner insurance quote
+            </h2>
+
+            <div className="mx-auto mt-5 max-w-[38rem]">
+              <p className="text-center text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+                Move into the quote journey to choose your timing, confirm your
+                vehicle details, and review the cover that fits your plans.
               </p>
             </div>
 
-            <Link href="/help-support" className="btn-ghost hidden sm:inline-flex">
-              Visit help centre
-            </Link>
-          </div>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/get-quote" className="btn-primary !text-white">
+                Get a quote
+              </Link>
 
-          <div className="mt-6 grid gap-3">
-            <MiniFaq
-              q="Do I need to be supervised?"
-              a="Yes — learner driving must be supervised in line with UK rules and insurer requirements. This cover is designed for supervised practice journeys."
-            />
-            <MiniFaq
-              q="Can I choose an exact start time?"
-              a="Yes. You’ll choose exact start and end times. If you’re starting immediately, use Start now to set a convenient rounded time."
-            />
-            <MiniFaq
-              q="Will this affect the car owner’s main policy?"
-              a="Temporary cover is arranged separately, but eligibility and insurer rules apply. You’ll see what’s available during the quote flow."
-            />
-            <MiniFaq
-              q="What if vehicle lookup doesn’t find the car?"
-              a="No problem — you can enter make and model manually and continue."
-            />
-          </div>
+              <Link href="/retrieve-policy" className="btn-ghost">
+                Retrieve policy
+              </Link>
+            </div>
 
-          <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <Link href="#quote" className="btn-primary justify-center">
-              Start a quote
-            </Link>
-            <Link href="/retrieve-policy" className="btn-ghost justify-center">
-              Retrieve a policy
-            </Link>
+            <div className="mt-5 text-[12px] leading-6 text-slate-500">
+              Clear steps, secure checkout, and documents issued instantly after purchase.
+            </div>
           </div>
         </div>
       </section>
 
-      {/* HELP + CONTACT (same premium block as other pages) */}
-      <section className="mt-10">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-                Need a hand?
+      {/* FAQ */}
+      <section className="mt-16">
+        <div className="max-w-[54rem]">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+            Learner cover questions
+          </div>
+
+          <h2 className="mt-4 max-w-[15ch] text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:max-w-[14ch] lg:text-[4rem]">
+            Clear help, before and after purchase
+          </h2>
+
+          <p className="mt-4 max-w-[42rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
+            Whether you are starting a quote or retrieving documents later,
+            support should feel just as clear as the rest of the journey.
+          </p>
+        </div>
+
+        <div className="mt-8 rounded-[1.8rem] border border-slate-200/80 bg-white/88 px-6 py-2 shadow-sm sm:px-8">
+          {content.faqs.map((item) => (
+            <FaqItem key={item.q} question={item.q} answer={item.a} />
+          ))}
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/more/faq"
+            className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
+          >
+            View full FAQs
+          </Link>
+
+          <Link
+            href="/help-support"
+            className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
+          >
+            Help centre
+          </Link>
+        </div>
+      </section>
+
+      {/* SUPPORT / RETRIEVAL */}
+      <section className="mt-12">
+        <div className="rounded-[1.9rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(245,242,255,0.88),rgba(255,255,255,0.96))] p-6 shadow-sm sm:p-8 lg:p-10">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Already purchased cover?
+              </div>
+
+              <h3 className="mt-3 max-w-[18ch] text-[1.9rem] font-extrabold leading-[0.96] tracking-[-0.045em] text-slate-950 sm:text-[2.35rem]">
+                Retrieve documents or get support anytime
               </h3>
-              <p className="mt-2 text-sm sm:text-base text-slate-600">
-                Our support team can help with quotes, documents and policy retrieval.
+
+              <p className="mt-4 max-w-[38rem] text-[1rem] leading-8 text-slate-600">
+                If you have already bought learner cover, you can retrieve your policy
+                documents again without needing to start over. If you need help,
+                our support team is also easy to reach.
               </p>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <InfoCard
-                  title="Email"
-                  value="support@gotempcover.com"
-                  helper="We usually reply within one business day."
-                  icon={<IconMail />}
-                />
-                <InfoCard
-                  title="Opening hours"
-                  value="Mon–Sat, 9am–5pm"
-                  helper="Closed Sundays & bank holidays."
-                  icon={<IconClock />}
-                />
-              </div>
-
-              <div className="mt-5 flex flex-col sm:flex-row gap-3">
-                <Link href="/contact" className="btn-ghost justify-center">
-                  Contact us
-                </Link>
-                <Link href="/help-support" className="btn-ghost justify-center">
-                  Help centre
-                </Link>
-              </div>
-
-              <div className="mt-3 text-[12px] text-slate-500">
-                Please don’t share card details by email.
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-6">
-              <div className="text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                Common help topics
-              </div>
-
-              <ul className="mt-3 grid gap-2 text-sm text-slate-700">
-                {[
-                  "How to retrieve documents using your policy reference",
-                  "Updating cover dates before purchase",
-                  "Vehicle lookup not found — entering details manually",
-                  "Understanding eligibility and acceptance",
-                ].map((t) => (
-                  <li key={t} className="flex items-start gap-3">
-                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-slate-300" />
-                    <span className="leading-relaxed">{t}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="text-sm font-extrabold text-slate-900">Already bought cover?</div>
-                <p className="mt-1 text-sm text-slate-600">
-                  Retrieve your policy documents anytime.
-                </p>
-                <Link href="/retrieve-policy" className="btn-primary mt-4 w-full justify-center">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Link href="/retrieve-policy" className="btn-primary !text-white">
                   Retrieve policy
                 </Link>
+
+                <Link href="/get-quote" className="btn-ghost">
+                  Start your quote
+                </Link>
+
+                <Link href="/contact" className="btn-ghost">
+                  Contact support
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-[1.4rem] border border-slate-200/80 bg-white/84 p-5">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                Email support
+              </div>
+
+              <div className="mt-2 text-[1.08rem] font-semibold tracking-[-0.02em] text-slate-950">
+                support@coverza.com
+              </div>
+
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                Reach out if you need help with your quote, documents or retrieval.
+              </p>
+
+              <div className="mt-5 rounded-[1.15rem] border border-slate-200/80 bg-slate-50/60 px-4 py-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Opening hours
+                </div>
+                <div className="mt-2 text-sm font-semibold text-slate-950">
+                  Mon–Sat, 9am–7pm
+                </div>
+                <div className="mt-1 text-sm leading-6 text-slate-600">
+                  Closed Sundays & bank holidays
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <a
+                  href="mailto:support@coverza.com"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  Email support
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* QUOTE */}
-      <section id="quote" className="mt-10 scroll-mt-24 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="text-base font-extrabold tracking-tight text-slate-900">Get your quote</div>
-            <p className="mt-1 text-sm text-slate-600">
-              Enter your reg, confirm your vehicle, then pick your exact cover dates.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5">
-          <QuoteWidget />
-        </div>
-      </section>
-
-      {/* COMPLIANCE STRIP */}
+      {/* COMPLIANCE */}
       <div className="mt-8 flex flex-col gap-2 text-[12px] text-slate-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
         {[
           "Eligibility and underwriting apply",
           "You’ll review details before payment",
           "Always read your policy documents carefully",
-        ].map((t) => (
-          <div key={t} className="flex items-center gap-2">
+        ].map((item) => (
+          <div key={item} className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-            <span>{t}</span>
+            <span>{item}</span>
           </div>
         ))}
       </div>
     </PageShell>
-  );
-}
-
-/* =========================================================
-   Inline icons (no libs)
-========================================================= */
-
-function IconMail() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4.5 7.5A2.5 2.5 0 0 1 7 5h10a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 17 19H7a2.5 2.5 0 0 1-2.5-2.5v-9Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M6.8 8.2 12 12l5.2-3.8"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconClock() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
   );
 }

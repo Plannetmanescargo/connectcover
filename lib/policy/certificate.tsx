@@ -487,7 +487,7 @@ function CertificateDoc(input: CertificatePdfInput) {
 
             <Text style={styles.bottomLegal}>
               We hereby certify that the policy satisfies the requirements of the relevant law applicable in Great Britain, Northern Ireland,
-              the Isle of Man, and the islands of Alderney, Guernsey and Jersey. GoTempCover Limited is authorised by the Gibraltar Financial
+              the Isle of Man, and the islands of Alderney, Guernsey and Jersey. Connect Cover Limited is authorised by the Gibraltar Financial
               Services Commission to carry on insurance business under the Financial Services Act 2019 and Financial Services Regulations 2020,
               registered address 5/5 Crutchett’s Ramp, Gibraltar. Details about our regulation by the Financial Conduct Authority and Prudential
               Regulation Authority are available on request. Registered in England and Wales as ACCELERANT INSURANCE UK LIMITED. Reg. No. 03326800.

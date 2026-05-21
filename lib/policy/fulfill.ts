@@ -164,7 +164,7 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
     proposalUrl = await uploadPdf(bucket, proposalKey, proposalPdf);
     certificateUrl = await uploadPdf(bucket, certKey, certPdf);
 
-    // Write document rows + docs generated event (without duplicating doc rows)
+    // Write document rows + status update + docs generated event
     await prisma.$transaction(async (tx) => {
       const docs = await tx.policyDocument.findMany({ where: { policyId } });
 
@@ -196,6 +196,11 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
           },
         });
       }
+
+      await tx.policy.update({
+        where: { id: policyId },
+        data: { status: "ACTIVE" },
+      });
 
       await tx.policyEvent.create({
         data: {

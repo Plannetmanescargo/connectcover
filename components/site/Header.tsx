@@ -1,187 +1,241 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
-
-function BrandMark() {
-  const reduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      className="relative h-9 w-9"
-      initial={false}
-      animate={
-        reduceMotion
-          ? {}
-          : {
-              y: [0, -1.5, 0],
-            }
-      }
-      transition={
-        reduceMotion
-          ? {}
-          : {
-              duration: 3.6,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }
-      }
-      whileHover={reduceMotion ? {} : { rotate: -2, scale: 1.03 }}
-      whileTap={reduceMotion ? {} : { scale: 0.98 }}
-    >
-      <Image
-        src="/brand/gotempcover.svg"
-        alt="GoTempCover"
-        width={36}
-        height={36}
-        priority
-        className="h-9 w-9"
-      />
-    </motion.div>
-  );
-}
 
 const NAV = [
-  { href: "/car", label: "Car" },
-  { href: "/van", label: "Van" },
-  { href: "/learner", label: "Learner" },
-  { href: "/impound", label: "Impound" },
-  { href: "/more", label: "More" },
+  { href: "/car", label: "Car insurance" },
+  { href: "/van", label: "Van insurance" },
+  { href: "/learner", label: "Learner insurance" },
+  { href: "/impound", label: "Impound insurance" },
+];
+
+const HELP_NAV = [
+  { href: "/help-support", label: "Help & Support" },
+  { href: "/retrieve-policy", label: "Retrieve policy" },
+  { href: "/more/faq", label: "FAQs" },
+  { href: "/more/guides", label: "Guides" },
+  { href: "/more/blog", label: "Blog" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpRef = useRef<HTMLDivElement | null>(null);
 
-  // Close on escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setHelpOpen(false);
+      }
     };
+
+    const onClick = (e: MouseEvent) => {
+      if (!helpRef.current) return;
+      if (!helpRef.current.contains(e.target as Node)) {
+        setHelpOpen(false);
+      }
+    };
+
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onClick);
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onClick);
+    };
   }, []);
 
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [open]);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/75 backdrop-blur">
-      <div className="container-app flex h-16 items-center justify-between gap-3">
-        {/* Brand */}
-        <Link
-          href="/"
-          className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-4 focus-visible:ring-blue-200/40"
-          aria-label="GoTempCover home"
-        >
-          <BrandMark />
+    <header className="sticky top-0 z-50 relative border-b border-slate-200/70 bg-white/85 backdrop-blur-xl">
+      <div className="container-app">
+        <div className="flex h-[76px] items-center gap-6 xl:gap-8">
+          <div className="flex min-w-0 items-center gap-8">
+            <Link
+              href="/"
+              aria-label="Coverza"
+              className="flex shrink-0 items-center gap-3.5 rounded-xl transition-opacity hover:opacity-95"
+            >
+              <Image
+                src="/brand/connectcoverbig.png"
+                alt=""
+                width={42}
+                height={42}
+                priority
+                className="h-[23px] w-[23px] object-contain sm:h-[25px] sm:w-[25px]"
+              />
 
-          {/* Desktop brand text */}
-          <div className="leading-tight hidden sm:block">
-<div className="text-[15px] font-extrabold tracking-tight text-slate-900">
-  GoTempCover
-</div>
-            <div className="text-[11px] text-slate-500">
-              Temporary cover, simplified.
-            </div>
-          </div>
-
-          {/* Mobile brand text */}
-          <div className="leading-tight sm:hidden">
-<div className="text-[15px] font-extrabold tracking-tight text-slate-900">
-  GoTempCover
-</div>
-          </div>
-        </Link>
-
-        {/* Desktop Nav */}
-        <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
-          {NAV.map((item) => (
-            <Link key={item.href} className="link text-sm" href={item.href}>
-              {item.label}
+              <div className="flex items-baseline leading-none">
+                <span className="text-[1.1rem] font-semibold tracking-[-0.04em] text-slate-950 sm:text-[1.2rem] lg:text-[1.25rem]">
+                  Coverza
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="ml-[2px] text-[1.1rem] font-semibold leading-none text-[rgb(255,92,92)] sm:text-[1.2rem] lg:text-[1.25rem]"
+                >
+                  .
+                </span>
+              </div>
             </Link>
-          ))}
-          <Link className="link text-sm" href="/retrieve-policy">
-            Retrieve
-          </Link>
-          <Link className="link text-sm" href="/help-support">
-            Help
-          </Link>
-        </nav>
 
-        {/* CTAs */}
-        <div className="flex items-center gap-2">
-          {/* Mobile menu trigger (ghost/light) */}
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="btn-ghost btn-sm md:hidden"
-            aria-expanded={open}
-            aria-controls="mobile-nav"
-          >
-            {open ? "Close" : "Menu"}
-          </button>
+            <nav
+              className="hidden items-center gap-5 xl:flex"
+              aria-label="Primary navigation"
+            >
+              {NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="group relative whitespace-nowrap text-[0.96rem] font-medium text-slate-700 transition-colors duration-200 hover:text-slate-950"
+                >
+                  {item.label}
+                  <span className="absolute inset-x-0 -bottom-2 h-px origin-left scale-x-0 bg-[rgb(108,76,243)] transition-transform duration-300 group-hover:scale-x-100" />
+                </Link>
+              ))}
 
-          {/* Desktop secondary (ghost/light) */}
-          <Link className="btn-ghost hidden md:inline-flex" href="/retrieve-policy">
-            Retrieve policy
-          </Link>
+              <div
+                ref={helpRef}
+                className="relative"
+                onMouseEnter={() => setHelpOpen(true)}
+                onMouseLeave={() => setHelpOpen(false)}
+              >
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen((prev) => !prev)}
+                  aria-expanded={helpOpen}
+                  className="group relative inline-flex items-center gap-2 whitespace-nowrap text-[0.96rem] font-medium text-slate-700 transition-colors duration-200 hover:text-slate-950"
+                >
+                  Help
+                  <span
+                    className={[
+                      "text-slate-400 transition-transform duration-200",
+                      helpOpen ? "rotate-180" : "",
+                    ].join(" ")}
+                    aria-hidden="true"
+                  >
+                    ▾
+                  </span>
+                  <span className="absolute inset-x-0 -bottom-2 h-px origin-left scale-x-0 bg-[rgb(108,76,243)] transition-transform duration-300 group-hover:scale-x-100" />
+                </button>
 
-          {/* Primary CTA */}
-          <Link className="btn-primary" href="/get-quote">
-            Get a quote
-          </Link>
+                {helpOpen ? (
+                  <div className="absolute left-0 top-full z-50 w-[260px]">
+                    <div className="h-4" aria-hidden="true" />
+
+                    <div className="rounded-[1.3rem] border border-slate-200/80 bg-white/96 p-2 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+                      <div className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        Help
+                      </div>
+
+                      <div className="grid gap-1">
+                        {HELP_NAV.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setHelpOpen(false)}
+                            className="rounded-xl px-3 py-3 text-[0.94rem] font-medium text-slate-800 transition hover:bg-slate-50"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </nav>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <Link href="/get-quote" className="btn-primary hidden sm:inline-flex">
+              Get covered
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setOpen((prev) => !prev)}
+              aria-expanded={open}
+              aria-controls="mobile-menu"
+              aria-label={open ? "Close menu" : "Open menu"}
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 xl:hidden"
+            >
+              {open ? "Close" : "Menu"}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      {open ? (
+      {open && (
         <div
-          id="mobile-nav"
-          className="md:hidden border-t border-slate-200/70 bg-white/90 backdrop-blur"
+          id="mobile-menu"
+          className="absolute left-0 right-0 top-full z-[60] max-h-[calc(100vh-76px)] overflow-y-auto overscroll-contain border-t border-slate-200/80 bg-white/96 backdrop-blur-xl xl:hidden"
         >
-          <div className="container-app py-4">
-            <div className="grid gap-2">
+          <div className="container-app py-4 pb-6">
+            <div className="card-soft flex flex-col gap-2 p-3">
               {NAV.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="btn-ghost justify-start w-full"
+                  className="rounded-xl px-3 py-3 text-[0.97rem] font-medium text-slate-800 transition hover:bg-slate-50"
                 >
                   {item.label}
                 </Link>
               ))}
 
-              <Link
-                href="/retrieve-policy"
-                onClick={() => setOpen(false)}
-                className="btn-ghost justify-start w-full"
-              >
-                Retrieve policy
-              </Link>
+              <div className="mt-2 rounded-[1rem] border border-slate-200/80 bg-white/80 p-2">
+                <div className="px-2 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Help
+                </div>
 
-              <Link
-                href="/help-support"
-                onClick={() => setOpen(false)}
-                className="btn-ghost justify-start w-full"
-              >
-                Help centre
-              </Link>
+                <div className="grid gap-1">
+                  {HELP_NAV.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => {
+                        setHelpOpen(false);
+                        setOpen(false);
+                      }}
+                      className="rounded-xl px-3 py-3 text-[0.95rem] font-medium text-slate-800 transition hover:bg-slate-50"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
 
-              <Link
-                href="/get-quote"
-                onClick={() => setOpen(false)}
-                className="btn-primary justify-center mt-2 w-full"
-              >
-                Get a quote
-              </Link>
-            </div>
-
-            <div className="mt-3 text-[12px] text-slate-500">
-              Secure checkout • Instant documents • Self-serve retrieval
+              <div className="pt-2">
+                <Link
+                  href="/get-quote"
+                  onClick={() => setOpen(false)}
+                  className="btn-primary btn-primary-block"
+                >
+                  Get covered
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </header>
   );
 }

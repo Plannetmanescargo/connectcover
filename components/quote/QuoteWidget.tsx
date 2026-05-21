@@ -1,86 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-
-/* =========================================================
-   Quote Widget — Apple-level UX polish (Bottom-sheet Step 2)
-   ✅ Keeps your logic
-   ✅ Step 2 gated until Step 1 is complete (VRM + vehicle basics)
-   ✅ No auto-lookup
-   ✅ Inline VRM formatting (display AB12 CDE, store AB12CDE)
-   ✅ Ghost/light actions everywhere (per your rule)
-   ✅ Compact Duration: tabs -> options panel -> auto-collapse after selection
-   ✅ FIX: Step 2 opens in a bottom-sheet w/ internal scroll (no long page)
-========================================================= */
+import React from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
 type DurationUnit = "hours" | "days" | "weeks" | "months";
-type DurationPreset =
-  | ""
-  | "1h"
-  | "3h"
-  | "6h"
-  | "12h"
-  | "1d"
-  | "2d"
-  | "3d"
-  | "7d"
-  | "14d"
-  | "1w"
-  | "2w"
-  | "4w"
-  | "1m"
-  | "2m"
-  | "3m";
+type Step = 1 | 2 | 3;
 
-type DurationMode = "hours" | "days" | "weeks" | "months";
-
-// Presets (kept mainly to support applyPreset/presetToMs mapping)
-const PRESETS: Array<{ key: DurationPreset; label: string; group: "Hours" | "Days" | "Weeks" | "Months" }> = [
-  { key: "1h", label: "1h", group: "Hours" },
-  { key: "3h", label: "3h", group: "Hours" },
-  { key: "6h", label: "6h", group: "Hours" },
-  { key: "12h", label: "12h", group: "Hours" },
-
-  { key: "1d", label: "1 day", group: "Days" },
-  { key: "2d", label: "2 days", group: "Days" },
-  { key: "3d", label: "3 days", group: "Days" },
-  { key: "7d", label: "7 days", group: "Days" },
-  { key: "14d", label: "14 days", group: "Days" },
-
-  { key: "1w", label: "1 week", group: "Weeks" },
-  { key: "2w", label: "2 weeks", group: "Weeks" },
-  { key: "4w", label: "4 weeks", group: "Weeks" },
-
-  { key: "1m", label: "1 month", group: "Months" },
-  { key: "2m", label: "2 months", group: "Months" },
-  { key: "3m", label: "3 months", group: "Months" },
+const QUICK_DURATION_OPTIONS: Array<{
+  label: string;
+  value: number;
+  unit: DurationUnit;
+}> = [
+  { label: "1 hour", value: 1, unit: "hours" },
+  { label: "1 day", value: 1, unit: "days" },
+  { label: "7 days", value: 7, unit: "days" },
+  { label: "1 month", value: 1, unit: "months" },
 ];
 
-// Compact options shown when expanded (curated — not clunky)
-const DURATION_OPTIONS: Record<DurationMode, Array<{ key: DurationPreset; label: string }>> = {
-  hours: [
-    { key: "1h", label: "1h" },
-    { key: "3h", label: "3h" },
-    { key: "6h", label: "6h" },
-    { key: "12h", label: "12h" },
-  ],
-  days: [
-    { key: "1d", label: "1 day" },
-    { key: "2d", label: "2 days" },
-    { key: "3d", label: "3 days" },
-    { key: "7d", label: "7 days" },
-    { key: "14d", label: "14 days" },
-  ],
-  weeks: [
-    { key: "1w", label: "1 week" },
-    { key: "2w", label: "2 weeks" },
-    { key: "4w", label: "4 weeks" },
-  ],
-  months: [
-    { key: "1m", label: "1 month" },
-    { key: "2m", label: "2 months" },
-    { key: "3m", label: "3 months" },
-  ],
+const UNIT_CONFIG: Record<
+  DurationUnit,
+  { label: string; min: number; max: number; step: number }
+> = {
+  hours: { label: "Hours", min: 1, max: 24, step: 1 },
+  days: { label: "Days", min: 1, max: 31, step: 1 },
+  weeks: { label: "Weeks", min: 1, max: 12, step: 1 },
+  months: { label: "Months", min: 1, max: 12, step: 1 },
 };
 
 export default function QuoteWidget({
@@ -90,7 +34,9 @@ export default function QuoteWidget({
   compact?: boolean;
   showDatesInCompact?: boolean;
 }) {
-  const [vrm, setVrm] = useState(""); // stored normalized (no spaces)
+  const [step, setStep] = useState<Step>(1);
+
+  const [vrm, setVrm] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [vehicle, setVehicle] = useState<any>(null);
@@ -105,34 +51,22 @@ export default function QuoteWidget({
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
 
-  const [durationPreset, setDurationPreset] = useState<DurationPreset>("");
-  const [customOpen, setCustomOpen] = useState(false);
-  const [customDurationValue, setCustomDurationValue] = useState<string>("");
-  const [customDurationUnit, setCustomDurationUnit] = useState<DurationUnit>("days");
-
-  // Compact duration UI state
-  const [durationMode, setDurationMode] = useState<DurationMode>("hours");
-  const [durationExpanded, setDurationExpanded] = useState(false);
+  const [durationValue, setDurationValue] = useState<string>("");
+  const [durationUnit, setDurationUnit] = useState<DurationUnit>("days");
 
   const requireDates = !compact || showDatesInCompact;
 
-  // ✅ Bottom-sheet state for Step 2
-  const [coverSheetOpen, setCoverSheetOpen] = useState(false);
+  const normaliseVrm = (value: string) =>
+    value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
 
-  // Refs
-  const sheetScrollRef = useRef<HTMLDivElement | null>(null);
-
-  const normaliseVrm = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
-
-  // Display formatting: AB12 CDE (store AB12CDE)
   const formatVrm = (normalized: string) => {
     const s = normaliseVrm(normalized);
     if (s.length <= 4) return s;
     return `${s.slice(0, 4)} ${s.slice(4)}`;
   };
+
   const vrmDisplay = useMemo(() => formatVrm(vrm), [vrm]);
 
-  // ---------- Vehicle summary ----------
   const lookupMake = vehicle?.make || "";
   const lookupModel = vehicle?.model || "";
   const lookupYear = vehicle?.year ? String(vehicle.year) : "";
@@ -146,54 +80,20 @@ export default function QuoteWidget({
   const chosenYear = manualMode ? manualYear.trim() : lookupYear || manualYear.trim();
 
   const manualBasicsComplete = Boolean(manualMake.trim() && manualModel.trim());
-  const hasChosenVehicleBasics = manualMode ? manualBasicsComplete : hasLookupBasics || manualBasicsComplete;
+  const hasChosenVehicleBasics = manualMode
+    ? manualBasicsComplete
+    : hasLookupBasics || manualBasicsComplete;
 
-  // ✅ Step gating (UI only)
-  const step1Complete = vrm.length >= 5 && hasChosenVehicleBasics;
+  const vehicleReady = vrm.length >= 5 && hasChosenVehicleBasics;
 
-  // ✅ Auto-open duration options when sheet opens + reset panel state (UI only)
-  useEffect(() => {
-    if (!coverSheetOpen) return;
+  const durationNumber = Number(durationValue);
+  const hasValidDurationValue = Number.isFinite(durationNumber) && durationNumber > 0;
 
-    setDurationMode("hours");
-    setDurationExpanded(true); // ✅ show options immediately
-    setCustomOpen(false);
-
-    // Bonus polish: ensure scroll starts at top every time
-    requestAnimationFrame(() => {
-      sheetScrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coverSheetOpen]);
-
-  // ✅ (B) Escape key closes sheet
-  useEffect(() => {
-    if (!coverSheetOpen) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setCoverSheetOpen(false);
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [coverSheetOpen]);
-
-  // Prevent background scroll when sheet is open (mobile polish)
-  useEffect(() => {
-    if (!coverSheetOpen) return;
-    const prev = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.documentElement.style.overflow = prev;
-    };
-  }, [coverSheetOpen]);
-
-  // ---------- Date helpers ----------
   function toDatetimeLocalValue(d: Date) {
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
-      d.getMinutes()
-    )}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+      d.getHours()
+    )}:${pad(d.getMinutes())}`;
   }
 
   function addDurationToStart(startIso: string, amountMs: number) {
@@ -211,88 +111,64 @@ export default function QuoteWidget({
     const start = new Date(startIso);
     if (Number.isNaN(start.getTime())) return "";
 
-    const y = start.getFullYear();
-    const m = start.getMonth();
-    const d = start.getDate();
+    const startYear = start.getFullYear();
+    const startMonth = start.getMonth();
+    const startDate = start.getDate();
+    const hours = start.getHours();
+    const minutes = start.getMinutes();
 
-    const targetMonthIndex = m + monthsToAdd;
-    const targetYear = y + Math.floor(targetMonthIndex / 12);
-    const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+    const absoluteMonth = startMonth + monthsToAdd;
+    const targetYear = startYear + Math.floor(absoluteMonth / 12);
+    const targetMonth = ((absoluteMonth % 12) + 12) % 12;
 
     const maxDay = daysInMonth(targetYear, targetMonth);
-    const day = Math.min(d, maxDay);
+    const safeDay = Math.min(startDate, maxDay);
 
-    const end = new Date(start);
-    end.setFullYear(targetYear);
-    end.setMonth(targetMonth);
-    end.setDate(day);
+    const end = new Date(targetYear, targetMonth, safeDay, hours, minutes, 0, 0);
 
     return toDatetimeLocalValue(end);
   }
 
-  function presetToMs(p: Exclude<DurationPreset, "" | "1m" | "2m" | "3m">) {
-    const H = 60 * 60 * 1000;
-    const D = 24 * H;
-    const map: Record<Exclude<DurationPreset, "" | "1m" | "2m" | "3m">, number> = {
-      "1h": 1 * H,
-      "3h": 3 * H,
-      "6h": 6 * H,
-      "12h": 12 * H,
-      "1d": 1 * D,
-      "2d": 2 * D,
-      "3d": 3 * D,
-      "7d": 7 * D,
-      "14d": 14 * D,
-      "1w": 7 * D,
-      "2w": 14 * D,
-      "4w": 28 * D,
-    };
-    return map[p];
+  function clampDurationValue(value: number, unit: DurationUnit) {
+    const cfg = UNIT_CONFIG[unit];
+    return Math.min(cfg.max, Math.max(cfg.min, value));
   }
 
-  function applyPreset(startIso: string, preset: DurationPreset) {
-    if (!startIso || !preset) return "";
-    if (preset === "1m") return addMonthsToStart(startIso, 1);
-    if (preset === "2m") return addMonthsToStart(startIso, 2);
-    if (preset === "3m") return addMonthsToStart(startIso, 3);
-    return addDurationToStart(startIso, presetToMs(preset as any));
-  }
-
-  function applyCustomDuration(startIso: string, valueStr: string, unit: DurationUnit) {
+  function calculateEndAt(startIso: string, valueStr: string, unit: DurationUnit) {
     if (!startIso) return "";
+
     const n = Number(valueStr);
     if (!Number.isFinite(n) || n <= 0) return "";
 
-    if (unit === "months") return addMonthsToStart(startIso, n);
+    const safeValue = clampDurationValue(n, unit);
+
+    if (unit === "months") {
+      return addMonthsToStart(startIso, safeValue);
+    }
 
     const H = 60 * 60 * 1000;
     const D = 24 * H;
-    const ms = unit === "hours" ? n * H : unit === "days" ? n * D : n * 7 * D;
+    const ms =
+      unit === "hours"
+        ? safeValue * H
+        : unit === "days"
+        ? safeValue * D
+        : safeValue * 7 * D;
+
     return addDurationToStart(startIso, ms);
   }
 
-  // When preset changes, keep end synced (if start exists)
   useEffect(() => {
     if (!requireDates) return;
-    if (!startAt) return;
-
-    if (durationPreset) {
-      const computed = applyPreset(startAt, durationPreset);
-      if (computed) setEndAt(computed);
+    if (!startAt) {
+      setEndAt("");
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [durationPreset, startAt, requireDates]);
 
-  // ✅ (A) When Step 1 becomes incomplete again, close sheet + custom UI bits (UI only)
-  useEffect(() => {
-    if (!step1Complete) {
-      setCustomOpen(false);
-      setCoverSheetOpen(false);
-      // don't force durationExpanded here — the sheet-open effect controls it
-    }
-  }, [step1Complete]);
+    const computed = calculateEndAt(startAt, durationValue, durationUnit);
+    setEndAt(computed);
+  }, [startAt, durationValue, durationUnit, requireDates]);
 
-  // ---------- Validations ----------
   const datesValid = useMemo(() => {
     if (!requireDates) return true;
     if (!startAt || !endAt) return false;
@@ -301,41 +177,32 @@ export default function QuoteWidget({
     return Number.isFinite(s) && Number.isFinite(e) && e > s;
   }, [startAt, endAt, requireDates]);
 
-  const coverSummary = useMemo(() => {
-    if (!requireDates) return "";
-    if (!startAt || !endAt || !datesValid) return "Pick your start & end time";
-
-    const fmt = (iso: string) => {
-      const d = new Date(iso);
-      if (Number.isNaN(d.getTime())) return iso.replace("T", " ");
-
-      const now = new Date();
-      const isToday =
-        d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-
-      const day = isToday ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" });
-      const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-      return `${day} ${time}`;
-    };
-
-    return `${fmt(startAt)} → ${fmt(endAt)}`;
-  }, [requireDates, startAt, endAt, datesValid]);
-
-  // vrm is already normalized
   const canLookupNow = useMemo(() => vrm.length >= 5 && !loading, [vrm, loading]);
 
   const canContinue = useMemo(() => {
-    const cleanOk = vrm.length >= 5;
     const hasDates = !requireDates ? true : Boolean(startAt && endAt);
-    return Boolean(cleanOk && hasChosenVehicleBasics && hasDates && datesValid);
+    return Boolean(vrm.length >= 5 && hasChosenVehicleBasics && hasDates && datesValid);
   }, [vrm, requireDates, startAt, endAt, datesValid, hasChosenVehicleBasics]);
 
   const vehicleTitle = useMemo(() => {
-    const mm = [lookupMake || manualMake, lookupModel || manualModel].filter(Boolean).join(" ");
+    const mm = [lookupMake || manualMake, lookupModel || manualModel]
+      .filter(Boolean)
+      .join(" ");
     return mm || "Vehicle details";
   }, [lookupMake, lookupModel, manualMake, manualModel]);
 
-  // ---------- Actions ----------
+  const activeQuickPick = useMemo(() => {
+    return QUICK_DURATION_OPTIONS.find(
+      (option) =>
+        option.unit === durationUnit &&
+        Number(durationValue || 0) === option.value
+    );
+  }, [durationUnit, durationValue]);
+
+  const step1Ready = vehicleReady;
+  const step2Ready = Boolean(startAt);
+  const step3Ready = Boolean(durationValue && startAt && endAt && datesValid);
+
   async function lookupVehicle(vrmOverride?: string) {
     const vrmToUse = normaliseVrm(vrmOverride ?? vrm);
     if (vrmToUse.length < 5 || loading) return;
@@ -352,12 +219,13 @@ export default function QuoteWidget({
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.ok) throw new Error(data?.error || "Vehicle lookup failed. Please try again.");
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "Vehicle lookup failed. Please try again.");
+      }
 
       const summary = data?.summary ?? null;
       setVehicle(summary);
 
-      // Prefill manual fields
       const make = summary?.make ?? "";
       const model = summary?.model ?? "";
       const year = summary?.year ? String(summary.year) : "";
@@ -377,7 +245,7 @@ export default function QuoteWidget({
 
   function buildQuoteDraft() {
     return {
-      vrm, // stored normalized
+      vrm,
       make: chosenMake || "",
       model: chosenModel || "",
       year: chosenYear || "",
@@ -391,7 +259,9 @@ export default function QuoteWidget({
     setFormError(null);
 
     if (!canContinue) {
-      setFormError("Please enter your reg, confirm vehicle details, and choose valid cover dates.");
+      setFormError(
+        "Please enter your registration, confirm the vehicle, and choose valid cover dates and times."
+      );
       return;
     }
 
@@ -403,271 +273,626 @@ export default function QuoteWidget({
     window.location.assign("/get-quote");
   }
 
+  function goNext() {
+    setFormError(null);
+
+    if (step === 1) {
+      if (!step1Ready) {
+        setFormError("Please enter your registration and confirm the vehicle details.");
+        return;
+      }
+      setStep(2);
+      return;
+    }
+
+    if (step === 2) {
+      if (!step2Ready) {
+        setFormError("Please choose when your cover should start.");
+        return;
+      }
+      setStep(3);
+    }
+  }
+
+  function goBack() {
+    setFormError(null);
+    setStep((prev) => (prev > 1 ? ((prev - 1) as Step) : prev));
+  }
+
   function toggleManualMode() {
     setManualMode((v) => !v);
     setFormError(null);
   }
 
+  function setStartNow() {
+    const now = new Date();
+    now.setMinutes(Math.ceil(now.getMinutes() / 5) * 5, 0, 0);
+    const value = toDatetimeLocalValue(now);
+
+    setStartAt(value);
+    setFormError(null);
+  }
+
+  function applyQuickDuration(value: number, unit: DurationUnit) {
+    setDurationValue(String(value));
+    setDurationUnit(unit);
+    setFormError(null);
+  }
+
+  function changeDurationUnit(nextUnit: DurationUnit) {
+    setDurationUnit(nextUnit);
+    setFormError(null);
+
+    if (!durationValue) return;
+
+    const n = Number(durationValue);
+    if (!Number.isFinite(n) || n <= 0) return;
+
+    const clamped = clampDurationValue(n, nextUnit);
+    if (clamped !== n) {
+      setDurationValue(String(clamped));
+    }
+  }
+
+  function incrementDuration() {
+    const cfg = UNIT_CONFIG[durationUnit];
+    const current = hasValidDurationValue ? durationNumber : cfg.min;
+    const next = Math.min(cfg.max, current + cfg.step);
+    setDurationValue(String(next));
+    setFormError(null);
+  }
+
+  function decrementDuration() {
+    const cfg = UNIT_CONFIG[durationUnit];
+    const current = hasValidDurationValue ? durationNumber : cfg.min;
+    const next = Math.max(cfg.min, current - cfg.step);
+    setDurationValue(String(next));
+    setFormError(null);
+  }
+
+  function renderSummaryDateTime(value: string) {
+    if (!value) {
+      return <div className="text-sm font-semibold text-slate-950">—</div>;
+    }
+
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) {
+      return <div className="break-words text-sm font-semibold text-slate-950">{value}</div>;
+    }
+
+    return (
+      <div className="text-sm font-semibold leading-tight text-slate-950">
+        <div className="break-words">
+          {d.toLocaleDateString(undefined, {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })}
+        </div>
+        <div className="mt-1 break-words">
+          {d.toLocaleTimeString(undefined, {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative overflow-x-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-        <div className="min-w-0">
-          <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
-            {compact ? "Quick quote" : "Get temporary cover in minutes"}
+    <div className="relative max-w-full overflow-x-hidden">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0 max-w-full">
+          <h3 className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
+            {compact ? "Quick quote" : "Get your quote"}
           </h3>
-          <p className="mt-1 text-sm text-slate-600">
-            {compact ? "Enter your reg, choose dates, then continue." : "Enter your reg, confirm the vehicle, then choose exact cover times."}
+          <p className="mt-1 max-w-2xl text-sm text-slate-600">
+            {compact
+              ? "Enter your registration and choose the cover you need."
+              : "Check your vehicle, choose when cover should start, and see your quote in minutes."}
           </p>
         </div>
-
-        {!compact ? <span className="badge">Secure</span> : null}
       </div>
 
-      {/* keep breathing room for sticky CTA */}
-      <div className="mt-5 grid gap-4 pb-[calc(env(safe-area-inset-bottom)+120px)] sm:pb-0">
-        {/* Step 1: Vehicle */}
-        <div className="card p-5">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="badge">Step 1</span>
-                <div className="text-sm font-extrabold text-slate-900">Vehicle</div>
-              </div>
-              <div className="mt-1 text-sm text-slate-600">We’ll fetch your vehicle details from your registration.</div>
-            </div>
+      <div className="mt-4 max-w-full rounded-[1rem] border border-slate-200 bg-slate-50/70 px-4 py-3">
+        <div className="flex justify-center">
+          <div className="flex max-w-full items-center gap-2 text-sm font-semibold">
+            {[1, 2, 3].map((n, index) => (
+              <Fragment key={n}>
+                <span
+                  className={[
+                    "inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full px-2 transition",
+                    step === n
+                      ? "bg-[rgb(108,76,243)] text-white shadow-sm"
+                      : n < step
+                      ? "bg-[rgba(108,76,243,0.10)] text-[rgb(108,76,243)]"
+                      : "border border-slate-200 bg-white text-slate-400",
+                  ].join(" ")}
+                >
+                  {n}
+                </span>
 
-            <span className="badge">{vehicle ? (hasLookupBasics ? "Verified" : "Partial") : "Enter Reg"}</span>
+                {index < 2 ? (
+                  <span className="h-px w-4 shrink-0 bg-slate-300 sm:w-5" aria-hidden="true" />
+                ) : null}
+              </Fragment>
+            ))}
           </div>
+        </div>
 
-          <div className="mt-4 h-px w-full bg-slate-200/70" />
+        <div className="mt-3 text-center text-sm font-medium text-slate-700">
+          {step === 1 && "Your vehicle"}
+          {step === 2 && "Start time"}
+          {step === 3 && "Duration & cover"}
+        </div>
+      </div>
 
-          <div className="mt-4">
-            <label className="label" htmlFor="vrm">
-              Vehicle registration
-            </label>
+      <div className="mt-5 grid max-w-full gap-4 pb-[calc(env(safe-area-inset-bottom)+120px)] sm:pb-0">
+        <div className="card-elevated min-w-0 max-w-full overflow-hidden p-4 sm:p-6">
+          <div className="grid min-w-0 gap-5">
+            {step === 1 ? (
+              <section className="stack-sm min-w-0 max-w-full">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-950">Your vehicle</h4>
+                  <p className="text-sm text-slate-600">
+                    Enter your registration and we’ll check the vehicle details.
+                  </p>
+                </div>
 
-            <div className="flex w-full flex-col sm:flex-row items-stretch gap-2">
-              <input
-                id="vrm"
-                className="input flex-1 min-w-0 vrm-display"
-                placeholder="e.g. AB12 CDE"
-                value={vrmDisplay}
-                onChange={(e) => {
-                  const next = normaliseVrm(e.target.value);
-                  setVrm(next);
-                  setFormError(null);
-                  setLookupError(null);
-                  setVehicle(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (canLookupNow) lookupVehicle(vrm);
-                  }
-                }}
-                autoCapitalize="characters"
-                autoCorrect="off"
-                inputMode="text"
-                spellCheck={false}
-                aria-invalid={!!lookupError}
-                aria-describedby={lookupError ? "vrm-error" : "vrm-hint"}
-              />
+                <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_140px]">
+                  <input
+                    id="vrm"
+                    className="input min-w-0 w-full vrm-display"
+                    placeholder="e.g. AB12 CDE"
+                    value={vrmDisplay}
+                    onChange={(e) => {
+                      const next = normaliseVrm(e.target.value);
+                      setVrm(next);
+                      setFormError(null);
+                      setLookupError(null);
+                      setVehicle(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (canLookupNow) lookupVehicle(vrm);
+                      }
+                    }}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    inputMode="text"
+                    spellCheck={false}
+                    aria-invalid={!!lookupError}
+                    aria-describedby={lookupError ? "vrm-error" : "vrm-hint"}
+                  />
 
-              <button
-                type="button"
-                onClick={() => lookupVehicle(vrm)}
-                disabled={!canLookupNow}
-                className={[
-                  "shrink-0 h-[46px] rounded-xl px-4 text-xs font-extrabold transition",
-                  "w-full sm:w-[132px]",
-                  canLookupNow
-                    ? "bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 active:bg-slate-50"
-                    : "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed",
-                ].join(" ")}
-              >
-                {loading ? "Looking…" : "Confirm"}
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => lookupVehicle(vrm)}
+                    disabled={!canLookupNow}
+                    className={`btn-ghost min-w-0 ${!canLookupNow ? "cursor-not-allowed opacity-60" : ""}`}
+                  >
+                    {loading ? "Checking..." : "Check registration"}
+                  </button>
+                </div>
 
-            <div
-              id="vrm-hint"
-              className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 text-[12px] text-slate-500"
-            >
-              <span className="inline-flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                Press Enter or tap Confirm
-              </span>
+                <div
+                  id="vrm-hint"
+                  className="flex flex-col gap-2 text-[12px] text-slate-500 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <span>Press Enter or tap Check registration.</span>
 
-              <button type="button" onClick={toggleManualMode} className="sm:ml-auto btn-ghost btn-sm">
-                {manualMode ? "Hide details" : "Edit details"}
-              </button>
-            </div>
+                  <button type="button" onClick={toggleManualMode} className="link text-left text-[12px] font-medium">
+                    {manualMode ? "Hide manual entry" : "Enter details manually"}
+                  </button>
+                </div>
 
-            {lookupError ? (
-              <div
-                id="vrm-error"
-                className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-              >
-                <div className="font-extrabold">We couldn’t fetch vehicle details</div>
-                <div className="mt-1">{lookupError}</div>
-                <div className="mt-2 text-[12px] text-red-700/80">No stress — enter your vehicle details manually below.</div>
-              </div>
-            ) : null}
-
-            {vehicle ? (
-              <div className="mt-4 card-soft px-4 py-3">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-                  <div className="min-w-0">
-                    <div className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">Confirmed vehicle</div>
-                    <div className="mt-1 text-sm font-extrabold text-slate-900">{vehicleTitle}</div>
-                    <div className="mt-1 text-[13px] text-slate-600">
-                      {lookupColour ? lookupColour : null}
-                      {lookupFuel ? ` • ${lookupFuel}` : null}
-                      {lookupYear ? ` • ${lookupYear}` : null}
+                {lookupError ? (
+                  <div
+                    id="vrm-error"
+                    className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                  >
+                    <div className="font-semibold">We couldn’t confirm the vehicle automatically</div>
+                    <div className="mt-1">{lookupError}</div>
+                    <div className="mt-2 text-[12px] text-red-700/80">
+                      You can still continue by entering the vehicle details manually below.
                     </div>
                   </div>
+                ) : null}
 
-                  <span className="badge">{hasLookupBasics ? "Verified" : "Check"}</span>
+                {vehicle ? (
+                  <div className="card-soft px-4 py-4">
+                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          Vehicle found
+                        </div>
+                        <div className="mt-1 break-words text-sm font-semibold text-slate-950">
+                          {vehicleTitle}
+                        </div>
+                        <div className="mt-1 break-words text-[13px] text-slate-600">
+                          {lookupColour ? lookupColour : null}
+                          {lookupFuel ? ` • ${lookupFuel}` : null}
+                          {lookupYear ? ` • ${lookupYear}` : null}
+                        </div>
+                      </div>
+
+                      <span className="badge self-start">{hasLookupBasics ? "Verified" : "Check"}</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                {manualMode ? (
+                  <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+                    <div className="flex flex-col gap-1">
+                      <div className="text-sm font-semibold text-slate-950">
+                        Enter vehicle details manually
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        Make and model are enough to continue. Year is optional.
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="min-w-0">
+                        <label className="label" htmlFor="make">
+                          Make
+                        </label>
+                        <input
+                          id="make"
+                          className="input min-w-0 w-full"
+                          placeholder="e.g. Toyota"
+                          value={manualMake}
+                          onChange={(e) => {
+                            setManualMake(e.target.value);
+                            setFormError(null);
+                          }}
+                        />
+                      </div>
+
+                      <div className="min-w-0">
+                        <label className="label" htmlFor="model">
+                          Model
+                        </label>
+                        <input
+                          id="model"
+                          className="input min-w-0 w-full"
+                          placeholder="e.g. Yaris"
+                          value={manualModel}
+                          onChange={(e) => {
+                            setManualModel(e.target.value);
+                            setFormError(null);
+                          }}
+                        />
+                      </div>
+
+                      <div className="min-w-0">
+                        <label className="label" htmlFor="year">
+                          Year (optional)
+                        </label>
+                        <input
+                          id="year"
+                          className="input min-w-0 w-full"
+                          placeholder="e.g. 2018"
+                          inputMode="numeric"
+                          value={manualYear}
+                          onChange={(e) => {
+                            setManualYear(e.target.value.replace(/[^0-9]/g, "").slice(0, 4));
+                            setFormError(null);
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {!manualBasicsComplete ? (
+                      <div className="field-help mt-3">Make and model are enough to continue.</div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {step === 2 && requireDates ? (
+              <section className="stack-sm min-w-0 max-w-full">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-950">When should cover start?</h4>
+                  <p className="text-sm text-slate-600">
+                    Choose the date and time your cover should begin.
+                  </p>
                 </div>
+
+                <div className="grid min-w-0 max-w-full grid-cols-1 gap-3 overflow-hidden">
+                  <div className="min-w-0 max-w-full overflow-hidden rounded-[0.95rem]">
+                    <input
+                      type="datetime-local"
+                      className="input block !w-full min-w-0 max-w-full px-3 text-[16px] [appearance:none]"
+                      value={startAt}
+                      onChange={(e) => {
+                        setStartAt(e.target.value);
+                        setFormError(null);
+                      }}
+                      disabled={!vehicleReady}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={setStartNow}
+                    disabled={!vehicleReady}
+                    className={`btn-ghost w-full min-w-0 sm:w-auto ${!vehicleReady ? "cursor-not-allowed opacity-60" : ""}`}
+                  >
+                    Start now
+                  </button>
+                </div>
+
+                {!vehicleReady ? (
+                  <div className="field-help">
+                    Confirm the vehicle first to choose a start time.
+                  </div>
+                ) : null}
+
+                {startAt ? (
+                  <div className="card-soft px-4 py-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      Start time
+                    </div>
+                    <div className="mt-1 break-words text-sm font-semibold text-slate-950">
+                      {new Date(startAt).toLocaleString(undefined, {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {step === 3 && requireDates ? (
+              <section className="stack-sm min-w-0 max-w-full">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-950">How long do you need cover?</h4>
+                  <p className="text-sm text-slate-600">
+                    Choose a common option or set your own duration.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  {QUICK_DURATION_OPTIONS.map((option) => {
+                    const active =
+                      activeQuickPick?.value === option.value &&
+                      activeQuickPick?.unit === option.unit;
+
+                    const disabled = !vehicleReady;
+
+                    return (
+                      <button
+                        key={`${option.value}-${option.unit}`}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => applyQuickDuration(option.value, option.unit)}
+                        className={[
+                          "min-w-0 rounded-full border px-3 py-2 text-center text-[13px] font-semibold transition",
+                          disabled
+                            ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                            : active
+                            ? "border-[rgb(108,76,243)] bg-[rgba(108,76,243,0.08)] text-slate-950"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                        ].join(" ")}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="min-w-0 max-w-full overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4 sm:p-5">
+                  <div className="grid min-w-0 max-w-full gap-4">
+                    <div className="min-w-0">
+                      <label className="label">Duration</label>
+                      <div className="flex w-full min-w-0 items-center overflow-hidden rounded-[1rem] border border-slate-200 bg-white p-1">
+                        <button
+                          type="button"
+                          onClick={decrementDuration}
+                          disabled={!vehicleReady}
+                          className={`inline-flex h-11 w-10 shrink-0 items-center justify-center rounded-[0.8rem] text-lg font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-11 ${
+                            !vehicleReady ? "cursor-not-allowed opacity-50" : ""
+                          }`}
+                          aria-label="Decrease duration"
+                        >
+                          −
+                        </button>
+
+                        <input
+                          className="w-0 min-w-0 flex-1 bg-transparent px-1 text-center text-base font-semibold text-slate-950 outline-none sm:px-2"
+                          inputMode="numeric"
+                          placeholder={String(UNIT_CONFIG[durationUnit].min)}
+                          value={durationValue}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
+                            setDurationValue(raw);
+                            setFormError(null);
+                          }}
+                          disabled={!vehicleReady}
+                          aria-label="Duration value"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={incrementDuration}
+                          disabled={!vehicleReady}
+                          className={`inline-flex h-11 w-10 shrink-0 items-center justify-center rounded-[0.8rem] text-lg font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-11 ${
+                            !vehicleReady ? "cursor-not-allowed opacity-50" : ""
+                          }`}
+                          aria-label="Increase duration"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <div className="mt-2 text-[12px] text-slate-500">
+                        {durationUnit === "hours" && "Choose between 1 and 24 hours."}
+                        {durationUnit === "days" && "Choose between 1 and 31 days."}
+                        {durationUnit === "weeks" && "Choose between 1 and 12 weeks."}
+                        {durationUnit === "months" && "Choose between 1 and 12 months."}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <label className="label">Unit</label>
+
+                      <div className="grid w-full grid-cols-2 gap-1 rounded-[1rem] border border-slate-200 bg-white p-1">
+                        {(Object.keys(UNIT_CONFIG) as DurationUnit[]).map((unit) => {
+                          const active = durationUnit === unit;
+
+                          return (
+                            <button
+                              key={unit}
+                              type="button"
+                              onClick={() => changeDurationUnit(unit)}
+                              disabled={!vehicleReady}
+                              className={[
+                                "min-w-0 rounded-[0.8rem] px-2 py-2.5 text-center text-sm font-semibold transition",
+                                !vehicleReady
+                                  ? "cursor-not-allowed text-slate-400"
+                                  : active
+                                  ? "bg-[rgba(108,76,243,0.10)] text-slate-950"
+                                  : "text-slate-600 hover:bg-slate-50",
+                              ].join(" ")}
+                            >
+                              {UNIT_CONFIG[unit].label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 rounded-[1rem] border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        End time
+                      </div>
+
+                      {startAt && endAt && datesValid ? (
+                        <div className="mt-1 text-sm font-semibold leading-tight text-slate-950">
+                          <div className="break-words">
+                            {new Date(endAt).toLocaleDateString(undefined, {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </div>
+                          <div className="mt-1 break-words">
+                            {new Date(endAt).toLocaleTimeString(undefined, {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-1 text-sm text-slate-500">
+                          {startAt ? "Choose a duration." : "Choose a start time first."}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {!datesValid && startAt && endAt ? (
+                  <div className="field-error">
+                    End date and time must be after the start.
+                  </div>
+                ) : null}
+
+                <div className="divider-soft" />
+
+                <section className="stack-sm min-w-0 max-w-full">
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-950">Your cover</h4>
+                    <p className="text-sm text-slate-600">
+                      Review the details below before continuing.
+                    </p>
+                  </div>
+
+                  <div className="card-soft min-w-0 max-w-full p-4 sm:p-5">
+                    <div className="grid gap-5 lg:grid-cols-3">
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          Vehicle
+                        </div>
+                        <div className="mt-1 break-words text-sm font-semibold text-slate-950">
+                          {vehicleTitle}
+                        </div>
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          Registration
+                        </div>
+                        <div className="mt-1 break-words text-sm font-semibold text-slate-950 vrm-display">
+                          {vrmDisplay || "—"}
+                        </div>
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          Policy period
+                        </div>
+
+                        <div className="mt-2 space-y-2.5">
+                          <div className="grid gap-1">
+                            <span className="text-[12px] font-medium text-slate-500">Starts</span>
+                            <div>{renderSummaryDateTime(startAt)}</div>
+                          </div>
+
+                          <div className="grid gap-1">
+                            <span className="text-[12px] font-medium text-slate-500">Ends</span>
+                            <div>{renderSummaryDateTime(endAt)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </section>
+            ) : null}
+
+            {formError ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="font-semibold">A few details are still needed</div>
+                <div className="mt-1">{formError}</div>
               </div>
             ) : null}
-          </div>
 
-          {manualMode ? (
-            <div className="mt-4 card-soft p-4">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-                <div>
-                  <div className="text-sm font-extrabold text-slate-900">Manual vehicle details</div>
-                  <p className="mt-1 text-sm text-slate-600">Only make + model are needed to continue.</p>
-                </div>
-                <span className="badge">Manual</span>
-              </div>
+            <div className="hidden items-center justify-between gap-3 sm:flex">
+              <button
+                type="button"
+                onClick={goBack}
+                disabled={step === 1}
+                className={`btn-ghost ${step === 1 ? "cursor-not-allowed opacity-50" : ""}`}
+              >
+                Back
+              </button>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                  <label className="label" htmlFor="make">
-                    Make
-                  </label>
-                  <input
-                    id="make"
-                    className="input"
-                    placeholder="e.g. Toyota"
-                    value={manualMake}
-                    onChange={(e) => {
-                      setManualMake(e.target.value);
-                      setFormError(null);
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="label" htmlFor="model">
-                    Model
-                  </label>
-                  <input
-                    id="model"
-                    className="input"
-                    placeholder="e.g. Yaris"
-                    value={manualModel}
-                    onChange={(e) => {
-                      setManualModel(e.target.value);
-                      setFormError(null);
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="label" htmlFor="year">
-                    Year (optional)
-                  </label>
-                  <input
-                    id="year"
-                    className="input"
-                    placeholder="e.g. 2018"
-                    inputMode="numeric"
-                    value={manualYear}
-                    onChange={(e) => {
-                      setManualYear(e.target.value.replace(/[^0-9]/g, "").slice(0, 4));
-                      setFormError(null);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {!manualBasicsComplete ? <div className="mt-3 field-hint">Tip: Make + Model is enough to continue.</div> : null}
+              {step < 3 ? (
+                <button type="button" onClick={goNext} className="btn-primary">
+                  Continue
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={goToQuote}
+                  className={`btn-primary ${!canContinue ? "cursor-not-allowed opacity-60" : ""}`}
+                  disabled={!canContinue}
+                >
+                  See your quote
+                </button>
+              )}
             </div>
-          ) : null}
+          </div>
         </div>
 
-        {/* Step 2: Cover (SHORT INLINE + EDIT OPENS SHEET) */}
-        {requireDates ? (
-          <div className="card p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="badge">Step 2</span>
-                  <div className="text-sm font-extrabold text-slate-900">Cover</div>
-                </div>
-
-                <div className="mt-1 text-sm text-slate-600">
-                  {step1Complete ? "Choose your cover times (opens in a sheet)." : "Complete Step 1 to unlock cover dates and duration."}
-                </div>
-              </div>
-
-              <span className="badge">{step1Complete ? "Exact times" : "Locked"}</span>
-            </div>
-
-            {!step1Complete ? (
-              <>
-                <div className="mt-4 h-px w-full bg-slate-200/70" />
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="font-extrabold text-slate-900">Finish Step 1 first</div>
-                  <div className="mt-1 text-sm text-slate-600">
-                    Enter a valid registration and confirm vehicle details (make + model) to continue.
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="mt-4 h-px w-full bg-slate-200/70" />
-
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cover period</div>
-                  <div className="mt-1 text-sm font-extrabold text-slate-900">{coverSummary}</div>
-
-                  <div className="mt-3">
-                    <button type="button" onClick={() => setCoverSheetOpen(true)} className="btn-ghost btn-sm w-full">
-                      Edit cover times
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        ) : null}
-
-        {/* Errors */}
-        {formError ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <div className="font-extrabold">Action needed</div>
-            <div className="mt-1">{formError}</div>
-          </div>
-        ) : null}
-
-        {/* Desktop Primary CTA */}
-        <div className="hidden sm:block">
-          <button
-            type="button"
-            onClick={goToQuote}
-            className={`btn-primary w-full ${!canContinue ? "opacity-60 cursor-not-allowed" : ""}`}
-            disabled={!canContinue}
-          >
-            Continue
-          </button>
-        </div>
-
-        {/* Trust strip */}
         {!compact ? (
           <div className="grid gap-2 text-[12px] text-slate-500">
             <div className="flex items-center gap-2">
@@ -686,341 +911,47 @@ export default function QuoteWidget({
         ) : null}
       </div>
 
-      {/* Sticky mobile CTA (hidden while sheet open to avoid stacking) */}
-      {!coverSheetOpen ? (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/90 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-          <div className="mx-auto max-w-xl px-4 py-3">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/92 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
+        <div className="mx-auto max-w-xl px-4 py-3">
+          {step < 3 ? (
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={goBack}
+                disabled={step === 1}
+                className={`btn-ghost flex-1 ${step === 1 ? "cursor-not-allowed opacity-50" : ""}`}
+              >
+                Back
+              </button>
+              <button type="button" onClick={goNext} className="btn-primary flex-1">
+                Continue
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
               onClick={goToQuote}
-              className={`btn-primary w-full ${!canContinue ? "opacity-60 cursor-not-allowed" : ""}`}
+              className={`btn-primary btn-primary-block ${
+                !canContinue ? "cursor-not-allowed opacity-60" : ""
+              }`}
               disabled={!canContinue}
             >
-              Continue
+              See your quote
             </button>
+          )}
 
-            {!canContinue ? (
-              <div className="mt-2 text-[11px] text-slate-500">Complete Step 1 + pick valid dates to continue.</div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
-      {/* =========================
-          Bottom Sheet: Step 2 Cover
-         ========================= */}
-      {coverSheetOpen ? (
-        <div className="fixed inset-0 z-[60]">
-          {/* Backdrop */}
-          <button
-            type="button"
-            aria-label="Close cover editor"
-            onClick={() => setCoverSheetOpen(false)}
-            className="absolute inset-0 bg-black/30"
-          />
-
-          {/* Sheet */}
-          <div className="absolute inset-x-0 bottom-0 h-[88dvh] rounded-t-3xl bg-white shadow-2xl pb-[env(safe-area-inset-bottom)] flex flex-col">
-            {/* Grab handle */}
-            <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-slate-200" />
-
-            {/* Sticky header */}
-            <div className="sticky top-0 z-10 mt-2 border-b border-slate-200 bg-white/95 backdrop-blur">
-              <div className="flex items-center justify-between px-4 py-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-extrabold text-slate-900">Cover times</div>
-                  <div className="mt-0.5 text-[12px] text-slate-600 truncate">{coverSummary}</div>
-                </div>
-
-                <button type="button" onClick={() => setCoverSheetOpen(false)} className="btn-ghost btn-sm">
-                  Done
-                </button>
-              </div>
+          {step < 3 ? (
+            <div className="mt-2 text-[11px] text-slate-500">
+{step === 1 && "Confirm your vehicle details, then tap Continue above."}
+{step === 2 && "Choose a start time, then tap Continue above."}
             </div>
-
-            {/* Scrollable content (iOS-safe) */}
-            <div
-              ref={sheetScrollRef}
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-5 pt-4 [-webkit-overflow-scrolling:touch]"
-            >
-              {/* Date inputs */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="label">Start date & time</label>
-                  <input
-                    type="datetime-local"
-                    className="input"
-                    value={startAt}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setStartAt(v);
-                      setFormError(null);
-
-                      if (durationPreset) {
-                        const computed = applyPreset(v, durationPreset);
-                        if (computed) setEndAt(computed);
-                      } else if (customDurationValue) {
-                        const computed = applyCustomDuration(v, customDurationValue, customDurationUnit);
-                        if (computed) setEndAt(computed);
-                      }
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="label">End date & time</label>
-                  <input
-                    type="datetime-local"
-                    className="input"
-                    value={endAt}
-                    onChange={(e) => {
-                      setEndAt(e.target.value);
-                      setFormError(null);
-                      if (durationPreset) setDurationPreset("");
-                    }}
-                  />
-                </div>
-
-                {!datesValid && startAt && endAt ? (
-                  <div className="sm:col-span-2 field-error">End date/time must be after start date/time.</div>
-                ) : null}
-              </div>
-
-              {/* Quick actions */}
-              <div className="mt-4 -mx-1 flex gap-2 overflow-x-auto no-scrollbar px-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const now = new Date();
-                    now.setMinutes(Math.ceil(now.getMinutes() / 5) * 5, 0, 0);
-                    const v = toDatetimeLocalValue(now);
-                    setStartAt(v);
-                    setFormError(null);
-
-                    if (durationPreset) {
-                      const computed = applyPreset(v, durationPreset);
-                      if (computed) setEndAt(computed);
-                    } else if (customDurationValue) {
-                      const computed = applyCustomDuration(v, customDurationValue, customDurationUnit);
-                      if (computed) setEndAt(computed);
-                    }
-                  }}
-                  className="btn-ghost btn-sm shrink-0"
-                >
-                  Start now
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStartAt("");
-                    setEndAt("");
-                    setDurationPreset("");
-                    setCustomDurationValue("");
-                    setCustomOpen(false);
-                    setDurationExpanded(true); // ✅ keep options open even after clear
-                    setFormError(null);
-                  }}
-                  className="btn-ghost btn-sm shrink-0"
-                >
-                  Clear
-                </button>
-              </div>
-
-              {/* Duration selector */}
-              <div className="mt-5 card-soft p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-extrabold uppercase tracking-wide text-slate-600">Quick duration</div>
-                    <div className="mt-1 text-sm text-slate-600">Choose a duration to auto-fill your end time.</div>
-                  </div>
-                  <span className="badge">Auto-fill</span>
-                </div>
-
-                <div className="mt-4">
-                  <div className="flex w-full flex-col gap-3">
-                    <div className="inline-flex max-w-full overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory rounded-full border border-slate-200 bg-white p-1">
-                      {(
-                        [
-                          { k: "hours", label: "Hourly" },
-                          { k: "days", label: "Daily" },
-                          { k: "weeks", label: "Weekly" },
-                          { k: "months", label: "Monthly" },
-                        ] as const
-                      ).map((t) => {
-                        const active = durationMode === t.k;
-                        return (
-                          <button
-                            key={t.k}
-                            type="button"
-                            onClick={() => {
-                              setDurationMode(t.k);
-                              setDurationExpanded(true); // ✅ always show options
-                              setCustomOpen(false);
-                              setFormError(null);
-                            }}
-                            className={[
-                              "h-9 rounded-full px-4 text-[12px] font-extrabold transition whitespace-nowrap snap-start",
-                              "border",
-                              active
-                                ? "bg-sky-50 text-slate-900 border-sky-200 ring-2 ring-sky-200/60"
-                                : "bg-white text-slate-700 border-transparent hover:bg-slate-50 hover:border-slate-200",
-                            ].join(" ")}
-                          >
-                            {t.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setDurationExpanded((v) => !v)}
-                      className="btn-ghost btn-sm w-full"
-                    >
-                      {durationExpanded ? "Hide options" : "Show options"}
-                    </button>
-                  </div>
-
-                  {/* ✅ Now visible immediately when sheet opens */}
-                  {durationExpanded ? (
-                    <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {DURATION_OPTIONS[durationMode].map((opt) => {
-                          const active = durationPreset === opt.key;
-                          const disabled = !startAt;
-
-                          return (
-                            <button
-                              key={opt.key}
-                              type="button"
-                              disabled={disabled}
-                              onClick={() => {
-                                if (!startAt) return;
-
-                                const nextPreset = durationPreset === opt.key ? "" : opt.key;
-
-                                setDurationPreset(nextPreset);
-                                setCustomOpen(false);
-                                setFormError(null);
-
-                                const computed = applyPreset(startAt, nextPreset as any);
-                                if (computed) setEndAt(computed);
-
-                                // Optional UX: keep panel open (you can still close manually)
-                                // setDurationExpanded(false);
-                              }}
-                              className={[
-                                "h-9 rounded-full border px-3 text-[12px] font-extrabold transition",
-                                disabled
-                                  ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
-                                  : active
-                                  ? "border-sky-300 bg-sky-50 text-slate-900 ring-2 ring-sky-200/60"
-                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                              ].join(" ")}
-                            >
-                              {opt.label}
-                            </button>
-                          );
-                        })}
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomOpen((v) => !v);
-                            setFormError(null);
-                          }}
-                          className={[
-                            "h-9 rounded-full border px-3 text-[12px] font-extrabold transition",
-                            customOpen
-                              ? "border-sky-300 bg-sky-50 text-slate-900 ring-2 ring-sky-200/60"
-                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                          ].join(" ")}
-                        >
-                          Custom
-                        </button>
-                      </div>
-
-                      {customOpen ? (
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2 items-end">
-                          <div>
-                            <label className="label">Value</label>
-                            <input
-                              className="input h-[44px]"
-                              inputMode="numeric"
-                              placeholder="e.g. 10"
-                              value={customDurationValue}
-                              onChange={(e) => {
-                                setCustomDurationValue(e.target.value.replace(/[^0-9]/g, "").slice(0, 3));
-                                setDurationPreset("");
-                                setFormError(null);
-                              }}
-                            />
-                          </div>
-
-                          <div>
-                            <label className="label">Unit</label>
-                            <select
-                              className="input h-[44px]"
-                              value={customDurationUnit}
-                              onChange={(e) => {
-                                setCustomDurationUnit(e.target.value as any);
-                                setDurationPreset("");
-                                setFormError(null);
-                              }}
-                            >
-                              <option value="hours">Hours</option>
-                              <option value="days">Days</option>
-                              <option value="weeks">Weeks</option>
-                              <option value="months">Months</option>
-                            </select>
-                          </div>
-
-                          <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const computed = applyCustomDuration(startAt, customDurationValue, customDurationUnit);
-                                if (computed) setEndAt(computed);
-                              }}
-                              disabled={!startAt || !applyCustomDuration(startAt, customDurationValue, customDurationUnit)}
-                              className={[
-                                "btn-ghost btn-sm",
-                                !startAt || !applyCustomDuration(startAt, customDurationValue, customDurationUnit)
-                                  ? "opacity-60 cursor-not-allowed"
-                                  : "",
-                              ].join(" ")}
-                            >
-                              Apply
-                            </button>
-
-                            <span className="text-[12px] text-slate-500">
-                              {startAt ? "Auto-fills end time." : "Set a start time first."}
-                            </span>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {startAt && endAt && datesValid ? (
-                <div className="mt-4 card-soft px-4 py-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cover period</div>
-                  <div className="mt-1 text-sm font-extrabold text-slate-900">
-                    {startAt.replace("T", " ")} → {endAt.replace("T", " ")}
-                  </div>
-                  <div className="mt-1 field-hint">You’ll confirm details on the next step before payment.</div>
-                </div>
-              ) : null}
-
-              {/* Nice little end padding so last card isn't glued to the bottom */}
-              <div className="h-6" />
+          ) : !canContinue ? (
+            <div className="mt-2 text-[11px] text-slate-500">
+              Choose your duration, then review your cover above.
             </div>
-          </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

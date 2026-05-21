@@ -2,12 +2,33 @@
 @import "tailwindcss";
 
 /* =========================================================
-   Global layout sanity
+   Global reset / interaction
 ========================================================= */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: rgb(var(--text));
+  background: rgb(var(--bg));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02" 1, "cv03" 1, "cv04" 1, "ss01" 1;
+  line-height: 1.5;
 }
 
 button,
@@ -18,10 +39,24 @@ select {
   color: inherit;
 }
 
-html:focus-within {
-  scroll-behavior: smooth;
+img,
+svg {
+  display: block;
 }
 
+img {
+  user-select: none;
+  max-width: 100%;
+}
+
+::selection {
+  background: rgba(108, 76, 243, 0.16);
+  color: rgb(var(--text));
+}
+
+/* =========================================================
+   Fonts
+========================================================= */
 @font-face {
   font-family: "TAN Headline";
   src: url("/fonts/TANHeadline.woff2") format("woff2"),
@@ -33,118 +68,215 @@ html:focus-within {
 
 .font-tan {
   font-family: "TAN Headline", ui-serif, Georgia, "Times New Roman", serif;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
-
 /* =========================================================
-   Premium theme tokens
+   Connect Cover theme tokens
 ========================================================= */
 :root {
-  /* Surfaces */
-  --bg: 248 250 252;        /* slate-50 */
-  --panel: 255 255 255;     /* white */
-  --panel-2: 241 245 249;   /* slate-100 */
-  --text: 15 23 42;         /* slate-900 */
-  --muted: 71 85 105;       /* slate-600 */
-  --muted-2: 100 116 139;   /* slate-500 */
-  --border: 226 232 240;    /* slate-200 */
+  /* Base surfaces */
+  --bg: 247 249 252;
+  --surface: 255 255 255;
+  --surface-alt: 243 246 251;
+  --surface-soft: 248 250 255;
+  --surface-elevated: 255 255 255;
+
+  /* Typography */
+  --text: 15 23 42;
+  --text-muted: 71 85 105;
+  --text-subtle: 100 116 139;
+  --text-soft: 148 163 184;
+
+  /* Borders */
+  --border: 226 232 240;
+  --border-strong: 203 213 225;
+  --border-brand: 196 181 253;
 
   /* Brand */
-  --brand: 37 99 235;       /* blue-600 */
-  --brand-2: 14 165 233;    /* sky-500 */
+  --brand: 108 76 243;
+  --brand-dark: 79 52 217;
+  --brand-deep: 58 34 183;
+  --brand-soft: 241 237 255;
+  --brand-soft-2: 232 239 255;
+  --brand-blue: 74 96 245;
 
-  /* Status */
-  --success: 16 185 129;    /* emerald-500 */
-  --danger: 239 68 68;      /* red-500 */
+  /* Accent / status */
+  --accent: 168 85 247;
+  --success: 5 150 105;
+  --danger: 220 38 38;
+  --warning: 217 119 6;
 
-  /* Radius (slightly more premium + consistent) */
-  --r-sm: 0.9rem;           /* was 0.75rem */
-  --r-md: 1.15rem;          /* was 1rem */
-  --r-lg: 1.45rem;          /* was 1.25rem */
+  /* Radius */
+  --r-xs: 0.75rem;
+  --r-sm: 0.95rem;
+  --r-md: 1.2rem;
+  --r-lg: 1.5rem;
+  --r-xl: 1.9rem;
+  --r-2xl: 2.4rem;
 
-  /* Shadows (premium but subtle) */
-  --shadow-1: 0 1px 2px rgba(2, 6, 23, 0.06);
-  --shadow-2: 0 12px 36px rgba(2, 6, 23, 0.10);
-  --shadow-3: 0 20px 60px rgba(2, 6, 23, 0.14);
+  /* Shadows */
+  --shadow-1: 0 1px 2px rgba(2, 6, 23, 0.04);
+  --shadow-2: 0 10px 30px rgba(15, 23, 42, 0.07);
+  --shadow-3: 0 18px 54px rgba(15, 23, 42, 0.11);
+  --shadow-4: 0 24px 80px rgba(79, 52, 217, 0.16);
+
+  /* Layout */
+  --header-height: 5rem;
 }
 
 /* =========================================================
-   Base
+   Accessibility / motion
 ========================================================= */
-html,
-body {
-  height: 100%;
-}
-
-body {
-  color: rgb(var(--text));
-  background: rgb(var(--bg));
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: "cv02" 1, "cv03" 1, "cv04" 1, "ss01" 1;
-  line-height: 1.5;
-}
-
-::selection {
-  background: rgba(37, 99, 235, 0.16);
-}
-
-/* Better heading rendering (tiny, but feels “designed”) */
-h1,
-h2,
-h3 {
-  text-wrap: balance;
-}
-p {
-  text-wrap: pretty;
-}
-
-a,
-.btn-primary,
-.btn-ghost {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Premium focus (keyboard users) — DO NOT force border-radius globally */
 :focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.14),
-    0 0 0 1px rgba(255, 255, 255, 0.75) inset;
+    0 0 0 4px rgba(108, 76, 243, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.82) inset;
 }
 
-/* Optional: add to elements you want rounded focus */
 .focus-ring {
-  border-radius: 0.85rem;
+  border-radius: var(--r-sm);
 }
+
 .focus-ring:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.14),
-    0 0 0 1px rgba(255, 255, 255, 0.75) inset;
+    0 0 0 4px rgba(108, 76, 243, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.82) inset;
 }
 
-/* Prefer reduced motion (cleaner, avoids 0.01ms weirdness) */
 @media (prefers-reduced-motion: reduce) {
   html:focus-within {
     scroll-behavior: auto;
   }
+
   *,
   *::before,
   *::after {
     animation: none !important;
     transition: none !important;
-    scroll-behavior: auto !important;
   }
+}
+
+/* =========================================================
+   Typography
+========================================================= */
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: rgb(var(--text));
+  text-wrap: balance;
+}
+
+.heading-unbalanced {
+  text-wrap: initial;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+h1 {
+  font-size: clamp(2.25rem, 5vw, 4.6rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+h2 {
+  font-size: clamp(1.85rem, 3vw, 2.85rem);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+}
+
+h3 {
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  line-height: 1.16;
+  letter-spacing: -0.025em;
+}
+
+h4 {
+  font-size: 1rem;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+body,
+input,
+textarea,
+select,
+button {
+  font-size: 1rem;
+}
+
+.text-muted {
+  color: rgb(var(--text-muted));
+}
+
+.text-subtle {
+  color: rgb(var(--text-subtle));
+}
+
+.text-soft {
+  color: rgb(var(--text-soft));
+}
+
+.lead {
+  font-size: clamp(1.04rem, 1.4vw, 1.18rem);
+  line-height: 1.75;
+  color: rgb(var(--text-muted));
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--brand-dark));
+}
+
+.eyebrow::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    rgb(var(--brand)) 0%,
+    rgb(var(--brand-blue)) 100%
+  );
+  box-shadow: 0 0 0 6px rgba(108, 76, 243, 0.08);
+}
+
+.section-title {
+  max-width: 14ch;
+}
+
+.section-copy {
+  max-width: 65ch;
+  color: rgb(var(--text-muted));
+}
+
+.display-tight {
+  letter-spacing: -0.055em;
+}
+
+.balance {
+  text-wrap: balance;
 }
 
 /* =========================================================
    Layout helpers
 ========================================================= */
 .container-app {
-  max-width: 74rem;
+  width: 100%;
+  max-width: 75rem;
   margin-inline: auto;
   padding-inline: 1rem;
 }
@@ -161,24 +293,86 @@ a,
   }
 }
 
-/* Consistent vertical rhythm for sections */
 .section {
-  padding-block: 3.75rem;
+  padding-block: 4.25rem;
 }
+
 @media (min-width: 640px) {
-  .section {
-    padding-block: 4.5rem;
-  }
-}
-@media (min-width: 1024px) {
   .section {
     padding-block: 5.25rem;
   }
 }
 
-/* Smoother scroll target spacing for anchored hero sections */
+@media (min-width: 1024px) {
+  .section {
+    padding-block: 6.25rem;
+  }
+}
+
+.section-tight {
+  padding-block: 3rem;
+}
+
+@media (min-width: 1024px) {
+  .section-tight {
+    padding-block: 4rem;
+  }
+}
+
+.stack-xs > * + * {
+  margin-top: 0.35rem;
+}
+
+.stack-sm > * + * {
+  margin-top: 0.7rem;
+}
+
+.stack-md > * + * {
+  margin-top: 1rem;
+}
+
+.stack-lg > * + * {
+  margin-top: 1.5rem;
+}
+
+.stack-xl > * + * {
+  margin-top: 2rem;
+}
+
 :target {
-  scroll-margin-top: 6.5rem;
+  scroll-margin-top: calc(var(--header-height) + 1.25rem);
+}
+
+/* =========================================================
+   Backgrounds / decorative surfaces
+========================================================= */
+.bg-wash {
+  background:
+    radial-gradient(950px 500px at 20% -10%, rgba(108, 76, 243, 0.11), transparent 60%),
+    radial-gradient(820px 460px at 80% 0%, rgba(74, 96, 245, 0.09), transparent 62%),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.82), rgba(247, 249, 252, 1));
+}
+
+.bg-grid-soft {
+  background-image:
+    linear-gradient(rgba(226, 232, 240, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 232, 240, 0.35) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.surface-elevated {
+  background: rgb(var(--surface-elevated));
+  box-shadow: var(--shadow-2);
+}
+
+.divider-soft {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(226, 232, 240, 0),
+    rgba(226, 232, 240, 1),
+    rgba(226, 232, 240, 0)
+  );
 }
 
 /* =========================================================
@@ -186,389 +380,326 @@ a,
 ========================================================= */
 .card {
   border-radius: var(--r-md);
-  border: 1px solid rgb(var(--border));
-  background: rgb(var(--panel));
+  border: 1px solid rgba(var(--border), 0.78);
+  background: rgb(var(--surface));
   box-shadow: var(--shadow-1);
 }
 
 .card-soft {
   border-radius: var(--r-md);
-  border: 1px solid rgba(226, 232, 240, 0.78);
-  background: rgba(255, 255, 255, 0.72);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  border: 1px solid rgba(var(--border), 0.8);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(12px);
   box-shadow: var(--shadow-1);
 }
 
-/* Optional: subtle lift on hover for “premium” feel */
-.card-hover {
-  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-.card-hover:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-2);
-  border-color: rgba(148, 163, 184, 0.75);
+.card-elevated {
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(var(--border), 0.66);
+  background: rgb(var(--surface-elevated));
+  box-shadow: var(--shadow-3);
 }
 
-/* Subtle “hairline” divider utility */
-.divider-soft {
-  height: 1px;
-  width: 100%;
-  background: linear-gradient(
-    to right,
-    rgba(226, 232, 240, 0),
-    rgba(226, 232, 240, 0.95),
-    rgba(226, 232, 240, 0)
-  );
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none; /* IE/Edge Legacy */
-  scrollbar-width: none;    /* Firefox */
-}
-
-
-
-/* =========================================================
-   Fintech gradient background
-========================================================= */
-.bg-wash {
+.card-brand {
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(var(--border-brand), 0.55);
   background:
-    radial-gradient(900px 520px at 18% -8%, rgba(14,165,233,.18), transparent 58%),
-    radial-gradient(860px 520px at 82% 6%, rgba(37,99,235,.16), transparent 62%),
-    radial-gradient(900px 640px at 50% 112%, rgba(16,185,129,.08), transparent 58%),
-    linear-gradient(to bottom, rgba(255,255,255,.72), rgba(248,250,252,1));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(243, 246, 255, 0.95));
+  box-shadow: var(--shadow-2);
 }
 
-/* Optional ultra subtle grain */
-.bg-grain {
-  position: relative;
-}
-.bg-grain::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.04;
-  background-image: radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.35) 1px, transparent 0);
-  background-size: 24px 24px;
+.card-hover {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.22s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease;
 }
 
-/* =========================================================
-   Typography helpers (policy/legal/faq pages)
-========================================================= */
-.prose {
-  color: rgb(var(--text));
-  line-height: 1.7;
-}
-.prose p {
-  margin: 0.9rem 0;
-  color: rgb(30, 41, 59);
-}
-.prose h1,
-.prose h2,
-.prose h3 {
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  margin: 1.25rem 0 0.5rem;
-}
-.prose ul {
-  margin: 0.75rem 0 1rem;
-  padding-left: 1.25rem;
-}
-.prose li {
-  margin: 0.35rem 0;
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: rgba(var(--border-strong), 0.95);
 }
 
 /* =========================================================
    Forms
 ========================================================= */
 .label {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 0.48rem;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: rgb(51, 65, 85);
 }
 
-.input {
+.input,
+.select,
+.textarea {
   width: 100%;
   border-radius: var(--r-sm);
   border: 1px solid rgb(var(--border));
-  background: rgb(var(--panel));
-  padding: 0.78rem 1rem;
-  font-size: 0.95rem;
+  background: rgb(var(--surface));
+  padding: 0.98rem 1rem;
+  font-size: 1rem;
+  line-height: 1.4;
   outline: none;
-  box-shadow: 0 1px 0 rgba(2, 6, 23, 0.03);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
 }
 
-.input::placeholder {
-  color: rgb(148, 163, 184);
+.select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgb(var(--text-subtle)) 50%),
+    linear-gradient(135deg, rgb(var(--text-subtle)) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) calc(50% - 2px),
+    calc(100% - 14px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 3rem;
 }
 
-/* subtle premium hover */
-.input:not(:disabled):hover {
-  border-color: rgba(148, 163, 184, 0.85);
+.textarea {
+  min-height: 7rem;
+  resize: vertical;
 }
 
-/* focus ring parity with buttons */
-.input:focus {
-  border-color: rgba(37, 99, 235, 0.35);
+.input::placeholder,
+.textarea::placeholder {
+  color: rgb(var(--text-soft));
+}
+
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: rgba(148, 163, 184, 0.95);
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: rgba(108, 76, 243, 0.48);
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.12),
-    0 0 0 1px rgba(255, 255, 255, 0.75) inset,
-    0 1px 0 rgba(2, 6, 23, 0.03);
+    0 0 0 4px rgba(108, 76, 243, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.82) inset;
+  transform: translateY(-1px);
 }
 
-.input:disabled {
-  background: rgba(241, 245, 249, 0.7);
-  color: rgb(100, 116, 139);
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
   cursor: not-allowed;
+  background: rgb(var(--surface-alt));
+  color: rgb(var(--text-subtle));
+  opacity: 0.86;
 }
 
-.field-hint {
-  margin-top: 0.4rem;
-  font-size: 0.75rem;
-  color: rgb(100, 116, 139);
+.input[aria-invalid="true"],
+.select[aria-invalid="true"],
+.textarea[aria-invalid="true"],
+.input-error {
+  border-color: rgba(var(--danger), 0.85);
+  box-shadow: 0 0 0 4px rgba(var(--danger), 0.1);
 }
+
+.field-help {
+  margin-top: 0.48rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgb(var(--text-subtle));
+}
+
 .field-error {
-  margin-top: 0.4rem;
-  font-size: 0.75rem;
-  color: rgb(220, 38, 38);
+  margin-top: 0.48rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: rgb(var(--danger));
+}
+
+.field-success {
+  margin-top: 0.48rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: rgb(var(--success));
 }
 
 /* =========================================================
-   Buttons (Tailwind v4-safe)
-   (keeps your rule: ALL secondary = ghost/light)
+   Buttons
 ========================================================= */
 @layer components {
-  .btn-primary,
-  .btn-ghost {
-    appearance: none;
-    -webkit-tap-highlight-color: transparent;
-    background-clip: padding-box;
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 3.1rem;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: linear-gradient(
+    135deg,
+    rgb(var(--brand)) 0%,
+    rgb(var(--brand-blue)) 100%
+  );
+  color: #fff !important;
+  padding: 0.9rem 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease,
+    filter 0.2s ease;
+  box-shadow: 0 14px 34px rgba(79, 52, 217, 0.2);
+}
 
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-
-    border-radius: var(--r-sm);
-    padding: 0.78rem 1rem;
-
-    font-size: 0.95rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-
-    text-decoration: none;
-    white-space: nowrap;
-    user-select: none;
-    touch-action: manipulation;
-
-    -webkit-font-smoothing: antialiased;
-    text-rendering: geometricPrecision;
-
-    transition:
-      transform 0.08s ease,
-      box-shadow 0.2s ease,
-      background-color 0.2s ease,
-      opacity 0.2s ease,
-      border-color 0.2s ease;
-  }
-
-  .btn-sm {
-    padding: 0.55rem 0.8rem;
-    font-size: 0.82rem;
-    border-radius: 0.7rem;
-  }
-
-  .btn-primary {
-    color: white;
-    background: linear-gradient(135deg, rgb(37, 99, 235) 0%, rgb(14, 165, 233) 100%);
-    box-shadow: 0 12px 34px rgba(37, 99, 235, 0.18);
-  }
-
-  a.btn-primary,
-  a.btn-ghost {
-    color: inherit;
-  }
-  a.btn-primary {
-    color: white;
-  }
-
-  .btn-primary,
-  .btn-ghost {
-    text-decoration: none !important;
-  }
-
-  /* lock colour (no dark flash) */
-  .btn-primary:hover,
-  .btn-primary:focus,
-  .btn-primary:focus-visible,
-  .btn-primary:active {
-    color: white;
-    background: linear-gradient(135deg, rgb(37, 99, 235) 0%, rgb(14, 165, 233) 100%);
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.02);
+    box-shadow: 0 18px 42px rgba(79, 52, 217, 0.23);
   }
 
   .btn-primary:active {
-    transform: scale(0.985);
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.18);
+    transform: translateY(0);
   }
 
-  .btn-primary:disabled {
-    opacity: 0.55;
+  .btn-primary:disabled,
+  .btn-primary[aria-disabled="true"] {
     cursor: not-allowed;
+    opacity: 0.62;
+    transform: none;
+    filter: none;
     box-shadow: none;
   }
 
-  /* GHOST / LIGHT (default everywhere) */
-  .btn-ghost {
-    border: 1px solid rgb(var(--border));
-    background: rgb(var(--panel));
-    color: rgb(var(--text));
-    box-shadow: 0 1px 0 rgba(2, 6, 23, 0.03);
+  .btn-primary-lg {
+    min-height: 3.45rem;
+    padding: 1rem 1.4rem;
+    font-size: 1rem;
   }
 
-  .btn-ghost:hover,
-  .btn-ghost:focus,
-  .btn-ghost:focus-visible,
-  .btn-ghost:active {
-    background: rgb(var(--panel));
-    color: rgb(var(--text));
-    border-color: rgba(148, 163, 184, 0.9);
+  .btn-primary-block {
+    width: 100%;
   }
 
-  /* subtle premium hover shadow ONLY when enabled */
-  .btn-ghost:not(:disabled):hover {
-    box-shadow:
-      0 1px 0 rgba(2, 6, 23, 0.03),
-      0 14px 34px rgba(2, 6, 23, 0.08);
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 3.1rem;
+  border: 1px solid rgb(var(--border));
+  background: rgba(255, 255, 255, 0.88);
+  color: rgb(var(--text));
+  border-radius: var(--r-sm);
+  padding: 0.9rem 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.18s ease;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+}
+
+  .btn-ghost:hover {
+    border-color: rgb(var(--border-strong));
+    background: rgb(var(--surface));
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
   }
 
-  .btn-ghost:active {
-    transform: scale(0.99);
-  }
-
-  .btn-ghost:disabled {
-    opacity: 0.55;
+  .btn-ghost:disabled,
+  .btn-ghost[aria-disabled="true"] {
     cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
     box-shadow: none;
-  }
-
-  /* premium button focus (without global radius forcing) */
-  .btn-primary:focus-visible,
-  .btn-ghost:focus-visible {
-    outline: none;
-    box-shadow:
-      0 0 0 4px rgba(37, 99, 235, 0.14),
-      0 0 0 1px rgba(255, 255, 255, 0.75) inset,
-      0 12px 36px rgba(2, 6, 23, 0.10);
   }
 }
 
 /* =========================================================
-   Badges & links (wrap + squish + layout-safe)
+   Links / badges / utilities
 ========================================================= */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  white-space: nowrap;
-  flex-shrink: 0;
-
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  line-height: 1;
-
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--border));
-  background: rgba(255, 255, 255, 0.92);
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgb(51, 65, 85);
+a,
+.btn-primary,
+.btn-ghost {
+  -webkit-tap-highlight-color: transparent;
 }
 
-.badge-sm {
-  padding: 0.2rem 0.6rem;
-  font-size: 0.7rem;
+a {
+  color: inherit;
 }
 
-/* If you ever want strict truncation in specific places only */
-.badge-truncate {
-  max-width: 12rem;
-}
-
-/* Default simple text links (for nav/footer) */
 .link {
   color: rgb(51, 65, 85);
   text-decoration: none;
-  border-radius: 0.6rem;
-  padding: 0.25rem 0.35rem;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition: color 0.18s ease;
 }
+
 .link:hover {
-  color: rgb(15, 23, 42);
-  background: rgba(15, 23, 42, 0.04);
-}
-.link:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.14),
-    0 0 0 1px rgba(255, 255, 255, 0.75) inset;
+  color: rgb(var(--text));
 }
 
-/* Keep your existing underlined helper link class */
-.a {
-  color: rgb(29, 78, 216);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-.a:hover {
-  color: rgb(30, 64, 175);
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--border));
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.38rem 0.78rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: rgb(51, 65, 85);
 }
 
-/* VRM “plate” formatting (display only) */
+.badge-brand {
+  border-color: rgba(108, 76, 243, 0.16);
+  background: linear-gradient(
+    180deg,
+    rgba(241, 237, 255, 1),
+    rgba(232, 239, 255, 0.95)
+  );
+  color: rgb(var(--brand-dark));
+}
+
+.badge-dot::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    rgb(var(--brand)) 0%,
+    rgb(var(--brand-blue)) 100%
+  );
+}
+
 .vrm-display {
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-/* =========================================================
-   FAQ details/summary UX
-========================================================= */
-details > summary::-webkit-details-marker {
-  display: none;
-}
-details[open] summary {
-  margin-bottom: 0.25rem;
-}
-
-/* =========================================================
-   Image micro-polish
-========================================================= */
-img {
-  image-rendering: auto;
-  -webkit-user-drag: none;
-  user-select: none;
-}
-
-/* =========================================================
-   Animations
-========================================================= */
-@keyframes gradientShift {
-  0% { transform: translate3d(0,0,0); filter: hue-rotate(0deg); }
-  50% { transform: translate3d(-2%, -2%, 0); filter: hue-rotate(7deg); }
-  100% { transform: translate3d(0,0,0); filter: hue-rotate(0deg); }
-}
-
-.animate-gradient {
-  animation: gradientShift 10s ease-in-out infinite;
+.text-gradient-brand {
+  background: linear-gradient(
+    135deg,
+    rgb(var(--brand-deep)) 0%,
+    rgb(var(--brand)) 52%,
+    rgb(var(--brand-blue)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
