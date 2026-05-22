@@ -118,248 +118,240 @@ export default function HomePage() {
       </a>
 
       <main className="bg-wash">
-        {/* HERO */}
-        <section className="relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(108,76,243,0.14),transparent_36%),radial-gradient(circle_at_85%_10%,rgba(74,96,245,0.10),transparent_28%),linear-gradient(to_bottom,rgba(255,255,255,0.72),rgba(248,250,252,0.96))]" />
-
-          <div className="container-app relative z-10 pb-12 pt-10 sm:pb-16 sm:pt-14 lg:pb-20 lg:pt-18">
-            <div className="grid gap-10 xl:grid-cols-[minmax(0,1.02fr)_minmax(420px,0.98fr)] xl:items-start">
-              {/* Left */}
-              <div className="min-w-0 pt-2 sm:pt-4">
-                <motion.div
-                  initial="hidden"
-                  animate="show"
-                  variants={fadeUp}
-                  custom={0.02}
-                  className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.14)] bg-white/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(108,76,243)] backdrop-blur"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
-                  Coverage that connects
-                </motion.div>
-
-                <motion.h1
-                  initial="hidden"
-                  animate="show"
-                  variants={fadeUp}
-                  custom={0.08}
-                  className="mt-6 max-w-[9.5ch] text-[3.25rem] font-extrabold leading-[0.94] tracking-[-0.065em] text-slate-950 sm:text-[4.15rem] lg:text-[4.9rem]"
-                >
-                  Temporary cover that fits around you
-                </motion.h1>
-
-                <motion.p
-                  initial="hidden"
-                  animate="show"
-                  variants={fadeUp}
-                  custom={0.14}
-                  className="mt-6 max-w-[33rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]"
-                >
-                  Choose when your cover starts, set the duration you need, and
-                  see your quote in minutes. Documents are issued instantly after
-                  purchase, so everything stays clear from quote to cover.
-                </motion.p>
-
-                <motion.div
-                  initial="hidden"
-                  animate="show"
-                  variants={fadeUp}
-                  custom={0.18}
-                  className="mt-8 flex flex-col gap-3 sm:flex-row"
-                >
-                  <motion.div
-                    whileHover={reduceMotion ? undefined : { scale: 1.02 }}
-                    whileTap={reduceMotion ? undefined : { scale: 0.985 }}
-                  >
-                    <Link
-                      className="btn-primary btn-primary-lg w-full text-white sm:w-auto"
-                      href="#quote"
-                    >
-                      Start your quote
-                    </Link>
-                  </motion.div>
-
-                  <motion.div
-                    whileHover={reduceMotion ? undefined : { scale: 1.01 }}
-                    whileTap={reduceMotion ? undefined : { scale: 0.985 }}
-                  >
-                    <Link
-                      className="btn-ghost w-full sm:w-auto"
-                      href="/retrieve-policy"
-                    >
-                      Retrieve policy
-                    </Link>
-                  </motion.div>
-                </motion.div>
-
-<motion.div
-  initial="hidden"
-  animate="show"
-  variants={fadeUp}
-  custom={0.22}
-  className="mt-8 max-w-[35rem]"
->
-  <div className="flex flex-col gap-4 border-t border-slate-200/80 pt-5">
-    <div className="flex items-start gap-3">
-      <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[rgba(108,76,243,0.14)] bg-[rgba(108,76,243,0.08)] text-[rgb(108,76,243)]">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path
-            d="M2.5 6.2 4.8 8.5 9.5 3.8"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <p className="text-sm leading-6 text-slate-700">
-        Choose exact start times, flexible duration, and get your documents instantly.
-      </p>
-    </div>
-
-    <div className="flex items-start gap-3">
-      <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[rgba(108,76,243,0.14)] bg-[rgba(108,76,243,0.08)] text-[rgb(108,76,243)]">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path
-            d="M2.5 6.2 4.8 8.5 9.5 3.8"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <p className="text-sm leading-6 text-slate-700">
-        Simple journey designed to keep cover clear from quote to documents.
-      </p>
-    </div>
+{/* HERO */}
+<section className="relative overflow-hidden bg-white">
+ 
+  {/* Subtle radial light — kept very soft so it feels clean, not purple-heavy */}
+  <div className="pointer-events-none absolute inset-0">
+    <div className="absolute -top-32 left-1/2 h-[480px] w-[480px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(108,76,243,0.09)_0%,transparent_70%)]" />
+    <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(74,96,245,0.06)_0%,transparent_70%)]" />
   </div>
-</motion.div>
-
-                <motion.div
-                  initial="hidden"
-                  animate="show"
-                  variants={fadeUp}
-                  custom={0.26}
-                  className="mt-6 max-w-[34rem] space-y-2 text-[12px] leading-6 text-slate-500"
-                >
-                  <div>{complianceLine}</div>
-                  <div className="text-slate-400">
-                    Flexible temporary insurance for clearer, more confident cover.
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial="hidden"
-                  animate="show"
-                  variants={fadeUp}
-                  custom={0.3}
-                  className="mt-8 grid max-w-[35rem] grid-cols-3 gap-3"
-                >
-                  <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm">
-                    <div className="relative aspect-[4/5] w-full">
-                      <Image
-                        src="/images/hero-car-4.png"
-                        alt="Driving in the city with Coverza"
-                        fill
-                        sizes="(min-width: 1280px) 11vw, (min-width: 1024px) 14vw, 33vw"
-                        className="object-cover object-center"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm">
-                    <div className="relative aspect-[4/5] w-full">
-                      <Image
-                        src="/images/hero-car-5.png"
-                        alt="Flexible temporary vehicle cover"
-                        fill
-                        sizes="(min-width: 1280px) 11vw, (min-width: 1024px) 14vw, 33vw"
-                        className="object-cover object-center"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white shadow-sm">
-                    <div className="relative aspect-[4/5] w-full">
-                      <Image
-                        src="/images/hero-car-6.png"
-                        alt="Temporary insurance designed for short-term use"
-                        fill
-                        sizes="(min-width: 1280px) 11vw, (min-width: 1024px) 14vw, 33vw"
-                        className="object-cover object-center"
-                      />
-                    </div>
-                  </div>
-                </motion.div>
+ 
+  <div className="container-app relative z-10 px-5 pb-14 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:px-10 lg:pb-24 lg:pt-20">
+ 
+    {/* ── MOBILE: full-width single column ── DESKTOP: 2-col ── */}
+    <div className="flex flex-col gap-12 xl:flex-row xl:items-center xl:gap-16">
+ 
+      {/* ════ LEFT — headline + CTA ════ */}
+      <div className="flex-1 min-w-0">
+ 
+        {/* Eyebrow pill */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={fadeUp}
+          custom={0.02}
+          className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-[rgba(108,76,243,0.05)] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.20em] text-[rgb(108,76,243)]"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+          Coverage that connects
+        </motion.div>
+ 
+        {/* Headline — tight, big, Apple-style */}
+        <motion.h1
+          initial="hidden"
+          animate="show"
+          variants={fadeUp}
+          custom={0.08}
+          className="mt-5 text-[2.85rem] font-extrabold leading-[0.92] tracking-[-0.055em] text-slate-950 sm:text-[3.6rem] lg:text-[4.4rem]"
+        >
+          Cover that starts
+          <br />
+          <span className="text-[rgb(108,76,243)]">exactly when</span>
+          <br />
+          you need it.
+        </motion.h1>
+ 
+        {/* Sub */}
+        <motion.p
+          initial="hidden"
+          animate="show"
+          variants={fadeUp}
+          custom={0.14}
+          className="mt-5 max-w-[30rem] text-[1rem] leading-[1.85] text-slate-500 sm:text-[1.05rem]"
+        >
+          Set your start time, choose your duration, and get your
+          documents the moment you purchase. No annual policy
+          affected — just clean, flexible cover when you need it.
+        </motion.p>
+ 
+        {/* CTA buttons */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={fadeUp}
+          custom={0.18}
+          className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
+        >
+          <motion.div
+            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
+            whileTap={reduceMotion ? undefined : { scale: 0.975 }}
+            className="w-full sm:w-auto"
+          >
+            <Link
+              className="btn-primary btn-primary-lg flex w-full items-center justify-center gap-2 text-white sm:w-auto"
+              href="/get-quote"
+            >
+              Get your quote
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M3 7h8M7.5 3.5 11 7l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+          </motion.div>
+ 
+          <motion.div
+            whileHover={reduceMotion ? undefined : { scale: 1.01 }}
+            whileTap={reduceMotion ? undefined : { scale: 0.985 }}
+            className="w-full sm:w-auto"
+          >
+            <Link
+              className="btn-ghost flex w-full items-center justify-center sm:w-auto"
+              href="/retrieve-policy"
+            >
+              Retrieve policy
+            </Link>
+          </motion.div>
+        </motion.div>
+ 
+        {/* Trust row — 3 micro stats, single line on mobile */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={fadeUp}
+          custom={0.22}
+          className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-slate-100 pt-6"
+        >
+          {[
+            { val: "1hr", label: "Minimum cover" },
+            { val: "12 months", label: "Maximum duration" },
+            { val: "Instant", label: "Policy documents" },
+          ].map(({ val, label }) => (
+            <div key={label} className="flex items-baseline gap-2">
+              <span className="text-[1.05rem] font-extrabold tracking-tight text-slate-950">
+                {val}
+              </span>
+              <span className="text-[12px] text-slate-400">{label}</span>
+            </div>
+          ))}
+        </motion.div>
+ 
+        {/* Compliance */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={fadeUp}
+          custom={0.26}
+          className="mt-5 max-w-[34rem] space-y-1 text-[11.5px] leading-[1.7] text-slate-400"
+        >
+          <div>{complianceLine}</div>
+          <div>Flexible temporary insurance for clearer, more confident cover.</div>
+        </motion.div>
+      </div>
+ 
+      {/* ════ RIGHT — premium visual block ════ */}
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={fadeUp}
+        custom={0.10}
+        className="w-full xl:w-[420px] xl:shrink-0"
+      >
+        {/* Photo triptych — same images, new premium card treatment */}
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+          {[
+            { src: "/images/hero-car-4.png", alt: "Driving in the city with Coverza" },
+            { src: "/images/hero-car-5.png", alt: "Flexible temporary vehicle cover" },
+            { src: "/images/hero-car-6.png", alt: "Temporary insurance designed for short-term use" },
+          ].map(({ src, alt }, i) => (
+            <div
+              key={src}
+              className={`overflow-hidden rounded-[1.25rem] border border-slate-100 bg-slate-50 shadow-sm ${
+                i === 1 ? "translate-y-3 sm:translate-y-5" : ""
+              }`}
+            >
+              <div className="relative aspect-[3/4] w-full">
+                <Image
+                  src={src}
+                  alt={alt}
+                  fill
+                  sizes="(min-width: 1280px) 130px, 33vw"
+                  className="object-cover object-center"
+                />
               </div>
-
-              {/* Right */}
-              <motion.div
-                initial="hidden"
-                animate="show"
-                variants={fadeUp}
-                custom={0.12}
-                id="quote"
-                className="scroll-mt-24"
-              >
-                <div className="relative rounded-[2rem] border border-slate-200/90 bg-white/86 p-3 shadow-[0_30px_80px_rgba(15,23,42,0.10)] backdrop-blur sm:p-4">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-24 rounded-t-[2rem] bg-gradient-to-b from-[rgba(108,76,243,0.10)] to-transparent" />
-                  <div className="relative rounded-[1.5rem] border border-slate-200 bg-white p-4 sm:p-5">
-                    <QuoteWidget />
-                  </div>
-                </div>
-
-                <div className="mt-5">
-                  <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-5 shadow-sm backdrop-blur sm:p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                          Clear from quote to documents
-                        </div>
-                        <div className="mt-2 text-lg font-extrabold tracking-tight text-slate-950 sm:text-xl">
-                          Trusted online journey
-                        </div>
-                        <p className="mt-2 text-sm leading-6 text-slate-600">
-                          Set your start time, choose your duration, review your
-                          details, and retrieve your documents whenever you need them.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                          Timing
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-slate-950">
-                          Exact start times
-                        </div>
-                      </div>
-
-                      <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                          Documents
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-slate-950">
-                          Issued instantly
-                        </div>
-                      </div>
-
-                      <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50/70 px-4 py-4">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                          Access
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-slate-950">
-                          Easy retrieval
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+            </div>
+          ))}
+        </div>
+ 
+        {/* Cover card — floats below the photos */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={fadeUp}
+          custom={0.20}
+          className="mt-4 rounded-[1.5rem] border border-slate-100 bg-white p-5 shadow-[0_8px_40px_rgba(15,23,42,0.07)]"
+        >
+          {/* Header row */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                Your cover, your timing
+              </p>
+              <p className="mt-0.5 text-[1.05rem] font-extrabold tracking-tight text-slate-950">
+                Trusted online journey
+              </p>
+            </div>
+            {/* Verified badge */}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(108,76,243,0.08)]">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path
+                  d="M10 2.5 12.09 7.26l5.16.75-3.73 3.63.88 5.13L10 14.27l-4.4 2.5.88-5.13L2.75 8.01l5.16-.75L10 2.5Z"
+                  stroke="rgb(108,76,243)"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
           </div>
-        </section>
+ 
+          {/* Step pills */}
+          <div className="mt-4 flex flex-col gap-2">
+            {[
+              { icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", label: "Set your exact start time" },
+              { icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", label: "Choose how long you need cover" },
+              { icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0121 10.414V19a2 2 0 01-2 2z", label: "Receive documents instantly" },
+            ].map(({ icon, label }, i) => (
+              <div
+                key={label}
+                className="flex items-center gap-3 rounded-[0.85rem] bg-slate-50/80 px-3.5 py-2.5"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgb(108,76,243)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d={icon} />
+                  </svg>
+                </span>
+                <span className="text-[12.5px] font-medium text-slate-700">{label}</span>
+                <span className="ml-auto text-[11px] font-semibold text-[rgb(108,76,243)]">
+                  {i + 1}
+                </span>
+              </div>
+            ))}
+          </div>
+ 
+          {/* No-claims note */}
+          <div className="mt-4 flex items-center gap-2 rounded-[0.85rem] bg-[rgba(108,76,243,0.05)] px-3.5 py-2.5">
+            <svg width="13" height="13" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M2.5 6.2 4.8 8.5 9.5 3.8" stroke="rgb(108,76,243)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <p className="text-[11.5px] font-medium text-[rgb(108,76,243)]">
+              No impact on your existing no-claims discount
+            </p>
+          </div>
+        </motion.div>
+      </motion.div>
+ 
+    </div>
+  </div>
+</section>
 
         {/* WHY Coverza */}
         <section className="section relative overflow-hidden">
