@@ -40,7 +40,7 @@ if (!process.env.INTERNAL_RENDER_KEY || key !== process.env.INTERNAL_RENDER_KEY)
 
     const input: CertificatePdfInput = {
       certificateNumber: String(
-        body.certificateNumber || "GTC-CERT-TEST-0001"
+        body.certificateNumber || "CVZ-CERT-TEST-0001"
       ),
 
       policyNumber: body.policyNumber

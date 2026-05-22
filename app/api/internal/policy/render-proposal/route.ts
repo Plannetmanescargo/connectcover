@@ -40,7 +40,7 @@ if (!process.env.INTERNAL_RENDER_KEY || key !== process.env.INTERNAL_RENDER_KEY)
     const baseUrl = body.baseUrl || getBaseUrl(req);
 
     const input: ProposalPdfInput = {
-      policyNumber: String(body.policyNumber || "GTC-TEST-0000"),
+      policyNumber: String(body.policyNumber || "CVZ-TEST-0000"),
       createdAtISO: body.createdAtISO
         ? String(body.createdAtISO)
         : new Date().toISOString(),

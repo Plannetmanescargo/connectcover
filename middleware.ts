@@ -14,9 +14,9 @@ export function middleware(req: NextRequest) {
   }
 
   // ✅ Force canonical www domain
-  if (hostname === "gotempcover.co.uk") {
+  if (hostname === "coverza.co.uk") {
     const url = req.nextUrl.clone();
-    url.hostname = "www.gotempcover.co.uk";
+    url.hostname = "www.coverza.co.uk";
     url.search = search;
 
     return NextResponse.redirect(url, 308);

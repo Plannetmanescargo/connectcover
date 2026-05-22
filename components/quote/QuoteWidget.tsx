@@ -267,7 +267,7 @@ export default function QuoteWidget({
 
     const draft = buildQuoteDraft();
     try {
-      sessionStorage.setItem("gtc_quote_draft", JSON.stringify(draft));
+      sessionStorage.setItem("coverza_quote_draft", JSON.stringify(draft));
     } catch {}
 
     window.location.assign("/get-quote");

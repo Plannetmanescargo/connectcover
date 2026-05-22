@@ -7,5 +7,5 @@ export function generatePolicyNumber() {
   let mid = "";
   for (let i = 0; i < 8; i++) mid += pick();
 
-  return `GTC-${year}-${mid.slice(0, 4)}${mid.slice(4)}`;
+  return `CVZ-${year}-${mid.slice(0, 4)}${mid.slice(4)}`;
 }

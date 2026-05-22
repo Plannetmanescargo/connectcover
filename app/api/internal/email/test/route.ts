@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       from,
       to,
       replyTo: replyTo || undefined,
-      subject: "GoTempCover — Resend test",
+      subject: "Coverza — Resend test",
       html: `<div style="font-family:Arial,sans-serif">
         <h2>Resend test ✅</h2>
         <p>If you can read this, sending is working.</p>
