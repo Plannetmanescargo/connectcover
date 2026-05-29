@@ -6,13 +6,13 @@ export function middleware(req: NextRequest) {
   // 🚧 MAINTENANCE MODE
   // Set NEXT_PUBLIC_MAINTENANCE=true in Vercel environment variables to enable.
   // API routes and the maintenance page itself are always exempt.
-  if (
-    process.env.NEXT_PUBLIC_MAINTENANCE === "true" &&
-    !pathname.startsWith("/api") &&
-    !pathname.startsWith("/maintenance")
-  ) {
-    return NextResponse.rewrite(new URL("/maintenance", req.url));
-  }
+if (
+  process.env.NEXT_PUBLIC_MAINTENANCE === "true" &&
+  !pathname.startsWith("/api") &&
+  !pathname.startsWith("/maintenance.html")
+) {
+  return NextResponse.redirect(new URL("/maintenance.html", req.url));
+}
 
   // 🚫 NEVER redirect Stripe webhooks
   if (pathname.startsWith("/api/stripe/webhook")) {
