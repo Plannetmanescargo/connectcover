@@ -6,12 +6,13 @@ export default function MaintenancePage() {
       <Image
         src="/brand/connectcoverbig.png"
         alt="Coverza"
-        width={42}
-        height={42}
+        width={140}
+        height={40}
         priority
-        className="h-[23px] w-[23px] object-contain"
+        unoptimized
+        className="mb-8 h-auto w-[140px] object-contain"
       />
-      <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-[rgba(108,76,243,0.05)] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.20em] text-[rgb(108,76,243)]">
+      <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-[rgba(108,76,243,0.05)] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.20em] text-[rgb(108,76,243)]">
         <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
         Back soon
       </div>
