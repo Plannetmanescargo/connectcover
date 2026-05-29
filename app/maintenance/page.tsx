@@ -1,7 +1,17 @@
+import Image from "next/image";
+
 export default function MaintenancePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
-      <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-[rgba(108,76,243,0.05)] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.20em] text-[rgb(108,76,243)]">
+      <Image
+        src="/brand/connectcoverbig.png"
+        alt="Coverza"
+        width={42}
+        height={42}
+        priority
+        className="h-[23px] w-[23px] object-contain"
+      />
+      <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-[rgba(108,76,243,0.05)] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.20em] text-[rgb(108,76,243)]">
         <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
         Back soon
       </div>
