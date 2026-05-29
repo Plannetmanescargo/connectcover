@@ -9,7 +9,8 @@ export function middleware(req: NextRequest) {
 if (
   process.env.NEXT_PUBLIC_MAINTENANCE === "true" &&
   !pathname.startsWith("/api") &&
-  !pathname.startsWith("/maintenance.html")
+  !pathname.startsWith("/maintenance.html") &&
+  !pathname.startsWith("/brand/")
 ) {
   return NextResponse.redirect(new URL("/maintenance.html", req.url));
 }
