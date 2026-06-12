@@ -840,7 +840,7 @@ export default function GetQuotePage() {
         body: JSON.stringify({
           quote: {
             vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear,
-            startAt: new Date(startAt).toISOString(), endAt: new Date(endAt).toISOString(),
+            startAt: startAt, endAt: endAt,
             durationMs, totalAmountPence: Math.round(price.total * 100),
           },
           customer: {
@@ -971,7 +971,7 @@ export default function GetQuotePage() {
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[rgb(108,76,243)]/60">Confirmed</p>
                   <p className="mt-1 text-[1rem] font-extrabold tracking-tight text-slate-950">
-                    {[lookupMake, lookupModel].filter(Boolean).join(" ") || "Vehicle found"}
+                    {[lookupMake, lookupModel].filter(Boolean).join(" ") || "Vehicle not found. Please enter details below!"}
                   </p>
                   {[lookupColour, lookupFuel, lookupYear].filter(Boolean).length > 0 && (
                     <p className="mt-0.5 text-[13px] text-slate-500">
