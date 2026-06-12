@@ -315,7 +315,7 @@ export default async function SuccessPage(props: {
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/50">
               Always available
             </p>
-            <h2 className="mt-2 text-[1.7rem] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[2.2rem]">
+            <h2 className="mt-2 text-[1.7rem] font-extrabold leading-[0.98] tracking-[-0.045em] !text-white sm:text-[2.2rem]">
               Need your documents later?
             </h2>
             <p className="mt-3 text-[0.92rem] leading-[1.75] text-white/70">
@@ -330,7 +330,7 @@ export default async function SuccessPage(props: {
               </Link>
               <Link
                 href="/help-support"
-                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-white/25 px-7 text-[14.5px] font-semibold text-white transition hover:bg-white/10 sm:w-auto"
+                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-white px-7 text-[14.5px] font-semibold text-[rgb(108,76,243)] transition hover:bg-white/92 sm:w-auto"
               >
                 Help &amp; support
               </Link>
