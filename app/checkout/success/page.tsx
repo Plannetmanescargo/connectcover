@@ -54,10 +54,10 @@ function PolicyField({ label, value, wide = false }: { label: string; value: str
 }
 
 /* ─────────────────────────────────────────────────────────
-   Processing state
+   Processing state — no props needed
 ───────────────────────────────────────────────────────── */
 
-function ProcessingView({ sessionId }: { sessionId?: string }) {
+function ProcessingView() {
   return (
     <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Payment confirmed" }]}>
       <section className="pt-4 sm:pt-8 lg:pt-12">
@@ -151,25 +151,23 @@ export default async function SuccessPage(props: {
     },
   });
 
-  if (!policy) return <ProcessingView sessionId={sessionId} />;
+  if (!policy) return <ProcessingView />;
 
   /* ── Policy confirmed ── */
   return (
     <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Covered" }]}>
 
       {/* ══════════════════════════════════════════
-          HERO — matches site pattern exactly
+          HERO
       ══════════════════════════════════════════ */}
       <section className="pt-2 sm:pt-4 lg:pt-6">
         <div className="max-w-[76rem]">
 
-          {/* Eyebrow pill — emerald, consistent with other success states */}
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-800">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Cover confirmed
           </div>
 
-          {/* Headline + wavy SVG */}
           <div className="relative mt-6 max-w-[70rem]">
             <div className="pointer-events-none absolute inset-x-0 top-[8%] -z-10 opacity-45 sm:top-[12%]">
               <svg viewBox="0 0 1200 260" className="h-[220px] w-full sm:h-[260px] lg:h-[300px]" fill="none" aria-hidden="true" preserveAspectRatio="none">
@@ -187,7 +185,6 @@ export default async function SuccessPage(props: {
             <span className="font-semibold text-slate-800">{policy.email}</span>.
           </p>
 
-          {/* Emerald dot trust row */}
           <div className="mt-6 flex flex-wrap gap-x-7 gap-y-3 text-sm font-medium text-slate-700">
             {["Policy created", "Documents emailed", "Retrieval available anytime"].map(item => (
               <div key={item} className="inline-flex items-center gap-2">
@@ -207,7 +204,7 @@ export default async function SuccessPage(props: {
       <section className="mt-12">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
 
-          {/* ── Policy card ── boarding-pass ── */}
+          {/* ── Policy card — boarding-pass style ── */}
           <div className="overflow-hidden rounded-[2.25rem] border border-slate-200/70 bg-white shadow-[0_24px_80px_rgba(108,76,243,0.07),0_2px_8px_rgba(15,23,42,0.04)]">
 
             {/* Purple top rule */}
@@ -226,14 +223,14 @@ export default async function SuccessPage(props: {
 
             {/* Detail grid */}
             <div className="grid gap-x-10 gap-y-5 px-7 py-6 sm:grid-cols-2 sm:px-8">
-              <PolicyField label="Vehicle"  value={vehicleLine(policy)} wide />
-              <PolicyField label="Starts"   value={fmt(policy.startAt)} />
-              <PolicyField label="Ends"     value={fmt(policy.endAt)} />
-              <PolicyField label="Status"   value={policy.status} />
-              <PolicyField label="Email"    value={policy.email} wide />
+              <PolicyField label="Vehicle" value={vehicleLine(policy)} wide />
+              <PolicyField label="Starts"  value={fmt(policy.startAt)} />
+              <PolicyField label="Ends"    value={fmt(policy.endAt)} />
+              <PolicyField label="Status"  value={policy.status} />
+              <PolicyField label="Email"   value={policy.email} wide />
             </div>
 
-            {/* Dashed tear-off */}
+            {/* Dashed tear-off line */}
             <div className="relative mx-7 sm:mx-8">
               <div className="border-t border-dashed border-slate-200" />
               <span className="absolute -left-10 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-slate-50 ring-1 ring-slate-200" aria-hidden="true" />
@@ -251,7 +248,7 @@ export default async function SuccessPage(props: {
           {/* ── Right column ── */}
           <div className="grid gap-4">
 
-            {/* What to do next */}
+            {/* Next steps */}
             <div className="overflow-hidden rounded-[1.75rem] border border-slate-100 bg-white shadow-[0_4px_20px_rgba(108,76,243,0.05)]">
               <div className="border-b border-slate-100 px-5 py-4">
                 <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-400">Next steps</p>
@@ -302,8 +299,6 @@ export default async function SuccessPage(props: {
 
       {/* ══════════════════════════════════════════
           FOOTER CTA — purple block, white text
-          relative positioning fixes the absolute
-          child overflow on the orb decorations
       ══════════════════════════════════════════ */}
       <section className="mt-16 mb-4">
         <div className="relative overflow-hidden rounded-[2rem] bg-[rgb(108,76,243)] px-8 py-10 shadow-[0_20px_56px_rgba(108,76,243,0.22)] sm:px-10 sm:py-12">
@@ -315,7 +310,7 @@ export default async function SuccessPage(props: {
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/50">
               Always available
             </p>
-            <h2 className="mt-2 text-[1.7rem] font-extrabold leading-[0.98] tracking-[-0.045em] !text-white sm:text-[2.2rem]">
+            <h2 className="mt-2 text-[1.7rem] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[2.2rem]">
               Need your documents later?
             </h2>
             <p className="mt-3 text-[0.92rem] leading-[1.75] text-white/70">
@@ -324,13 +319,13 @@ export default async function SuccessPage(props: {
             <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/retrieve-policy"
-                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-white px-7 text-[14.5px] font-semibold text-[rgb(108,76,243)] transition hover:bg-white/92 sm:w-auto"
+                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-white px-7 text-[14.5px] font-semibold text-[rgb(108,76,243)] transition hover:bg-white/90 sm:w-auto"
               >
                 Retrieve policy
               </Link>
               <Link
                 href="/help-support"
-                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-white px-7 text-[14.5px] font-semibold text-[rgb(108,76,243)] transition hover:bg-white/92 sm:w-auto"
+                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-white/25 px-7 text-[14.5px] font-semibold text-white transition hover:bg-white/10 sm:w-auto"
               >
                 Help &amp; support
               </Link>

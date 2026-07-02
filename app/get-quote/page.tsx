@@ -547,8 +547,14 @@ export default function GetQuotePage() {
         if (draft?.model) setManualModel(String(draft.model));
         if (draft?.year)  setManualYear(String(draft.year));
         if (draft?.make || draft?.model) setManualMode(true);
-        if (draft?.startAt) setStartAt(String(draft.startAt));
-        if (draft?.endAt) { setEndAt(String(draft.endAt)); setCoverChoice("custom"); }
+if (draft?.startAt) setStartAt(String(draft.startAt));
+if (draft?.endAt) {
+  setEndAt(String(draft.endAt));
+  setCoverChoice("custom");
+  // Restore stepper state if saved
+  if (draft?.durationUnit) setDurationUnit(String(draft.durationUnit) as DurationUnit);
+  if (draft?.durationValue) setDurationValue(String(draft.durationValue));
+}
       }
     } catch { setQuoteRef(makeQuoteRef()); }
   }, []);
@@ -615,108 +621,118 @@ export default function GetQuotePage() {
         ≤ 4 weeks   → weekly
         else        → monthly (shouldn't reach here given limit above)
   ──────────────────────────────────────────────────────────────────────── */
-  const price = useMemo<PriceResult | null>(() => {
-    if (!durationMs) return null;
+const price = useMemo<PriceResult | null>(() => {
+  if (!durationMs) return null;
 
-    // ── Preset: 1 hour tile ──
-    if (coverChoice === "1hour") {
+  // Preset: 1 hour
+  if (coverChoice === "1hour") {
+    return {
+      label: "Hourly",
+      helper: "One hour of cover from your chosen start time.",
+      unitLabel: "hour",
+      units: 1,
+      unitPrice: RATES.hour,
+      total: RATES.hour,
+      rateType: "hourly",
+    };
+  }
+
+  // Preset: 1 day
+  if (coverChoice === "1day") {
+    return {
+      label: "Daily",
+      helper: "One full day of cover from your chosen start time.",
+      unitLabel: "day",
+      units: 1,
+      unitPrice: RATES.day,
+      total: RATES.day,
+      rateType: "daily",
+    };
+  }
+
+  // Preset: 1 week
+  if (coverChoice === "1week") {
+    return {
+      label: "Weekly",
+      helper: "One full week of cover from your chosen start time.",
+      unitLabel: "week",
+      units: 1,
+      unitPrice: RATES.week,
+      total: RATES.week,
+      rateType: "weekly",
+    };
+  }
+
+  // Preset: 1 month
+  if (coverChoice === "1month") {
+    return {
+      label: "Monthly",
+      helper: "One full calendar month of cover from your chosen start date.",
+      unitLabel: "month",
+      units: 1,
+      unitPrice: RATES.month,
+      total: RATES.month,
+      rateType: "monthly",
+    };
+  }
+
+  // Custom = always price by the chosen unit/value
+  if (coverChoice === "custom") {
+    const units = clampDuration(Number(durationValue) || 0, durationUnit);
+
+    if (units <= 0) return null;
+
+    if (durationUnit === "hours") {
       return {
         label: "Hourly",
-        helper: "One hour of cover from your chosen start time.",
+        helper: "Billed per hour for your custom cover period.",
         unitLabel: "hour",
-        units: 1,
+        units,
         unitPrice: RATES.hour,
-        total: RATES.hour,
-        rateType: "hourly" as const,
-      };
-    }
-
-    // ── Preset: 1 month tile ──
-    if (coverChoice === "1month") {
-      return {
-        label: "Monthly",
-        helper: "One full calendar month of cover from your chosen start date.",
-        unitLabel: "month",
-        units: 1,
-        unitPrice: RATES.month,
-        total: RATES.month,
-        rateType: "monthly",
-      };
-    }
-
-    // ── Custom: check if span spans >= 1 calendar month ──
-    if (coverChoice === "custom" && startAt && endAt) {
-      const months = calcMonthsBilling(startAt, endAt);
-      if (months !== null) {
-        return {
-          label: months === 1 ? "Monthly" : `${months}-month`,
-          helper: months === 1
-            ? "One full calendar month of cover."
-            : `${months} calendar months of cover from your chosen start date.`,
-          unitLabel: "month",
-          units: months,
-          unitPrice: RATES.month,
-          total: +(months * RATES.month).toFixed(2),
-          rateType: "monthly",
-        };
-      }
-    }
-
-    // ── Hourly: ≤ 12 hours ──
-    if (durationHours <= 12) {
-      const u = Math.max(durationHours, 1);
-      return {
-        label: "Hourly",
-        helper: "Billed per hour — ideal for short trips.",
-        unitLabel: "hour",
-        units: u,
-        unitPrice: RATES.hour,
-        total: +(u * RATES.hour).toFixed(2),
+        total: +(units * RATES.hour).toFixed(2),
         rateType: "hourly",
       };
     }
 
-    // ── Daily: ≤ 6 days ──
-    if (durationDays <= 6) {
-      const u = Math.max(durationDays, 1);
+    if (durationUnit === "days") {
       return {
         label: "Daily",
-        helper: "Daily rate — great for same-day or overnight cover.",
+        helper: "Billed per day for your custom cover period.",
         unitLabel: "day",
-        units: u,
+        units,
         unitPrice: RATES.day,
-        total: +(u * RATES.day).toFixed(2),
+        total: +(units * RATES.day).toFixed(2),
         rateType: "daily",
       };
     }
 
-    // ── Weekly: ≤ 4 weeks (28 days) ──
-    if (durationDays <= 28) {
-      const u = Math.ceil(durationDays / 7);
+    if (durationUnit === "weeks") {
       return {
         label: "Weekly",
-        helper: "Weekly rate — better value for longer periods.",
+        helper: "Billed per week for your custom cover period.",
         unitLabel: "week",
-        units: u,
+        units,
         unitPrice: RATES.week,
-        total: +(u * RATES.week).toFixed(2),
+        total: +(units * RATES.week).toFixed(2),
         rateType: "weekly",
       };
     }
 
-    // ── Fallback: bill monthly (custom span > 4 weeks but calcMonthsBilling
-    //    returned null — edge case where endAt is fractionally > 1 month) ──
-    const fallbackMonths = calcMonthsBilling(startAt, endAt) ?? 1;
-    return {
-      label: fallbackMonths === 1 ? "Monthly" : `${fallbackMonths}-month`,
-      helper: `${fallbackMonths} calendar month${fallbackMonths === 1 ? "" : "s"} of cover.`,
-      unitLabel: "month",
-      units: fallbackMonths,
-      unitPrice: RATES.month,
-      total: +(fallbackMonths * RATES.month).toFixed(2),
-      rateType: "monthly",
-    };
-  }, [durationMs, durationHours, durationDays, coverChoice, startAt, endAt]);
+    if (durationUnit === "months") {
+      return {
+        label: "Monthly",
+        helper: "Billed per month for your custom cover period.",
+        unitLabel: "month",
+        units,
+        unitPrice: RATES.month,
+        total: +(units * RATES.month).toFixed(2),
+        rateType: "monthly",
+      };
+    }
+  }
+
+  return null;
+}, [durationMs, coverChoice, durationUnit, durationValue]);
 
   /* ── driver derived ── */
   const dobAge   = useMemo(() => committedDob ? calcAgeDetailed(committedDob) : null, [committedDob]);
@@ -804,13 +820,6 @@ export default function GetQuotePage() {
     }
   }
 
-  function updateCustomStart(date: string, time: string) {
-    const next = joinDTL(date, time); setStartAt(next); setFormError(null);
-    if (next && (!endAt || new Date(endAt) <= new Date(next))) {
-      setEndAt(calculateEndAt(next, "1", "hours"));
-    }
-  }
-  function updateCustomEnd(date: string, time: string) { setEndAt(joinDTL(date, time)); setFormError(null); }
 
   /* ── checkout ── */
   async function onContinueToPayment() {
@@ -821,10 +830,13 @@ export default function GetQuotePage() {
     const cleanVrm = normaliseVrm(vrm);
     const addrStr  = buildAddressString(address);
     try {
-      sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
-        vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear,
-        startAt, endAt, savedAt: new Date().toISOString(),
-      }));
+sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
+  vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear,
+  startAt, endAt,
+  durationUnit,   // add this
+  durationValue,  // add this
+  savedAt: new Date().toISOString(),
+}));
       sessionStorage.setItem("coverza_checkout_payload", JSON.stringify({
         quoteRef: ref,
         quote: { vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear, startAt, endAt, durationMs },
@@ -920,7 +932,7 @@ export default function GetQuotePage() {
       {/* ─────────────── STEPS ─────────────── */}
       <section className="mt-8 max-w-[68rem] pb-4">
 
-        {/* ══════════════════ STEP 1 — Vehicle ══════════════════ */}
+{/* ══════════════════ STEP 1 — Vehicle ══════════════════ */}
         {activeStep === 1 && (
           <StepShell
             step={1} total={TOTAL_STEPS}
@@ -930,7 +942,10 @@ export default function GetQuotePage() {
             onContinue={continueFromStep}
           >
             <div>
-              <InputLabel>Registration number</InputLabel>
+              <p className="mb-6 text-[12px] text-slate-400">
+                Fields marked <span className="text-red-400">*</span> are required.
+              </p>
+              <InputLabel>Registration number <span className="text-red-400">*</span></InputLabel>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   className="input flex-1 text-[1.2rem] font-extrabold uppercase tracking-[0.15em]"
@@ -1130,56 +1145,179 @@ export default function GetQuotePage() {
               </div>
             )}
 
-            {/* ── Custom date pickers ── */}
-            {coverChoice === "custom" && (
-              <div className="mt-5 rounded-[1.5rem] border border-slate-100 bg-slate-50/70 p-5">
-                <p className="mb-4 text-[12.5px] font-semibold text-slate-500">
-                  Set your exact start and end. Cover up to 12 months.
-                </p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <InputLabel>Start date</InputLabel>
-                    <input type="date" className="input block w-full text-[16px] [appearance:none]"
-                      value={startParts.date} onChange={e => updateCustomStart(e.target.value, startParts.time || "00:00")} />
-                  </div>
-                  <div>
-                    <InputLabel>Start time</InputLabel>
-                    <input type="time" className="input block w-full text-[16px] [appearance:none]"
-                      value={startParts.time} onChange={e => updateCustomStart(startParts.date, e.target.value)} />
-                  </div>
-                  <div>
-                    <InputLabel>End date</InputLabel>
-                    <input type="date" className="input block w-full text-[16px] [appearance:none]"
-                      value={endParts.date} onChange={e => updateCustomEnd(e.target.value, endParts.time || "00:00")} />
-                  </div>
-                  <div>
-                    <InputLabel>End time</InputLabel>
-                    <input type="time" className="input block w-full text-[16px] [appearance:none]"
-                      value={endParts.time} onChange={e => updateCustomEnd(endParts.date, e.target.value)} />
-                  </div>
-                </div>
-              </div>
-            )}
+{coverChoice === "custom" && (
+  <div className="mt-5 rounded-[1.5rem] border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+    <p className="mb-5 text-[12.5px] font-semibold text-slate-500">
+      Choose the unit, set how long you need, then pick your start date and time.
+    </p>
 
-            {/* ── Cover summary strip (1day + 1week + valid custom) ── */}
-            {durationMs > 0 && coverWithinLimit && coverChoice !== "1month" && coverChoice !== "1hour" && (
-              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[1.25rem] border border-slate-100 bg-white px-5 py-4">
-                <div className="text-[13px]">
-                  <span className="text-slate-400">Starts </span>
-                  <span className="font-semibold text-slate-900">{prettyDateTime(startAt)}</span>
-                </div>
-                <span className="text-slate-200" aria-hidden="true">→</span>
-                <div className="text-[13px]">
-                  <span className="text-slate-400">Ends </span>
-                  <span className="font-semibold text-slate-900">{prettyDateTime(endAt)}</span>
-                </div>
-                <div className="ml-auto">
-                  <span className="rounded-full bg-[rgba(108,76,243,0.08)] px-3 py-1 text-[13px] font-extrabold text-[rgb(108,76,243)]">
-                    {formatDurationFromMs(durationMs)}
+    <div className="grid gap-4">
+
+      {/* Row 1: Unit selector */}
+      <div>
+        <InputLabel>Cover unit</InputLabel>
+        <div className="grid grid-cols-4 gap-2">
+          {(["hours", "days", "weeks", "months"] as DurationUnit[]).map(u => (
+            <button
+              key={u}
+              type="button"
+              onClick={() => {
+                const nextValue = String(clampDuration(Number(durationValue) || 1, u));
+                setDurationUnit(u);
+                setDurationValue(nextValue);
+                setEndAt(calculateEndAt(startAt, nextValue, u));
+                setFormError(null);
+              }}
+              className={[
+                "rounded-[0.9rem] border py-2.5 text-[13px] font-semibold capitalize transition-all",
+                durationUnit === u
+                  ? "border-[rgb(108,76,243)] bg-[rgb(108,76,243)] !text-white shadow-[0_4px_14px_rgba(108,76,243,0.20)]"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-[rgba(108,76,243,0.30)]",
+              ].join(" ")}
+            >
+              {u}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Row 2: Stepper with disabled states + singular/plural label */}
+      <div>
+        {(() => {
+          const currentDuration = Number(durationValue) || 1;
+          const atMin = currentDuration <= UNIT_CONFIG[durationUnit].min;
+          const atMax = currentDuration >= UNIT_CONFIG[durationUnit].max;
+          const durationUnitLabel = currentDuration === 1
+            ? durationUnit.slice(0, -1)   // "hour", "day", "week", "month"
+            : durationUnit;               // "hours", "days", "weeks", "months"
+
+          return (
+            <>
+              <InputLabel>{UNIT_CONFIG[durationUnit].label} needed</InputLabel>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = String(clampDuration(currentDuration - 1, durationUnit));
+                    setDurationValue(next);
+                    setEndAt(calculateEndAt(startAt, next, durationUnit));
+                    setFormError(null);
+                  }}
+                  disabled={atMin}
+                  className={[
+                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-[20px] font-bold transition active:scale-95",
+                    atMin
+                      ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-[rgba(108,76,243,0.30)] hover:text-[rgb(108,76,243)]",
+                  ].join(" ")}
+                  aria-label="Decrease"
+                >
+                  −
+                </button>
+
+                <div className="flex-1 rounded-[0.9rem] border border-slate-200 bg-white px-4 py-3 text-center">
+                  <span className="text-[1.5rem] font-extrabold tracking-tight text-slate-950">
+                    {durationValue}
+                  </span>
+                  <span className="ml-1.5 text-[13px] font-semibold text-slate-400">
+                    {durationUnitLabel}
                   </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = String(clampDuration(currentDuration + 1, durationUnit));
+                    setDurationValue(next);
+                    setEndAt(calculateEndAt(startAt, next, durationUnit));
+                    setFormError(null);
+                  }}
+                  disabled={atMax}
+                  className={[
+                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-[20px] font-bold transition active:scale-95",
+                    atMax
+                      ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-[rgba(108,76,243,0.30)] hover:text-[rgb(108,76,243)]",
+                  ].join(" ")}
+                  aria-label="Increase"
+                >
+                  +
+                </button>
               </div>
+              <p className="mt-1.5 text-center text-[11.5px] text-slate-400">
+                Min {UNIT_CONFIG[durationUnit].min} · Max {UNIT_CONFIG[durationUnit].max}
+              </p>
+            </>
+          );
+        })()}
+      </div>
+
+      {/* Row 3: Start date + time */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <InputLabel>Start date</InputLabel>
+          <input
+            type="date"
+            className="input block w-full text-[16px] [appearance:none]"
+            value={startParts.date}
+            onChange={(e) => {
+              const next = joinDTL(e.target.value, startParts.time || "00:00");
+              setStartAt(next);
+              setEndAt(calculateEndAt(next, durationValue, durationUnit));
+              setFormError(null);
+            }}
+          />
+        </div>
+        <div>
+          <InputLabel>Start time</InputLabel>
+          <input
+            type="time"
+            className="input block w-full text-[16px] [appearance:none]"
+            value={startParts.time}
+            onChange={(e) => {
+              const next = joinDTL(startParts.date, e.target.value);
+              setStartAt(next);
+              setEndAt(calculateEndAt(next, durationValue, durationUnit));
+              setFormError(null);
+            }}
+          />
+        </div>
+      </div>
+
+    </div>
+
+    {/* Summary preview with live price */}
+    {startAt && endAt && durationMs > 0 && (
+      <div className="mt-4 rounded-[1.1rem] border border-[rgba(108,76,243,0.12)] bg-white px-4 py-3.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Cover window</p>
+            <p className="mt-1 text-[13px] font-semibold text-slate-900">
+              {prettyDateTime(startAt)}
+            </p>
+            <p className="text-[12px] text-slate-400">
+              to {prettyDateTime(endAt)}
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <span className="inline-block rounded-full bg-[rgba(108,76,243,0.08)] px-3 py-1.5 text-[13px] font-extrabold text-[rgb(108,76,243)]">
+              {(() => {
+                const n = Number(durationValue) || 1;
+                const label = n === 1 ? durationUnit.slice(0, -1) : durationUnit;
+                return `${n} ${label}`;
+              })()}
+            </span>
+            {price && (
+              <p className="mt-1.5 text-[15px] font-extrabold text-slate-950">
+                {moneyGBP(price.total)}
+              </p>
             )}
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
             {!coverWithinLimit && endAt && (
               <FieldError>Cover can't exceed 12 months. Please adjust your end date.</FieldError>
@@ -1198,9 +1336,12 @@ export default function GetQuotePage() {
             onContinue={continueFromStep}
             onBack={() => goToStep(2)}
           >
-            <div className="grid gap-6">
-              <div>
-                <InputLabel htmlFor="fullName">Full name</InputLabel>
+<div className="grid gap-6">
+  <p className="text-[12px] text-slate-400">
+    Fields marked <span className="text-red-400">*</span> are required.
+  </p>
+  <div>
+    <InputLabel htmlFor="fullName">Full name <span className="text-red-400">*</span></InputLabel>
                 <input id="fullName" className="input" placeholder="e.g. Jane Smith"
                   value={customer.fullName}
                   onChange={e => { setCustomer(c => ({ ...c, fullName: e.target.value })); setFormError(null); }} />
@@ -1208,7 +1349,7 @@ export default function GetQuotePage() {
               </div>
 
               <div>
-                <InputLabel htmlFor="dob">Date of birth</InputLabel>
+                <InputLabel htmlFor="dob">Date of birth <span className="text-red-400">*</span></InputLabel>
                 <input id="dob" type="date" className="input block w-full text-[16px] [appearance:none]"
                   value={customer.dob}
                   onChange={e => { setCustomer(c => ({ ...c, dob: e.target.value })); setCommittedDob(""); setFormError(null); }}
@@ -1231,7 +1372,7 @@ export default function GetQuotePage() {
               </div>
 
               <div>
-                <InputLabel htmlFor="email">Email address</InputLabel>
+                <InputLabel htmlFor="email">Email address <span className="text-red-400">*</span></InputLabel>
                 <input id="email" className="input" placeholder="name@email.com" inputMode="email"
                   value={customer.email}
                   onChange={e => { setCustomer(c => ({ ...c, email: e.target.value })); setFormError(null); }} />
@@ -1241,7 +1382,7 @@ export default function GetQuotePage() {
               </div>
 
               <div>
-                <InputLabel htmlFor="licenceType">Licence type</InputLabel>
+                <InputLabel htmlFor="licenceType">Licence type <span className="text-red-400">*</span></InputLabel>
                 <select id="licenceType" className="input"
                   value={customer.licenceType}
                   onChange={e => { setCustomer(c => ({ ...c, licenceType: e.target.value as DrivingLicenceType })); setFormError(null); }}>
@@ -1257,6 +1398,7 @@ export default function GetQuotePage() {
         )}
 
         {/* ══════════════════ STEP 4 — Address ══════════════════ */}
+
         {activeStep === 4 && (
           <StepShell
             step={4} total={TOTAL_STEPS}
@@ -1266,9 +1408,12 @@ export default function GetQuotePage() {
             onContinue={continueFromStep}
             onBack={() => goToStep(3)}
           >
-            <div className="grid gap-5">
-              <div>
-                <InputLabel>Address line 1</InputLabel>
+<div className="grid gap-5">
+  <p className="text-[12px] text-slate-400">
+    Fields marked <span className="text-red-400">*</span> are required.
+  </p>
+  <div>
+    <InputLabel>Address line 1 <span className="text-red-400">*</span></InputLabel>
                 <input className="input" placeholder="House number and street name"
                   value={address.line1}
                   onChange={e => { setAddress(a => ({ ...a, line1: e.target.value })); setFormError(null); }} />
@@ -1281,7 +1426,7 @@ export default function GetQuotePage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <InputLabel>Town / City</InputLabel>
+                  <InputLabel>Town / City <span className="text-red-400">*</span></InputLabel>
                   <input className="input" placeholder="Town or city"
                     value={address.town}
                     onChange={e => { setAddress(a => ({ ...a, town: e.target.value })); setFormError(null); }} />
@@ -1294,7 +1439,7 @@ export default function GetQuotePage() {
                 </div>
               </div>
               <div className="sm:max-w-[240px]">
-                <InputLabel>Postcode</InputLabel>
+                <InputLabel>Postcode <span className="text-red-400">*</span></InputLabel>
                 <input className="input uppercase" placeholder="e.g. SW1A 1AA"
                   value={address.postcode}
                   onChange={e => { setAddress(a => ({ ...a, postcode: normalisePostcode(e.target.value) })); setFormError(null); }} />

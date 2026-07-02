@@ -213,20 +213,20 @@ export default function HomePage() {
           </motion.div>
         </motion.div>
  
-        {/* Trust row — 3 micro stats, single line on mobile */}
+{/* Trust row — 3 micro stats, single line on mobile */}
         <motion.div
           initial="hidden"
           animate="show"
           variants={fadeUp}
           custom={0.22}
-          className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-slate-100 pt-6"
+          className="mt-10 flex items-center divide-x divide-slate-200 border-t border-slate-100 pt-6"
         >
           {[
-            { val: "1hr", label: "Minimum cover" },
-            { val: "12 months", label: "Maximum duration" },
-            { val: "Instant", label: "Policy documents" },
+            { val: "1hr",     label: "Min cover" },
+            { val: "12 mo",   label: "Max cover" },
+            { val: "Instant", label: "Documents" },
           ].map(({ val, label }) => (
-            <div key={label} className="flex items-baseline gap-2">
+            <div key={label} className="flex items-baseline gap-1.5 px-4 first:pl-0 last:pr-0">
               <span className="text-[1.05rem] font-extrabold tracking-tight text-slate-950">
                 {val}
               </span>
