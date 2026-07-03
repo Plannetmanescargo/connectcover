@@ -1,4 +1,5 @@
 // lib/policy/fulfill.ts
+import { Resend } from "resend";
 import { prisma } from "@/db/prisma";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendPolicyEmail } from "@/lib/email/sendPolicyEmail";
@@ -82,6 +83,100 @@ async function uploadPdf(bucket: string, key: string, pdf: Buffer) {
   return data.publicUrl;
 }
 
+async function syncCustomerToNewsletter(policy: {
+  email: string;
+  fullName: string | null;
+}) {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const segmentId = process.env.RESEND_NEWSLETTER_SEGMENT_ID?.trim();
+  const weeklyTopicId = process.env.RESEND_WEEKLY_TOPIC_ID?.trim();
+  const monthlyTopicId = process.env.RESEND_MONTHLY_TOPIC_ID?.trim();
+
+  if (!apiKey || !segmentId || !weeklyTopicId || !monthlyTopicId) {
+    console.warn(
+      "[resend contacts] skipped - missing RESEND_API_KEY, RESEND_NEWSLETTER_SEGMENT_ID, RESEND_WEEKLY_TOPIC_ID, or RESEND_MONTHLY_TOPIC_ID"
+    );
+    return { ok: false as const, skipped: true as const };
+  }
+
+  const resend = new Resend(apiKey);
+
+  const fullName = (policy.fullName || "").trim();
+  const firstName = fullName.split(" ")[0] ?? "";
+  const lastName = fullName.split(" ").slice(1).join(" ") ?? "";
+
+  try {
+    // 1) Create contact if it does not already exist
+    const created = await (resend.contacts as any).create({
+      email: policy.email,
+      firstName,
+      lastName,
+      unsubscribed: false,
+    });
+
+    if (created?.error) {
+      const msg = String(created.error.message || "");
+
+      // allow existing contact to continue through the rest of the sync
+      if (
+        !msg.toLowerCase().includes("already exists") &&
+        !msg.toLowerCase().includes("duplicate")
+      ) {
+        throw new Error(msg || "Failed to create contact");
+      }
+    }
+
+    // 2) Ensure unsubscribed flag is false
+    const updated = await (resend.contacts as any).update({
+      email: policy.email,
+      unsubscribed: false,
+      firstName,
+      lastName,
+    });
+
+    if (updated?.error) {
+      throw new Error(updated.error.message || "Failed to update contact");
+    }
+
+    // 3) Add contact to the newsletter segment
+    const seg = await ((resend.contacts as any).segments as any).add({
+      email: policy.email,
+      segmentId,
+    });
+
+    if (seg?.error) {
+      throw new Error(seg.error.message || "Failed to add contact to segment");
+    }
+
+    // 4) Subscribe contact to both newsletter topics
+    const topics = await ((resend.contacts as any).topics as any).update({
+      email: policy.email,
+      topics: [
+        {
+          id: weeklyTopicId,
+          subscription: "opt_in",
+        },
+        {
+          id: monthlyTopicId,
+          subscription: "opt_in",
+        },
+      ],
+    });
+
+    if (topics?.error) {
+      throw new Error(topics.error.message || "Failed to subscribe contact to topics");
+    }
+
+    return { ok: true as const };
+  } catch (e: any) {
+    console.error("[resend contacts] failed to sync contact", {
+      email: policy.email,
+      error: e,
+    });
+    return { ok: false as const };
+  }
+}
+
 export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
   const policy = await prisma.policy.findUnique({
     where: { id: policyId },
@@ -125,7 +220,6 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
       signatureUrl: "/brand/signature.png",
     };
 
-    // Keep your current certificate number style
     const certificateNumber = `${policy.policyNumber}`;
 
     const certificatePayload = {
@@ -164,7 +258,6 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
     proposalUrl = await uploadPdf(bucket, proposalKey, proposalPdf);
     certificateUrl = await uploadPdf(bucket, certKey, certPdf);
 
-    // Write document rows + status update + docs generated event
     await prisma.$transaction(async (tx) => {
       const docs = await tx.policyDocument.findMany({ where: { policyId } });
 
@@ -225,7 +318,6 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
       certificateUrl,
       proposalUrl,
 
-      // Optional richer email content (supported by your upgraded sendPolicyEmail.ts)
       vrm: policy.vrm,
       make: policy.make ?? null,
       model: policy.model ?? null,
@@ -251,7 +343,37 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
     }
   }
 
-  // ✅ Always return an object
+  // --- NEWSLETTER SYNC STEP (non-blocking + idempotent-ish) ---
+  const alreadyAddedToAudience = await prisma.policyEvent.findFirst({
+    where: { policyId, type: "NEWSLETTER_CONTACT_ADDED" },
+    select: { id: true },
+  });
+
+  if (!alreadyAddedToAudience) {
+    const newsletterRes = await syncCustomerToNewsletter({
+      email: policy.email,
+      fullName: policy.fullName,
+    });
+
+    if (newsletterRes.ok || ("skipped" in newsletterRes && newsletterRes.skipped)) {
+      try {
+        await prisma.policyEvent.create({
+          data: {
+            policyId,
+            type: "NEWSLETTER_CONTACT_ADDED",
+            data: {
+              ok: newsletterRes.ok,
+              email: policy.email,
+              skipped: "skipped" in newsletterRes ? !!newsletterRes.skipped : false,
+            },
+          },
+        });
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   return {
     proposalUrl,
     certificateUrl,
