@@ -44,6 +44,7 @@ enum PolicyEventType {
   DOCS_GENERATED
   EMAIL_SENT
   FINALIZE_RETRIED
+  NEWSLETTER_CONTACT_ADDED
 }
 
 model Policy {

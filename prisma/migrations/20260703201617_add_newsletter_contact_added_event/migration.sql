@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "PolicyEventType" ADD VALUE 'NEWSLETTER_CONTACT_ADDED';
