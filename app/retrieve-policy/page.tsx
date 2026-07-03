@@ -1,193 +1,174 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
 
-function normaliseEmail(v: string) {
-  return v.trim().toLowerCase();
-}
+type LookupMethod = "reg-email" | "policy-number";
 
-function normalisePolicyNumber(v: string) {
-  return v.trim().toUpperCase().replace(/\s+/g, "");
-}
-
-type RetrievePolicyResponse = {
-  ok?: boolean;
-  certificateUrl?: string;
-  policy?: {
-    policyNumber: string;
-    email: string;
-    vrm: string;
-    make: string | null;
-    model: string | null;
-    year: string | null;
-    startAt: string | Date;
-    endAt: string | Date;
-  };
-  error?: string;
+type PolicyResult = {
+  policyNumber: string;
+  vrm: string;
+  make: string | null;
+  model: string | null;
+  year: string | null;
+  startAt: string;
+  endAt: string;
+  status: string;
+  email: string;
+  certificateUrl: string | null;
+  proposalUrl: string | null;
 };
 
-function fmt(dt: string | Date) {
-  const d = new Date(dt);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-GB", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+/* ─────────────────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────────────────── */
+
+function normaliseVrm(v: string) {
+  return v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+}
+
+function formatVrm(v: string) {
+  const s = normaliseVrm(v);
+  return s.length <= 4 ? s : `${s.slice(0, 4)} ${s.slice(4)}`;
+}
+
+function isEmail(s: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+}
+
+function fmt(iso: string) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("en-GB", {
+    weekday: "short", day: "2-digit", month: "short",
+    year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 }
 
-function vehicleLine(p?: RetrievePolicyResponse["policy"] | null) {
-  if (!p) return "—";
+function vehicleLine(p: PolicyResult) {
   const mm = [p.make, p.model].filter(Boolean).join(" ");
-  return `${p.vrm}${mm ? ` • ${mm}` : ""}${p.year ? ` • ${p.year}` : ""}`;
+  return `${formatVrm(p.vrm)}${mm ? ` · ${mm}` : ""}${p.year ? ` · ${p.year}` : ""}`;
 }
 
-function MetaInfo({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+/* ─────────────────────────────────────────────────────────
+   Atoms
+───────────────────────────────────────────────────────── */
+
+function IconSpinner() {
   return (
-    <div>
-      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-        {label}
-      </div>
-      <div className="mt-2 text-sm font-semibold text-slate-950">{value}</div>
+    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 60" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconArrow() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M3 7h8M7.5 3.5 11 7l-3.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M2.5 7.2 5.2 9.9 11.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PolicyField({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+  return (
+    <div className={wide ? "sm:col-span-2" : ""}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{label}</p>
+      <p className="mt-1.5 break-words text-[14px] font-semibold leading-snug text-slate-950">{value}</p>
     </div>
   );
 }
 
+/* ─────────────────────────────────────────────────────────
+   Page
+───────────────────────────────────────────────────────── */
+
 export default function RetrievePolicyPage() {
-  const [policyNumber, setPolicyNumber] = useState("");
-  const [email, setEmail] = useState("");
-
+  const [method,  setMethod]  = useState<LookupMethod>("reg-email");
+  const [vrm,     setVrm]     = useState("");
+  const [email,   setEmail]   = useState("");
+  const [polNum,  setPolNum]  = useState("");
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [error,   setError]   = useState<string | null>(null);
+  const [result,  setResult]  = useState<PolicyResult | null>(null);
 
-  const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
-  const [policy, setPolicy] = useState<RetrievePolicyResponse["policy"] | null>(null);
-
-  const canSubmit = useMemo(() => {
-    const pn = normalisePolicyNumber(policyNumber);
-    const em = normaliseEmail(email);
-    return pn.length >= 6 && em.includes("@") && em.includes(".");
-  }, [policyNumber, email]);
-
-  async function onSubmit(e: React.FormEvent) {
+  async function onLookup(e: React.FormEvent) {
     e.preventDefault();
-    setErr(null);
-    setOk(null);
-    setCertificateUrl(null);
-    setPolicy(null);
+    setError(null);
+    setResult(null);
 
-    const pn = normalisePolicyNumber(policyNumber);
-    const em = normaliseEmail(email);
+    if (method === "reg-email") {
+      if (normaliseVrm(vrm).length < 5) { setError("Enter a valid registration number."); return; }
+      if (!isEmail(email))               { setError("Enter the email address used at checkout."); return; }
+    } else {
+      if (!polNum.trim()) { setError("Enter your policy number."); return; }
+    }
 
     setLoading(true);
     try {
-      const res = await fetch("/api/retrieve-policy", {
+      const body = method === "reg-email"
+        ? { vrm: normaliseVrm(vrm), email: email.trim().toLowerCase() }
+        : { policyNumber: polNum.trim().toUpperCase() };
+
+      const res  = await fetch("/api/policy/retrieve", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ policyNumber: pn, email: em }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
+      const data = await res.json();
 
-      const data = (await res.json().catch(() => ({}))) as RetrievePolicyResponse;
-
-      if (!res.ok) {
-        throw new Error(data?.error || "We couldn’t resend your documents. Please try again.");
+      if (!res.ok || !data?.policy) {
+        setError(data?.error || "We couldn't find a policy matching those details. Please check and try again.");
+        return;
       }
-
-      setOk(
-        "If we found a matching policy, we’ve re-sent your documents. Please check your inbox and junk folder."
-      );
-
-      setCertificateUrl(data?.certificateUrl ?? null);
-      setPolicy(data?.policy ?? null);
-
-      setPolicyNumber(pn);
-      setEmail(em);
-    } catch (e: any) {
-      setErr(e?.message || "Something went wrong. Please try again.");
+      setResult(data.policy as PolicyResult);
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <PageShell
-      hideHero
-      crumbs={[{ label: "Home", href: "/" }, { label: "Retrieve policy" }]}
-    >
-      {/* HERO */}
+    <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Retrieve policy" }]}>
+
+      {/* ══════════════════════════════════════════
+          HERO
+      ══════════════════════════════════════════ */}
       <section className="pt-2 sm:pt-4 lg:pt-6">
         <div className="max-w-[76rem]">
+
           <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.14)] bg-white/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[rgb(108,76,243)] backdrop-blur">
             <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
-            Retrieve policy
+            Policy retrieval
           </div>
 
           <div className="relative mt-6 max-w-[70rem]">
             <div className="pointer-events-none absolute inset-x-0 top-[8%] -z-10 opacity-55 sm:top-[12%]">
-              <svg
-                viewBox="0 0 1200 260"
-                className="h-[220px] w-full sm:h-[260px] lg:h-[300px]"
-                fill="none"
-                aria-hidden="true"
-                preserveAspectRatio="none"
-              >
-                <path
-                  d="M18 152C114 62 222 227 338 152C446 82 548 216 676 142C794 72 906 201 1026 132C1090 96 1142 105 1182 122"
-                  stroke="rgba(108,76,243,0.14)"
-                  strokeWidth="34"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M10 154C108 66 216 224 334 150C444 80 544 214 672 140C792 70 904 198 1024 130C1088 95 1140 103 1190 120"
-                  stroke="rgba(108,76,243,0.28)"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                />
+              <svg viewBox="0 0 1200 260" className="h-[220px] w-full sm:h-[260px] lg:h-[300px]" fill="none" aria-hidden="true" preserveAspectRatio="none">
+                <path d="M18 152C114 62 222 227 338 152C446 82 548 216 676 142C794 72 906 201 1026 132C1090 96 1142 105 1182 122" stroke="rgba(108,76,243,0.14)" strokeWidth="34" strokeLinecap="round" />
+                <path d="M10 154C108 66 216 224 334 150C444 80 544 214 672 140C792 70 904 198 1024 130C1088 95 1140 103 1190 120" stroke="rgba(108,76,243,0.28)" strokeWidth="8" strokeLinecap="round" />
               </svg>
             </div>
-
-            <h1 className="heading-unbalanced relative max-w-[12ch] text-[3.25rem] font-extrabold leading-[0.9] tracking-[-0.07em] text-slate-950 sm:max-w-[11ch] sm:text-[4.55rem] lg:max-w-[10.5ch] lg:text-[5.85rem]">
-              Get your documents again, quickly
+            <h1 className="heading-unbalanced relative max-w-[10ch] text-[3.25rem] font-extrabold leading-[0.9] tracking-[-0.07em] text-slate-950 sm:text-[4.55rem] lg:text-[5.85rem]">
+              Find your policy
             </h1>
           </div>
 
-          <p className="mt-10 max-w-[54rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.14rem]">
-            Enter your policy number and the email used at checkout to request your
-            documents again. If we find a match, we’ll resend them straight away.
+          <p className="mt-8 max-w-[44rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.14rem]">
+            Enter your registration and the email you used at checkout — we'll pull up your policy and documents instantly.
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/help-support" className="btn-ghost">
-              Help & Support
-            </Link>
-
-            <Link href="/more/faq" className="btn-ghost">
-              View FAQs
-            </Link>
-
-            <Link href="/get-quote" className="btn-ghost">
-              Get a new quote
-            </Link>
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-x-7 gap-y-3 text-sm font-medium text-slate-700">
-            {[
-              "Instant document resend",
-              "No account needed",
-              "Support if you need it",
-            ].map((item) => (
+          <div className="mt-6 flex flex-wrap gap-x-7 gap-y-3 text-sm font-medium text-slate-700">
+            {["Instant retrieval", "Download anytime", "No login needed"].map(item => (
               <div key={item} className="inline-flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
                 <span>{item}</span>
@@ -195,253 +176,287 @@ export default function RetrievePolicyPage() {
             ))}
           </div>
 
-          <div className="mt-12 h-px w-full bg-[linear-gradient(90deg,rgba(226,232,240,0),rgba(226,232,240,0.95),rgba(226,232,240,0))]" />
+          <div className="mt-10 h-px w-full bg-[linear-gradient(90deg,rgba(226,232,240,0),rgba(226,232,240,0.95),rgba(226,232,240,0))]" />
         </div>
       </section>
 
-      {/* FORM + SIDEBAR */}
-      <section className="mt-16">
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.05fr)_320px] xl:items-start">
-          <div className="rounded-[1.9rem] border border-slate-200/80 bg-white/88 p-6 shadow-sm sm:p-8">
-            <div className="max-w-[42rem]">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                What you’ll need
-              </div>
+      {/* ══════════════════════════════════════════
+          LOOKUP FORM
+      ══════════════════════════════════════════ */}
+      <section className="mt-12">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
 
-              <h2 className="mt-3 text-[1.9rem] font-extrabold leading-[0.96] tracking-[-0.045em] text-slate-950 sm:text-[2.35rem]">
-                Request your documents again
-              </h2>
+          {/* ════════ FORM CARD ════════ */}
+          <div>
+            {result ? (
 
-              <p className="mt-4 text-[1rem] leading-8 text-slate-600">
-                Use the policy number from your confirmation or existing documents,
-                together with the same email address used when purchasing.
-              </p>
-            </div>
+              /* ── Result ── */
+              <div className="overflow-hidden rounded-[2.25rem] border border-slate-200/70 bg-white shadow-[0_24px_80px_rgba(108,76,243,0.07),0_2px_8px_rgba(15,23,42,0.04)]">
+                <div className="h-[3px] w-full bg-[rgb(108,76,243)]" />
 
-            <form onSubmit={onSubmit} className="mt-8 grid gap-5">
-              <div>
-                <label className="label" htmlFor="policyNumber">
-                  Policy number
-                </label>
-                <input
-                  id="policyNumber"
-                  className="input"
-                  placeholder="e.g. CC-26-AB12CD34"
-                  value={policyNumber}
-                  onChange={(e) => {
-                    setPolicyNumber(e.target.value);
-                    setErr(null);
-                    setOk(null);
-                    setCertificateUrl(null);
-                    setPolicy(null);
-                  }}
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
-                <div className="field-help">
-                  Found on your confirmation email or PDF documents.
-                </div>
-              </div>
-
-              <div>
-                <label className="label" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  className="input"
-                  placeholder="e.g. name@email.com"
-                  inputMode="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setErr(null);
-                    setOk(null);
-                    setCertificateUrl(null);
-                    setPolicy(null);
-                  }}
-                />
-                <div className="field-help">
-                  This should match the email used when purchasing.
-                </div>
-              </div>
-
-              {err ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  <div className="font-extrabold">Action needed</div>
-                  <div className="mt-1">{err}</div>
-                </div>
-              ) : null}
-
-              {ok ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                  <div className="font-extrabold">Sent</div>
-                  <div className="mt-1">{ok}</div>
-                </div>
-              ) : null}
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <button
-                  type="submit"
-                  disabled={!canSubmit || loading}
-                  className={`btn-primary inline-flex justify-center !text-white ${(!canSubmit || loading) ? "cursor-not-allowed opacity-60" : ""}`}
-                >
-                  {loading ? "Resending…" : "Resend documents"}
-                </button>
-
-                <div className="text-[12px] text-slate-500">
-                  Tip: emails can take 1–2 minutes. Check junk or spam too.
-                </div>
-              </div>
-            </form>
-          </div>
-
-          <div className="grid gap-4">
-            <div className="rounded-[1.4rem] border border-slate-200/80 bg-white/84 p-5">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Before you start
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                {[
-                  "Use the same email address as checkout",
-                  "Check your policy number carefully",
-                  "Look in junk or spam after requesting",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-start gap-3 rounded-[1rem] border border-slate-200/80 bg-slate-50/60 px-4 py-3"
-                  >
-                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
-                    <div className="text-sm leading-7 text-slate-700">{item}</div>
+                {/* Found header */}
+                <div className="flex items-center gap-3 border-b border-slate-100 px-7 py-5 sm:px-8">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgb(108,76,243)] text-white">
+                    <IconCheck />
+                  </span>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Policy found</p>
+                    <p className="text-[15px] font-extrabold tracking-tight text-slate-950">{result.policyNumber}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-[1.4rem] border border-slate-200/80 bg-white/84 p-5">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Need help?
-              </div>
-
-              <div className="mt-2 text-[1.04rem] font-semibold tracking-[-0.02em] text-slate-950">
-                support@Coverza.com
-              </div>
-
-              <p className="mt-3 text-sm leading-7 text-slate-600">
-                If you are still stuck after trying retrieval, our support team can help.
-              </p>
-
-              <div className="mt-4">
-                <a
-                  href="mailto:support@Coverza.com"
-                  className="btn-ghost w-full justify-center"
-                >
-                  Email support
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* OPTIONAL RESULT */}
-      {(policy || certificateUrl) ? (
-        <section className="mt-16">
-          <div className="rounded-[1.9rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(245,242,255,0.72),rgba(255,255,255,0.96))] p-6 shadow-sm sm:p-8 lg:p-10">
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-              <div className="min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Certificate preview
+                  <span className={[
+                    "ml-auto rounded-full px-3 py-1 text-[11px] font-bold",
+                    result.status === "ACTIVE"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-slate-100 text-slate-600",
+                  ].join(" ")}>
+                    {result.status}
+                  </span>
                 </div>
 
-                <h2 className="mt-3 max-w-[16ch] text-[1.9rem] font-extrabold leading-[0.96] tracking-[-0.045em] text-slate-950 sm:text-[2.35rem]">
-                  Your policy details and document preview
-                </h2>
+                {/* Policy details */}
+                <div className="grid gap-x-10 gap-y-5 px-7 py-6 sm:grid-cols-2 sm:px-8">
+                  <PolicyField label="Vehicle" value={vehicleLine(result)} wide />
+                  <PolicyField label="Starts"  value={fmt(result.startAt)} />
+                  <PolicyField label="Ends"    value={fmt(result.endAt)} />
+                  <PolicyField label="Email"   value={result.email} wide />
+                </div>
 
-                <p className="mt-4 max-w-[38rem] text-[1rem] leading-8 text-slate-600">
-                  If available, your certificate and basic policy details will appear here.
-                </p>
-              </div>
+                {/* Dashed tear-off */}
+                <div className="relative mx-7 sm:mx-8">
+                  <div className="border-t border-dashed border-slate-200" />
+                  <span className="absolute -left-10 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-slate-50 ring-1 ring-slate-200" aria-hidden="true" />
+                  <span className="absolute -right-10 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-slate-50 ring-1 ring-slate-200" aria-hidden="true" />
+                </div>
 
-              {certificateUrl ? (
-                <a
-                  className="btn-ghost"
-                  href={certificateUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Download certificate
-                </a>
-              ) : (
-                <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700">
-                  Not available yet
-                </span>
-              )}
-            </div>
+                {/* Document downloads */}
+                <div className="px-7 py-6 sm:px-8">
+                  <p className="mb-4 text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-400">Your documents</p>
+                  <div className="grid gap-2.5">
+                    {result.certificateUrl ? (
+                      <a
+                        href={result.certificateUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-[rgb(108,76,243)] px-7 text-[14.5px] font-semibold !text-white shadow-[0_8px_28px_rgba(108,76,243,0.22)] transition-all hover:-translate-y-0.5 hover:bg-[rgb(96,66,225)]"
+                      >
+                        Download certificate of insurance
+                        <IconArrow />
+                      </a>
+                    ) : (
+                      <div className="flex min-h-[48px] w-full items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-7 text-[14px] text-slate-400">
+                        Certificate not yet available
+                      </div>
+                    )}
+                    {result.proposalUrl ? (
+                      <a
+                        href={result.proposalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-7 text-[14.5px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        View statement of fact
+                        <IconArrow />
+                      </a>
+                    ) : (
+                      <div className="flex min-h-[48px] w-full items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-7 text-[14px] text-slate-400">
+                        Statement not yet available
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-            {policy ? (
-              <div className="mt-8 rounded-[1.5rem] border border-slate-200/80 bg-white/84 p-5 sm:p-6">
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                  <MetaInfo label="Policy number" value={policy.policyNumber} />
-                  <MetaInfo label="Vehicle" value={vehicleLine(policy)} />
-                  <MetaInfo label="Start" value={fmt(policy.startAt)} />
-                  <MetaInfo label="End" value={fmt(policy.endAt)} />
+                {/* Try again */}
+                <div className="border-t border-slate-100 bg-slate-50/50 px-7 py-4 sm:px-8">
+                  <button
+                    type="button"
+                    onClick={() => { setResult(null); setError(null); }}
+                    className="text-[13px] font-semibold text-slate-500 underline-offset-4 hover:underline"
+                  >
+                    Search for a different policy
+                  </button>
                 </div>
               </div>
-            ) : null}
 
-            {certificateUrl ? (
-              <div className="mt-8 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white/84">
-                <div className="h-[70vh]">
-                  <iframe
-                    title="Certificate preview"
-                    src={certificateUrl}
-                    className="h-full w-full"
-                  />
-                </div>
-              </div>
             ) : (
-              <div className="mt-6 text-[12px] leading-6 text-slate-500">
-                If your policy is still being finalised, try again in a minute — or
-                check your inbox first.
+
+              /* ── Lookup form ── */
+              <div className="overflow-hidden rounded-[2.25rem] border border-slate-200/70 bg-white shadow-[0_24px_80px_rgba(108,76,243,0.07),0_2px_8px_rgba(15,23,42,0.04)]">
+                <div className="h-[3px] w-full bg-[rgb(108,76,243)]" />
+
+                <div className="px-7 pb-8 pt-7 sm:px-10 sm:pt-8">
+
+                  {/* Method toggle */}
+                  <div className="mb-7 inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+                    <button
+                      type="button"
+                      onClick={() => { setMethod("reg-email"); setError(null); }}
+                      className={[
+                        "rounded-full px-4 py-2 text-[13px] font-semibold transition-all",
+                        method === "reg-email"
+                          ? "bg-[rgb(108,76,243)] !text-white shadow-[0_4px_14px_rgba(108,76,243,0.22)]"
+                          : "text-slate-600 hover:text-slate-900",
+                      ].join(" ")}
+                    >
+                      Reg &amp; email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setMethod("policy-number"); setError(null); }}
+                      className={[
+                        "rounded-full px-4 py-2 text-[13px] font-semibold transition-all",
+                        method === "policy-number"
+                          ? "bg-[rgb(108,76,243)] !text-white shadow-[0_4px_14px_rgba(108,76,243,0.22)]"
+                          : "text-slate-600 hover:text-slate-900",
+                      ].join(" ")}
+                    >
+                      Policy number
+                    </button>
+                  </div>
+
+                  <form onSubmit={onLookup} noValidate>
+                    <div className="grid gap-5">
+
+                      {method === "reg-email" ? (
+                        <>
+                          <div>
+                            <label htmlFor="vrm" className="mb-2 block text-[13px] font-semibold text-slate-800">
+                              Vehicle registration
+                            </label>
+                            <input
+                              id="vrm"
+                              className="input w-full text-[1.1rem] font-bold uppercase tracking-[0.10em]"
+                              placeholder="AB12 CDE"
+                              value={formatVrm(vrm)}
+                              autoCapitalize="characters"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              onChange={e => { setVrm(normaliseVrm(e.target.value)); setError(null); }}
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor="email" className="mb-2 block text-[13px] font-semibold text-slate-800">
+                              Email used at checkout
+                            </label>
+                            <input
+                              id="email"
+                              type="email"
+                              inputMode="email"
+                              className="input w-full"
+                              placeholder="name@email.com"
+                              value={email}
+                              onChange={e => { setEmail(e.target.value); setError(null); }}
+                            />
+                            <p className="mt-2 text-[12px] text-slate-400">
+                              Must match exactly what you entered when you bought cover.
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div>
+                          <label htmlFor="polNum" className="mb-2 block text-[13px] font-semibold text-slate-800">
+                            Policy number
+                          </label>
+                          <input
+                            id="polNum"
+                            className="input w-full uppercase tracking-[0.06em] text-[1rem] font-bold"
+                            placeholder="CVZ-26-XXXXXXXX"
+                            value={polNum}
+                            onChange={e => { setPolNum(e.target.value); setError(null); }}
+                          />
+                          <p className="mt-2 text-[12px] text-slate-400">
+                            Found on your confirmation email or success page.
+                          </p>
+                        </div>
+                      )}
+
+                    </div>
+
+                    {error && (
+                      <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                        <p className="text-[13px] font-semibold text-red-700">We couldn't find that policy</p>
+                        <p className="mt-0.5 text-[13px] text-red-600">{error}</p>
+                      </div>
+                    )}
+
+                    <div className="mt-6">
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="inline-flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-full bg-[rgb(108,76,243)] px-8 text-[15px] font-semibold !text-white shadow-[0_12px_36px_rgba(108,76,243,0.28)] transition-all hover:-translate-y-0.5 hover:bg-[rgb(96,66,225)] hover:shadow-[0_16px_44px_rgba(108,76,243,0.36)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:w-auto"
+                      >
+                        {loading ? <><IconSpinner /> Looking up…</> : <>Find my policy <IconArrow /></>}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             )}
           </div>
-        </section>
-      ) : null}
 
-      {/* FINAL CTA */}
-      <section className="mt-16">
-        <div className="rounded-[2rem] border border-[rgba(108,76,243,0.10)] bg-[linear-gradient(180deg,rgba(245,242,255,0.72),rgba(255,255,255,0.94))] px-6 py-10 shadow-sm sm:px-8 sm:py-12 lg:px-10 lg:py-14">
-          <div className="mx-auto max-w-4xl text-center">
-            <h2 className="heading-unbalanced text-center text-3xl font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-4xl lg:text-[3.8rem]">
-              Still cannot find your documents?
-            </h2>
+          {/* ════════ SIDEBAR ════════ */}
+          <div className="grid gap-4">
 
-            <div className="mx-auto mt-5 max-w-[38rem]">
-              <p className="text-center text-[1.02rem] leading-8 text-slate-600 sm:text-[1.08rem]">
-                If retrieval does not solve it, support can help guide you to the right next step.
+            {/* Help card */}
+            <div className="overflow-hidden rounded-[1.75rem] border border-slate-100 bg-white shadow-[0_4px_20px_rgba(108,76,243,0.05)]">
+              <div className="divide-y divide-slate-100">
+                <div className="px-5 py-4">
+                  <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-400">Can't find it?</p>
+                  <p className="mt-1 text-[14px] font-extrabold tracking-tight text-slate-950">Check these first</p>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {[
+                    "Use the email you entered at checkout — not a different one",
+                    "Registration must match exactly — no spaces needed",
+                    "Check your junk folder for the original confirmation email",
+                    "If you made a typo in your email, contact us",
+                  ].map((tip, i) => (
+                    <div key={i} className="flex items-start gap-3 px-5 py-3.5">
+                      <span className="mt-0.5 text-[11px] font-bold tabular-nums text-[rgb(108,76,243)]/50">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span className="text-[13px] text-slate-600">{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div className="overflow-hidden rounded-[1.75rem] border border-[rgba(108,76,243,0.10)] bg-[rgba(108,76,243,0.04)] p-5">
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[rgb(108,76,243)]/60">Still stuck?</p>
+              <p className="mt-1 text-[14px] font-extrabold tracking-tight text-slate-950">We can help</p>
+              <p className="mt-1.5 text-[12.5px] leading-snug text-slate-500">
+                Contact us with your name and the date you purchased cover and we'll locate your policy manually.
               </p>
-            </div>
-
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link href="/help-support" className="btn-ghost">
-                Help & Support
-              </Link>
-
-              <Link href="/contact" className="btn-ghost">
+              <Link
+                href="/contact"
+                className="mt-4 flex items-center justify-between rounded-[1rem] bg-[rgb(108,76,243)] px-4 py-3 text-[13.5px] font-semibold !text-white shadow-[0_6px_20px_rgba(108,76,243,0.22)] transition hover:-translate-y-0.5"
+              >
                 Contact support
+                <IconArrow />
               </Link>
             </div>
 
-            <div className="mt-5 text-[12px] leading-6 text-slate-500">
-              Instant retrieval first, support when needed.
+            {/* Get cover again */}
+            <div className="overflow-hidden rounded-[1.75rem] border border-slate-100 bg-white p-5">
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-400">Need cover again?</p>
+              <p className="mt-1 text-[14px] font-extrabold tracking-tight text-slate-950">Get a new quote</p>
+              <p className="mt-1.5 text-[12.5px] leading-snug text-slate-500">
+                From 1 hour. Documents issued instantly after payment.
+              </p>
+              <Link
+                href="/get-quote"
+                className="mt-4 flex items-center justify-between rounded-[1rem] border border-slate-200 bg-white px-4 py-3 text-[13.5px] font-semibold text-slate-900 transition hover:border-[rgba(108,76,243,0.30)]"
+              >
+                Start a quote
+                <IconArrow />
+              </Link>
             </div>
+
           </div>
         </div>
       </section>
+
     </PageShell>
   );
 }
