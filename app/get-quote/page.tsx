@@ -52,7 +52,37 @@ const RATES = {
 function moneyGBP(n: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
 }
-function validEmail(e: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim()); }
+function validEmail(email: string): string | null {
+  const trimmed = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return "Enter a valid email address.";
+  }
+  const [, domain] = trimmed.split("@");
+  if (trimmed.endsWith(".con")) {
+    return `Did you mean ${trimmed.slice(0, -4)}.com?`;
+  }
+  const TYPO_MAP: Record<string, string> = {
+    "gmial.com":    "gmail.com",
+    "gmai.com":     "gmail.com",
+    "gmail.co":     "gmail.com",
+    "gmail.con":    "gmail.com",
+    "hotmial.com":  "hotmail.com",
+    "hotmail.con":  "hotmail.com",
+    "hotmal.com":   "hotmail.com",
+    "icloud.con":   "icloud.com",
+    "outlok.com":   "outlook.com",
+    "outlook.con":  "outlook.com",
+    "outloook.com": "outlook.com",
+    "yaho.com":     "yahoo.com",
+    "yahoo.con":    "yahoo.com",
+    "yahooo.com":   "yahoo.com",
+  };
+  if (domain && TYPO_MAP[domain]) {
+    const suggestion = trimmed.replace(domain, TYPO_MAP[domain]);
+    return `Did you mean ${suggestion}?`;
+  }
+  return null;
+}
 function pad2(n: number) { return String(n).padStart(2, "0"); }
 function toDatetimeLocalValue(d: Date) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -738,10 +768,10 @@ const price = useMemo<PriceResult | null>(() => {
   const dobAge   = useMemo(() => committedDob ? calcAgeDetailed(committedDob) : null, [committedDob]);
   const ageYears = useMemo(() => committedDob ? calcAge(committedDob) : null, [committedDob]);
   const driverReady = useMemo(() => Boolean(
-    customer.fullName.trim().length >= 2 &&
-    customer.dob && ageYears !== null && ageYears >= 17 &&
-    validEmail(customer.email) && customer.licenceType
-  ), [customer, ageYears]);
+  customer.fullName.trim().length >= 2 &&
+  customer.dob && ageYears !== null && ageYears >= 17 &&
+  validEmail(customer.email) === null && customer.licenceType
+), [customer, ageYears]);
 
   /* ── address derived ── */
   const addressReady = useMemo(() => Boolean(
@@ -757,7 +787,7 @@ const price = useMemo<PriceResult | null>(() => {
     setFormError(null); setActiveStep(step);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  function continueFromStep() {
+function continueFromStep() {
     if (activeStep === 1) {
       if (!vehicleReady) { setFormError("Enter your registration and confirm the vehicle details."); return; }
       goToStep(2);
@@ -765,6 +795,8 @@ const price = useMemo<PriceResult | null>(() => {
       if (!coverReady) { setFormError("Choose a valid cover period to continue."); return; }
       goToStep(3);
     } else if (activeStep === 3) {
+      const emailErr = validEmail(customer.email);
+      if (emailErr) { setFormError(emailErr); return; }
       if (!driverReady) { setFormError("Complete all required fields to continue."); return; }
       goToStep(4);
     } else if (activeStep === 4) {
@@ -1371,15 +1403,15 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
                 )}
               </div>
 
-              <div>
-                <InputLabel htmlFor="email">Email address <span className="text-red-400">*</span></InputLabel>
-                <input id="email" className="input" placeholder="name@email.com" inputMode="email"
-                  value={customer.email}
-                  onChange={e => { setCustomer(c => ({ ...c, email: e.target.value })); setFormError(null); }} />
-                {customer.email && !validEmail(customer.email)
-                  ? <FieldError>Enter a valid email address.</FieldError>
-                  : <InputHint>Documents are emailed here immediately after payment.</InputHint>}
-              </div>
+<div>
+  <InputLabel htmlFor="email">Email address <span className="text-red-400">*</span></InputLabel>
+  <input id="email" className="input" placeholder="name@email.com" inputMode="email"
+    value={customer.email}
+    onChange={e => { setCustomer(c => ({ ...c, email: e.target.value })); setFormError(null); }} />
+  {customer.email && validEmail(customer.email)
+    ? <FieldError>{validEmail(customer.email)}</FieldError>
+    : <InputHint>Documents are emailed here immediately after payment.</InputHint>}
+</div>
 
               <div>
                 <InputLabel htmlFor="licenceType">Licence type <span className="text-red-400">*</span></InputLabel>
