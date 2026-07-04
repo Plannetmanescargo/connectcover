@@ -63,7 +63,9 @@ async function renderPdf(path: string, payload: any): Promise<Buffer> {
     const arr = await res.arrayBuffer();
     return Buffer.from(arr);
   } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Render timed out" : e?.message ?? String(e);
+    const msg =
+      e?.name === "AbortError" ? "Render timed out" : e?.message ?? String(e);
+
     throw new Error(`Render request failed ${path}: ${msg}`);
   } finally {
     clearTimeout(timeout);
@@ -77,6 +79,7 @@ async function uploadPdf(bucket: string, key: string, pdf: Buffer) {
     contentType: "application/pdf",
     upsert: true,
   });
+
   if (error) throw error;
 
   const { data } = supabaseAdmin.storage.from(bucket).getPublicUrl(key);
@@ -96,6 +99,7 @@ async function syncCustomerToNewsletter(policy: {
     console.warn(
       "[resend contacts] skipped - missing RESEND_API_KEY, RESEND_NEWSLETTER_SEGMENT_ID, RESEND_WEEKLY_TOPIC_ID, or RESEND_MONTHLY_TOPIC_ID"
     );
+
     return { ok: false as const, skipped: true as const };
   }
 
@@ -117,7 +121,7 @@ async function syncCustomerToNewsletter(policy: {
     if (created?.error) {
       const msg = String(created.error.message || "");
 
-      // allow existing contact to continue through the rest of the sync
+      // Allow existing contact to continue through the rest of the sync
       if (
         !msg.toLowerCase().includes("already exists") &&
         !msg.toLowerCase().includes("duplicate")
@@ -164,7 +168,9 @@ async function syncCustomerToNewsletter(policy: {
     });
 
     if (topics?.error) {
-      throw new Error(topics.error.message || "Failed to subscribe contact to topics");
+      throw new Error(
+        topics.error.message || "Failed to subscribe contact to topics"
+      );
     }
 
     return { ok: true as const };
@@ -173,6 +179,58 @@ async function syncCustomerToNewsletter(policy: {
       email: policy.email,
       error: e,
     });
+
+    return { ok: false as const };
+  }
+}
+
+async function triggerWelcomeAutomation(policy: {
+  email: string;
+  fullName: string | null;
+  policyNumber: string;
+}) {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+
+  if (!apiKey) {
+    console.warn("[resend welcome] skipped - missing RESEND_API_KEY");
+    return { ok: false as const, skipped: true as const };
+  }
+
+  const resend = new Resend(apiKey);
+
+  const fullName = (policy.fullName || "").trim();
+  const firstName = fullName.split(" ")[0] || "there";
+  const lastName = fullName.split(" ").slice(1).join(" ") || "";
+
+  try {
+    const eventRes = await (resend as any).events.send({
+      event: "contact.welcome",
+      email: policy.email,
+      payload: {
+        firstName,
+        lastName,
+        policyNumber: policy.policyNumber,
+        source: "policy_purchase",
+      },
+    });
+
+    if (eventRes?.error) {
+      throw new Error(
+        eventRes.error.message || "Failed to trigger welcome automation"
+      );
+    }
+
+    return {
+      ok: true as const,
+      eventId: eventRes?.data?.id ?? null,
+    };
+  } catch (e: any) {
+    console.error("[resend welcome] failed to trigger automation", {
+      email: policy.email,
+      policyNumber: policy.policyNumber,
+      error: e,
+    });
+
     return { ok: false as const };
   }
 }
@@ -182,11 +240,13 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
     where: { id: policyId },
     include: { documents: true },
   });
+
   if (!policy) throw new Error("Policy not found");
 
   // Check if we have docs already
   const existingProposal =
     policy.documents.find((d) => d.kind === "PROPOSAL")?.url || null;
+
   const existingCert =
     policy.documents.find((d) => d.kind === "CERTIFICATE")?.url || null;
 
@@ -244,6 +304,7 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
       "/api/internal/policy/render-proposal",
       proposalPayload
     );
+
     const certPdf = await renderPdf(
       "/api/internal/policy/render-certificate",
       certificatePayload
@@ -259,7 +320,9 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
     certificateUrl = await uploadPdf(bucket, certKey, certPdf);
 
     await prisma.$transaction(async (tx) => {
-      const docs = await tx.policyDocument.findMany({ where: { policyId } });
+      const docs = await tx.policyDocument.findMany({
+        where: { policyId },
+      });
 
       const hasProposal = docs.some((d) => d.kind === "PROPOSAL");
       const hasCert = docs.some((d) => d.kind === "CERTIFICATE");
@@ -299,7 +362,10 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
         data: {
           policyId,
           type: "DOCS_GENERATED",
-          data: { proposalUrl, certificateUrl },
+          data: {
+            proposalUrl,
+            certificateUrl,
+          },
         },
       });
     });
@@ -307,8 +373,13 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
 
   // --- EMAIL STEP (idempotent-ish) ---
   const alreadyEmailed = await prisma.policyEvent.findFirst({
-    where: { policyId, type: "EMAIL_SENT" },
-    select: { id: true },
+    where: {
+      policyId,
+      type: "EMAIL_SENT",
+    },
+    select: {
+      id: true,
+    },
   });
 
   if (!alreadyEmailed) {
@@ -345,8 +416,13 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
 
   // --- NEWSLETTER SYNC STEP (non-blocking + idempotent-ish) ---
   const alreadyAddedToAudience = await prisma.policyEvent.findFirst({
-    where: { policyId, type: "NEWSLETTER_CONTACT_ADDED" },
-    select: { id: true },
+    where: {
+      policyId,
+      type: "NEWSLETTER_CONTACT_ADDED",
+    },
+    select: {
+      id: true,
+    },
   });
 
   if (!alreadyAddedToAudience) {
@@ -355,7 +431,10 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
       fullName: policy.fullName,
     });
 
-    if (newsletterRes.ok || ("skipped" in newsletterRes && newsletterRes.skipped)) {
+    if (
+      newsletterRes.ok ||
+      ("skipped" in newsletterRes && newsletterRes.skipped)
+    ) {
       try {
         await prisma.policyEvent.create({
           data: {
@@ -364,7 +443,46 @@ export async function fulfillPolicy(policyId: string): Promise<FulfillResult> {
             data: {
               ok: newsletterRes.ok,
               email: policy.email,
-              skipped: "skipped" in newsletterRes ? !!newsletterRes.skipped : false,
+              skipped:
+                "skipped" in newsletterRes ? !!newsletterRes.skipped : false,
+            },
+          },
+        });
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  // --- WELCOME AUTOMATION TRIGGER STEP (non-blocking + idempotent-ish) ---
+  const alreadyTriggeredWelcome = await prisma.policyEvent.findFirst({
+    where: {
+      policyId,
+      type: "WELCOME_AUTOMATION_TRIGGERED",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!alreadyTriggeredWelcome) {
+    const welcomeRes = await triggerWelcomeAutomation({
+      email: policy.email,
+      fullName: policy.fullName,
+      policyNumber: policy.policyNumber,
+    });
+
+    if (welcomeRes.ok || ("skipped" in welcomeRes && welcomeRes.skipped)) {
+      try {
+        await prisma.policyEvent.create({
+          data: {
+            policyId,
+            type: "WELCOME_AUTOMATION_TRIGGERED",
+            data: {
+              ok: welcomeRes.ok,
+              email: policy.email,
+              eventId: "eventId" in welcomeRes ? welcomeRes.eventId : null,
+              skipped: "skipped" in welcomeRes ? !!welcomeRes.skipped : false,
             },
           },
         });

@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")   // PgBouncer (runtime)
-  directUrl = env("DIRECT_URL")     // Direct (migrations / dev)
+  url       = env("DATABASE_URL") // PgBouncer (runtime)
+  directUrl = env("DIRECT_URL") // Direct (migrations / dev)
 }
 
 enum PolicyStatus {
@@ -45,12 +45,13 @@ enum PolicyEventType {
   EMAIL_SENT
   FINALIZE_RETRIED
   NEWSLETTER_CONTACT_ADDED
+  WELCOME_AUTOMATION_TRIGGERED
 }
 
 model Policy {
-  id               String   @id @default(cuid())
-  policyNumber     String   @unique
-  status           PolicyStatus @default(DRAFT)
+  id           String       @id @default(cuid())
+  policyNumber String       @unique
+  status       PolicyStatus @default(DRAFT)
 
   // Quote details
   vrm              String
@@ -63,26 +64,26 @@ model Policy {
   totalAmountPence Int
 
   // Customer
-  fullName         String
-  dob              DateTime
-  email            String
-  licenceType      String
-  address          String
+  fullName    String
+  dob         DateTime
+  email       String
+  licenceType String
+  address     String
 
   // Payment
-  paymentProvider  PaymentProvider
-  paymentId        String              // Recommended: Stripe Checkout Session ID (cs_...)
-  paymentStatus    PaymentStatus
-  currency         String              // "GBP"
+  paymentProvider PaymentProvider
+  paymentId       String // Recommended: Stripe Checkout Session ID (cs_...)
+  paymentStatus   PaymentStatus
+  currency        String // "GBP"
 
   // Stripe extras (optional but strongly recommended)
-  stripePaymentIntentId String?        // pi_...
+  stripePaymentIntentId String? // pi_...
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  documents        PolicyDocument[]
-  events           PolicyEvent[]
+  documents PolicyDocument[]
+  events    PolicyEvent[]
 
   @@unique([paymentProvider, paymentId])
   @@index([email])
@@ -91,31 +92,31 @@ model Policy {
 }
 
 model PolicyDocument {
-  id         String   @id @default(cuid())
-  policyId   String
-  policy     Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  policyId String
+  policy   Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
 
-  kind       DocumentKind
-  filename   String
+  kind     DocumentKind
+  filename String
 
   storageProvider StorageProvider @default(SUPABASE)
-  storageKey String?   // object key/path
-  url        String?   // public URL now; later can be signed URL or null
+  storageKey      String? // object key/path
+  url             String? // public URL now; later can be signed URL or null
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([policyId])
   @@index([kind])
 }
 
 model PolicyEvent {
-  id        String   @id @default(cuid())
-  policyId  String
-  policy    Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  policyId String
+  policy   Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
 
   type      PolicyEventType
   data      Json?
-  createdAt DateTime @default(now())
+  createdAt DateTime        @default(now())
 
   @@index([policyId])
   @@index([type])
