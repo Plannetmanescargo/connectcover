@@ -63,6 +63,7 @@ export async function POST(req: Request) {
 
     // Stripe metadata values MUST be strings.
     const metadata: Record<string, string> = {
+      brand: "coverza",
       vrm: body.quote.vrm,
       make: body.quote.make ?? "",
       model: body.quote.model ?? "",
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
           price_data: {
             currency: "gbp",
             unit_amount: body.quote.totalAmountPence, // number in pence ✅
-            product_data: { name: "Temporary Insurance Policy" },
+            product_data: { name: "Coverza Temporary Insurance Policy" },
           },
         },
       ],
