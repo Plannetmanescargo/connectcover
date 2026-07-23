@@ -4,8 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Back soon — Coverza</title>
+
+    <!-- Optional: automatically redirect after 8 seconds -->
+    <meta http-equiv="refresh" content="8;url=https://tempcover.io" />
+
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
+
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: #fff;
@@ -17,34 +22,116 @@
         text-align: center;
         padding: 24px;
       }
-      img { height: 28px; width: auto; margin-bottom: 32px; }
+
+      img {
+        height: 28px;
+        width: auto;
+        margin-bottom: 32px;
+      }
+
       .pill {
-        display: inline-flex; align-items: center; gap: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         border: 1px solid rgba(108,76,243,0.16);
         background: rgba(108,76,243,0.05);
-        padding: 6px 14px; border-radius: 999px;
-        font-size: 10.5px; font-weight: 600;
-        letter-spacing: 0.20em; text-transform: uppercase;
-        color: rgb(108,76,243); margin-bottom: 24px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.20em;
+        text-transform: uppercase;
+        color: rgb(108,76,243);
+        margin-bottom: 24px;
       }
+
       .dot {
-        height: 6px; width: 6px; border-radius: 50%;
+        height: 6px;
+        width: 6px;
+        border-radius: 50%;
         background: rgb(108,76,243);
       }
+
       h1 {
         font-size: clamp(2rem, 6vw, 3.5rem);
-        font-weight: 800; line-height: 0.95;
-        letter-spacing: -0.06em; color: #0f172a;
+        font-weight: 800;
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+        color: #0f172a;
         margin-bottom: 20px;
       }
-      h1 span { color: rgb(108,76,243); }
-      p { font-size: 0.95rem; line-height: 1.85; color: #64748b; max-width: 28rem; }
+
+      h1 span {
+        color: rgb(108,76,243);
+      }
+
+      p {
+        font-size: 0.95rem;
+        line-height: 1.85;
+        color: #64748b;
+        max-width: 28rem;
+      }
+
+      .actions {
+        margin-top: 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 22px;
+        border-radius: 999px;
+        background: rgb(108,76,243);
+        color: #fff;
+        font-size: 0.92rem;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 18px 40px rgba(108,76,243,0.22);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 22px 46px rgba(108,76,243,0.28);
+      }
+
+      .small {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        line-height: 1.6;
+      }
     </style>
   </head>
+
   <body>
     <img src="https://www.coverza.co.uk/brand/connectcoverbig.png" alt="Coverza" />
-    <div class="pill"><span class="dot"></span> Back soon</div>
+
+    <div class="pill">
+      <span class="dot"></span>
+      Back soon
+    </div>
+
     <h1>We'll be back<br /><span>very shortly.</span></h1>
-    <p>Coverza is temporarily unavailable while we carry out some maintenance. Check back soon.</p>
+
+    <p>
+      Coverza is temporarily unavailable while we carry out some maintenance.
+      In the meantime, you can get temporary cover through our sister site.
+    </p>
+
+    <div class="actions">
+      <a class="button" href="https://tempcover.io">
+        Continue to TempCover
+      </a>
+
+      <p class="small">
+        You will be redirected automatically in a few seconds.
+      </p>
+    </div>
   </body>
 </html>
