@@ -76,7 +76,13 @@ type SquareOrder = {
   reference_id?: string;
   state?: string;
   location_id?: string;
+
+  // Final amount after Square coupons/discounts.
   total_money?: SquareMoney;
+
+  // Total discount applied by Square.
+  total_discount_money?: SquareMoney;
+
   version?: number;
   created_at?: string;
   updated_at?: string;
@@ -140,6 +146,22 @@ function isLicenceType(
     value === "International" ||
     value === "Learner"
   );
+}
+
+function isPositiveIntegerAmount(
+  value: unknown
+): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value > 0
+  );
+}
+
+function normaliseCurrency(
+  value: string | undefined
+): string {
+  return value?.trim().toUpperCase() ?? "";
 }
 
 /**
@@ -414,29 +436,90 @@ async function processCompletedPayment(args: {
     );
   }
 
+  /*
+   * Coupon-aware payment verification.
+   *
+   * checkout.totalAmountPence:
+   * Original amount quoted by Coverza before a Square coupon.
+   *
+   * order.total_money.amount:
+   * Final amount calculated by Square after coupons/discounts.
+   *
+   * payment.total_money.amount:
+   * Amount Square actually charged.
+   */
+  const originalCoverzaAmount =
+    checkout.totalAmountPence;
+
+  const squareOrderTotal =
+    order.total_money?.amount;
+
   const paidAmount =
     payment.total_money?.amount;
 
-  const paidCurrency =
-    payment.total_money?.currency
-      ?.trim()
-      .toUpperCase() ?? "";
+  const orderCurrency = normaliseCurrency(
+    order.total_money?.currency
+  );
 
-  if (
-    !Number.isInteger(paidAmount) ||
-    paidAmount !== checkout.totalAmountPence ||
-    paidCurrency !== checkout.currency.toUpperCase()
-  ) {
+  const paidCurrency = normaliseCurrency(
+    payment.total_money?.currency
+  );
+
+  const expectedCurrency =
+    checkout.currency.trim().toUpperCase();
+
+  const squareDiscountAmount =
+    typeof order.total_discount_money?.amount ===
+      "number" &&
+    Number.isInteger(
+      order.total_discount_money.amount
+    )
+      ? order.total_discount_money.amount
+      : Math.max(
+          0,
+          originalCoverzaAmount -
+            (typeof squareOrderTotal === "number"
+              ? squareOrderTotal
+              : originalCoverzaAmount)
+        );
+
+  const paymentIsValid =
+    isPositiveIntegerAmount(
+      originalCoverzaAmount
+    ) &&
+    isPositiveIntegerAmount(squareOrderTotal) &&
+    isPositiveIntegerAmount(paidAmount) &&
+
+    // Payment must exactly equal Square's final order total.
+    paidAmount === squareOrderTotal &&
+
+    // Square must never charge more than Coverza quoted.
+    squareOrderTotal <= originalCoverzaAmount &&
+
+    // Order and payment currencies must match Coverza.
+    orderCurrency === expectedCurrency &&
+    paidCurrency === expectedCurrency &&
+
+    // Coverza currently operates in GBP only.
+    expectedCurrency === "GBP";
+
+  if (!paymentIsValid) {
     console.error(
-      "[square webhook] payment amount mismatch",
+      "[square webhook] invalid payment or discounted order total",
       {
         checkoutId: checkout.id,
         paymentId: payment.id,
-        expectedAmount:
-          checkout.totalAmountPence,
+        orderId: payment.order_id,
+
+        originalCoverzaAmount,
+        squareOrderTotal:
+          squareOrderTotal ?? null,
         paidAmount: paidAmount ?? null,
-        expectedCurrency:
-          checkout.currency,
+
+        squareDiscountAmount,
+
+        expectedCurrency,
+        orderCurrency,
         paidCurrency,
       }
     );
@@ -448,7 +531,8 @@ async function processCompletedPayment(args: {
 
     return {
       ignored: true as const,
-      reason: "payment_amount_mismatch",
+      reason:
+        "payment_or_order_total_mismatch",
       checkoutId: checkout.id,
     };
   }
@@ -476,8 +560,12 @@ async function processCompletedPayment(args: {
     startAt: checkout.startAt.toISOString(),
     endAt: checkout.endAt.toISOString(),
     durationMs: Number(checkout.durationMs),
-    totalAmountPence:
-      checkout.totalAmountPence,
+
+    /*
+     * Store the final amount actually paid after any valid
+     * Square coupon or voucher.
+     */
+    totalAmountPence: paidAmount,
 
     // Customer
     fullName: checkout.fullName,
@@ -490,7 +578,7 @@ async function processCompletedPayment(args: {
     paymentProvider: "SQUARE",
     paymentId: payment.id,
     paymentStatus: "PAID",
-    currency: checkout.currency,
+    currency: expectedCurrency,
 
     // Square has no Stripe PaymentIntent ID.
     stripePaymentIntentId: null,
@@ -519,6 +607,11 @@ async function processCompletedPayment(args: {
     orderId: payment.order_id,
     policyId: result.policyId,
     policyNumber: result.policyNumber,
+
+    originalCoverzaAmount,
+    squareDiscountAmount,
+    finalPaidAmount: paidAmount,
+    currency: expectedCurrency,
   });
 
   /*
@@ -789,10 +882,6 @@ export async function POST(
       payment.status === "FAILED" ||
       payment.status === "CANCELED"
     ) {
-      /*
-       * We cannot securely identify the checkout without its order,
-       * so failure updates are best-effort only.
-       */
       if (payment.order_id) {
         try {
           const failedOrder =
@@ -861,7 +950,7 @@ export async function POST(
     });
   } catch (error: unknown) {
     /*
-     * Return 500 for a genuine processing failure.
+     * Return 500 for genuine processing failures.
      *
      * Square can retry the event, and finalizePolicy prevents duplicate
      * policies by enforcing paymentProvider + paymentId uniqueness.

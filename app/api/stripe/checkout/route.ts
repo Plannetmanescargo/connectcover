@@ -576,7 +576,7 @@ export async function POST(
         redirect_url: successUrl,
         allow_tipping: false,
         ask_for_shipping_address: false,
-        enable_coupon: false,
+        enable_coupon: true,
         enable_loyalty: false,
       },
 
