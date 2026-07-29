@@ -31,7 +31,7 @@ type CheckoutRequestBody = {
     fullName: string;
     dob: string;
     email: string;
-    licenceType: LicenceType;
+    licenceType: string;
     address: string;
   };
 };
@@ -130,6 +130,60 @@ function normaliseOptionalString(
   return trimmed ? trimmed : null;
 }
 
+function normaliseLicenceType(
+  value: unknown
+): LicenceType | null {
+  const licenceType = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+  if (
+    licenceType === "uk" ||
+    licenceType === "full uk" ||
+    licenceType === "full uk licence" ||
+    licenceType === "full uk license" ||
+    licenceType === "uk licence" ||
+    licenceType === "uk license" ||
+    licenceType === "uk driving licence" ||
+    licenceType === "uk driving license" ||
+    licenceType === "full"
+  ) {
+    return "UK";
+  }
+
+  if (
+    licenceType === "international" ||
+    licenceType === "international licence" ||
+    licenceType === "international license" ||
+    licenceType === "foreign" ||
+    licenceType === "foreign licence" ||
+    licenceType === "foreign license" ||
+    licenceType === "non-uk" ||
+    licenceType === "non uk" ||
+    licenceType === "non-uk licence" ||
+    licenceType === "non-uk license"
+  ) {
+    return "International";
+  }
+
+  if (
+    licenceType === "learner" ||
+    licenceType === "learner licence" ||
+    licenceType === "learner license" ||
+    licenceType === "provisional" ||
+    licenceType === "provisional licence" ||
+    licenceType === "provisional license" ||
+    licenceType === "uk provisional" ||
+    licenceType === "uk provisional licence" ||
+    licenceType === "uk provisional license"
+  ) {
+    return "Learner";
+  }
+
+  return null;
+}
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -149,16 +203,6 @@ function getSquareErrorMessage(
       .join("; ") ?? "";
 
   return details || fallback;
-}
-
-function isLicenceType(
-  value: unknown
-): value is LicenceType {
-  return (
-    value === "UK" ||
-    value === "International" ||
-    value === "Learner"
-  );
 }
 
 function validateCheckoutBody(
@@ -237,7 +281,19 @@ function validateCheckoutBody(
     };
   }
 
-  if (!isLicenceType(body.customer.licenceType)) {
+  const licenceType = normaliseLicenceType(
+    body.customer.licenceType
+  );
+
+  if (!licenceType) {
+    console.error(
+      "[square checkout] invalid licence type",
+      {
+        received:
+          body.customer.licenceType ?? null,
+      }
+    );
+
     return {
       ok: false,
       error: "Invalid customer.licenceType",
@@ -265,7 +321,8 @@ function validateCheckoutBody(
   if (endAt.getTime() <= startAt.getTime()) {
     return {
       ok: false,
-      error: "quote.endAt must be after quote.startAt",
+      error:
+        "quote.endAt must be after quote.startAt",
     };
   }
 
@@ -279,11 +336,15 @@ function validateCheckoutBody(
   if (dob.getTime() > Date.now()) {
     return {
       ok: false,
-      error: "customer.dob cannot be in the future",
+      error:
+        "customer.dob cannot be in the future",
     };
   }
 
-  const durationMs = Number(body.quote.durationMs);
+  const durationMs = Number(
+    body.quote.durationMs
+  );
+
   const totalAmountPence = Number(
     body.quote.totalAmountPence
   );
@@ -306,18 +367,21 @@ function validateCheckoutBody(
   ) {
     return {
       ok: false,
-      error: "Invalid quote.totalAmountPence",
+      error:
+        "Invalid quote.totalAmountPence",
     };
   }
 
   const calculatedDurationMs =
     endAt.getTime() - startAt.getTime();
 
-  const durationToleranceMs = 5 * 60 * 1000;
+  const durationToleranceMs =
+    5 * 60 * 1000;
 
   if (
-    Math.abs(calculatedDurationMs - durationMs) >
-    durationToleranceMs
+    Math.abs(
+      calculatedDurationMs - durationMs
+    ) > durationToleranceMs
   ) {
     return {
       ok: false,
@@ -328,14 +392,19 @@ function validateCheckoutBody(
 
   return {
     ok: true,
+
     value: {
       quote: {
         vrm,
-        make: normaliseOptionalString(body.quote.make),
+        make: normaliseOptionalString(
+          body.quote.make
+        ),
         model: normaliseOptionalString(
           body.quote.model
         ),
-        year: normaliseOptionalString(body.quote.year),
+        year: normaliseOptionalString(
+          body.quote.year
+        ),
         startAt,
         endAt,
         durationMs,
@@ -346,15 +415,18 @@ function validateCheckoutBody(
         fullName,
         dob,
         email,
-        licenceType: body.customer.licenceType,
+        licenceType,
         address,
       },
     },
   };
 }
 
-export async function POST(request: Request) {
-  let paymentCheckoutId: string | null = null;
+export async function POST(
+  request: Request
+) {
+  let paymentCheckoutId: string | null =
+    null;
 
   try {
     const squareAccessToken =
@@ -402,7 +474,8 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json(
         {
-          error: "Invalid JSON request body.",
+          error:
+            "Invalid JSON request body.",
         },
         {
           status: 400,
@@ -410,9 +483,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const validation = validateCheckoutBody(
-      rawBody as CheckoutRequestBody
-    );
+    const validation =
+      validateCheckoutBody(
+        rawBody as CheckoutRequestBody
+      );
 
     if (!validation.ok) {
       return NextResponse.json(
@@ -425,15 +499,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const { quote, customer } = validation.value;
+    const { quote, customer } =
+      validation.value;
 
-    /*
-     * Store all quote and customer information in our own database.
-     *
-     * Square receives only this checkout record's opaque ID as the
-     * order reference_id. No DOB, address or policy data is stored
-     * in Square notes or metadata.
-     */
     const paymentCheckout =
       await prisma.paymentCheckout.create({
         data: {
@@ -446,25 +514,30 @@ export async function POST(request: Request) {
           year: quote.year,
           startAt: quote.startAt,
           endAt: quote.endAt,
-          durationMs: BigInt(quote.durationMs),
+          durationMs: BigInt(
+            quote.durationMs
+          ),
           totalAmountPence:
             quote.totalAmountPence,
 
           fullName: customer.fullName,
           dob: customer.dob,
           email: customer.email,
-          licenceType: customer.licenceType,
+          licenceType:
+            customer.licenceType,
           address: customer.address,
 
           paymentProvider: "SQUARE",
           currency: "GBP",
         },
+
         select: {
           id: true,
         },
       });
 
-    paymentCheckoutId = paymentCheckout.id;
+    paymentCheckoutId =
+      paymentCheckout.id;
 
     const origin = getOrigin(request);
 
@@ -475,18 +548,14 @@ export async function POST(request: Request) {
         paymentCheckout.id
       )}`;
 
-    /*
-     * Square creates an order and a hosted checkout page.
-     *
-     * reference_id connects the resulting Square order back to our
-     * PaymentCheckout row without exposing customer information.
-     */
     const squareRequest = {
-      idempotency_key: paymentCheckout.id,
+      idempotency_key:
+        paymentCheckout.id,
 
       order: {
         location_id: squareLocationId,
-        reference_id: paymentCheckout.id,
+        reference_id:
+          paymentCheckout.id,
 
         line_items: [
           {
@@ -495,7 +564,8 @@ export async function POST(request: Request) {
             quantity: "1",
 
             base_price_money: {
-              amount: quote.totalAmountPence,
+              amount:
+                quote.totalAmountPence,
               currency: "GBP",
             },
           },
@@ -524,19 +594,27 @@ export async function POST(request: Request) {
         method: "POST",
 
         headers: {
-          Authorization: `Bearer ${squareAccessToken}`,
-          "Content-Type": "application/json",
-          "Square-Version": SQUARE_API_VERSION,
+          Authorization:
+            `Bearer ${squareAccessToken}`,
+          "Content-Type":
+            "application/json",
+          "Square-Version":
+            SQUARE_API_VERSION,
         },
 
-        body: JSON.stringify(squareRequest),
+        body: JSON.stringify(
+          squareRequest
+        ),
+
         cache: "no-store",
       }
     );
 
-    const responseText = await squareResponse.text();
+    const responseText =
+      await squareResponse.text();
 
-    let squareResult: SquarePaymentLinkResponse = {};
+    let squareResult:
+      SquarePaymentLinkResponse = {};
 
     if (responseText) {
       try {
@@ -547,7 +625,8 @@ export async function POST(request: Request) {
         console.error(
           "[square checkout] non-JSON Square response",
           {
-            status: squareResponse.status,
+            status:
+              squareResponse.status,
             responseText,
           }
         );
@@ -555,36 +634,52 @@ export async function POST(request: Request) {
     }
 
     if (!squareResponse.ok) {
-      const squareError = getSquareErrorMessage(
-        squareResult,
-        "Square failed to create the checkout page."
-      );
+      const squareError =
+        getSquareErrorMessage(
+          squareResult,
+          "Square failed to create the checkout page."
+        );
 
-      console.error("[square checkout] API error", {
-        status: squareResponse.status,
-        checkoutId: paymentCheckout.id,
-        errors: squareResult.errors,
-        responseText,
-      });
+      console.error(
+        "[square checkout] API error",
+        {
+          status:
+            squareResponse.status,
+          checkoutId:
+            paymentCheckout.id,
+          errors:
+            squareResult.errors,
+          responseText,
+        }
+      );
 
       await prisma.paymentCheckout
         .update({
           where: {
             id: paymentCheckout.id,
           },
+
           data: {
             status: "FAILED",
           },
         })
-        .catch((databaseError: unknown) => {
-          console.error(
-            "[square checkout] failed to mark checkout as failed",
-            {
-              checkoutId: paymentCheckout.id,
-              error: getErrorMessage(databaseError),
-            }
-          );
-        });
+        .catch(
+          (
+            databaseError: unknown
+          ) => {
+            console.error(
+              "[square checkout] failed to mark checkout as failed",
+              {
+                checkoutId:
+                  paymentCheckout.id,
+                error:
+                  getErrorMessage(
+                    databaseError
+                  ),
+              }
+            );
+          }
+        );
 
       return NextResponse.json(
         {
@@ -592,21 +687,27 @@ export async function POST(request: Request) {
         },
         {
           status:
-            squareResponse.status >= 500 ? 502 : 400,
+            squareResponse.status >=
+            500
+              ? 502
+              : 400,
         }
       );
     }
 
     const checkoutUrl =
       squareResult.payment_link?.url ??
-      squareResult.payment_link?.long_url;
+      squareResult.payment_link
+        ?.long_url;
 
     const squarePaymentLinkId =
       squareResult.payment_link?.id;
 
     const squareOrderId =
-      squareResult.payment_link?.order_id ??
-      squareResult.related_resources?.orders?.[0]?.id;
+      squareResult.payment_link
+        ?.order_id ??
+      squareResult.related_resources
+        ?.orders?.[0]?.id;
 
     if (
       !checkoutUrl ||
@@ -616,11 +717,14 @@ export async function POST(request: Request) {
       console.error(
         "[square checkout] incomplete Square response",
         {
-          checkoutId: paymentCheckout.id,
+          checkoutId:
+            paymentCheckout.id,
           paymentLink:
-            squareResult.payment_link ?? null,
+            squareResult.payment_link ??
+            null,
           relatedResources:
-            squareResult.related_resources ?? null,
+            squareResult.related_resources ??
+            null,
         }
       );
 
@@ -629,6 +733,7 @@ export async function POST(request: Request) {
           where: {
             id: paymentCheckout.id,
           },
+
           data: {
             status: "FAILED",
           },
@@ -657,23 +762,28 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log("[square checkout] created", {
-      checkoutId: paymentCheckout.id,
-      paymentLinkId: squarePaymentLinkId,
-      orderId: squareOrderId,
-      brand: "coverza",
-      amountPence: quote.totalAmountPence,
-    });
+    console.log(
+      "[square checkout] created",
+      {
+        checkoutId:
+          paymentCheckout.id,
+        paymentLinkId:
+          squarePaymentLinkId,
+        orderId: squareOrderId,
+        brand: "coverza",
+        licenceType:
+          customer.licenceType,
+        amountPence:
+          quote.totalAmountPence,
+      }
+    );
 
-    /*
-     * Preserve the response shape expected by the existing frontend.
-     * The frontend only needs data.url to redirect the customer.
-     */
     return NextResponse.json(
       {
         url: checkoutUrl,
         provider: "square",
-        checkoutId: paymentCheckout.id,
+        checkoutId:
+          paymentCheckout.id,
         orderId: squareOrderId,
       },
       {
@@ -681,10 +791,15 @@ export async function POST(request: Request) {
       }
     );
   } catch (error: unknown) {
-    console.error("[square checkout] route error", {
-      checkoutId: paymentCheckoutId,
-      error: getErrorMessage(error),
-    });
+    console.error(
+      "[square checkout] route error",
+      {
+        checkoutId:
+          paymentCheckoutId,
+        error:
+          getErrorMessage(error),
+      }
+    );
 
     if (paymentCheckoutId) {
       await prisma.paymentCheckout
@@ -692,6 +807,7 @@ export async function POST(request: Request) {
           where: {
             id: paymentCheckoutId,
           },
+
           data: {
             status: "FAILED",
           },
