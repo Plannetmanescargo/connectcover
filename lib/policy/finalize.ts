@@ -1,29 +1,62 @@
 // lib/policy/finalize.ts
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/db/prisma";
-import type { PolicyFinalizeInput, PolicyFinalizeResult } from "./types";
+import type {
+  PolicyFinalizeInput,
+  PolicyFinalizeResult,
+} from "./types";
 import { validateFinalizeInput } from "./validate";
 import { generatePolicyNumber } from "./policyNumber";
 
 /**
- * Finalize a policy purchase in an idempotent way.
- * Idempotency key: (paymentProvider, paymentId)
+ * Finalises a paid policy purchase in an idempotent way.
+ *
+ * Idempotency key:
+ * paymentProvider + paymentId
+ *
+ * This supports both Stripe and Square because paymentProvider is now
+ * a Prisma enum containing STRIPE and SQUARE.
  */
 export async function finalizePolicy(
   input: PolicyFinalizeInput
 ): Promise<PolicyFinalizeResult> {
-  const v = validateFinalizeInput(input);
-  if (!v.ok) throw new Error(v.errors.join(" • "));
+  const validation = validateFinalizeInput(input);
 
-  // ✅ Upgrade #2: use findUnique with the composite unique constraint
-  // Requires @@unique([paymentProvider, paymentId]) in schema (you have it).
+  if (!validation.ok) {
+    throw new Error(validation.errors.join(" • "));
+  }
+
+  const normalisedInput = {
+    ...input,
+    vrm: input.vrm.trim().toUpperCase(),
+    make: input.make?.trim() || null,
+    model: input.model?.trim() || null,
+    year: input.year?.trim() || null,
+
+    fullName: input.fullName.trim(),
+    email: input.email.trim().toLowerCase(),
+    address: input.address.trim(),
+
+    paymentId: input.paymentId.trim(),
+    currency: (input.currency ?? "GBP").trim().toUpperCase(),
+  };
+
+  /*
+   * Return the existing policy when Square or another provider retries
+   * the same successful payment webhook.
+   */
   const existing = await prisma.policy.findUnique({
     where: {
       paymentProvider_paymentId: {
-        paymentProvider: input.paymentProvider,
-        paymentId: input.paymentId,
+        paymentProvider: normalisedInput.paymentProvider,
+        paymentId: normalisedInput.paymentId,
       },
     },
-    select: { id: true, policyNumber: true },
+    select: {
+      id: true,
+      policyNumber: true,
+    },
   });
 
   if (existing) {
@@ -34,8 +67,11 @@ export async function finalizePolicy(
     };
   }
 
-  // Create unique policyNumber (retry on rare collision)
-  for (let i = 0; i < 5; i++) {
+  /*
+   * Retry only when there is an extremely rare collision on the generated
+   * policy number.
+   */
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     const policyNumber = generatePolicyNumber();
 
     try {
@@ -45,40 +81,77 @@ export async function finalizePolicy(
             policyNumber,
             status: "PAID",
 
-            vrm: input.vrm,
-            make: input.make ?? null,
-            model: input.model ?? null,
-            year: input.year ?? null,
-            startAt: new Date(input.startAt),
-            endAt: new Date(input.endAt),
-            durationMs: BigInt(Math.trunc(input.durationMs)),
-            totalAmountPence: input.totalAmountPence,
+            // Quote
+            vrm: normalisedInput.vrm,
+            make: normalisedInput.make,
+            model: normalisedInput.model,
+            year: normalisedInput.year,
+            startAt: new Date(normalisedInput.startAt),
+            endAt: new Date(normalisedInput.endAt),
+            durationMs: BigInt(
+              Math.trunc(normalisedInput.durationMs)
+            ),
+            totalAmountPence:
+              normalisedInput.totalAmountPence,
 
-            fullName: input.fullName,
-            dob: new Date(input.dob),
-            email: input.email,
-            licenceType: input.licenceType,
-            address: input.address,
+            // Customer
+            fullName: normalisedInput.fullName,
+            dob: new Date(normalisedInput.dob),
+            email: normalisedInput.email,
+            licenceType: normalisedInput.licenceType,
+            address: normalisedInput.address,
 
-            paymentProvider: input.paymentProvider,
-            paymentId: input.paymentId,
-            paymentStatus: input.paymentStatus,
-            currency: input.currency ?? "GBP",
+            // Payment
+            paymentProvider:
+              normalisedInput.paymentProvider,
+            paymentId: normalisedInput.paymentId,
+            paymentStatus:
+              normalisedInput.paymentStatus,
+            currency: normalisedInput.currency,
 
-            stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+            /*
+             * Square does not have a Stripe PaymentIntent ID.
+             * The Square webhook should pass null here.
+             */
+            stripePaymentIntentId:
+              normalisedInput.stripePaymentIntentId ??
+              null,
 
             events: {
-              create: {
-                type: "POLICY_CREATED",
-                data: {
-                  paymentProvider: input.paymentProvider,
-                  paymentId: input.paymentId,
-                  paymentStatus: input.paymentStatus,
+              create: [
+                {
+                  type: "POLICY_CREATED",
+                  data: {
+                    paymentProvider:
+                      normalisedInput.paymentProvider,
+                    paymentId:
+                      normalisedInput.paymentId,
+                    paymentStatus:
+                      normalisedInput.paymentStatus,
+                  },
                 },
-              },
+                {
+                  type: "PAYMENT_CONFIRMED",
+                  data: {
+                    paymentProvider:
+                      normalisedInput.paymentProvider,
+                    paymentId:
+                      normalisedInput.paymentId,
+                    paymentStatus:
+                      normalisedInput.paymentStatus,
+                    currency:
+                      normalisedInput.currency,
+                    totalAmountPence:
+                      normalisedInput.totalAmountPence,
+                  },
+                },
+              ],
             },
           },
-          select: { id: true, policyNumber: true },
+          select: {
+            id: true,
+            policyNumber: true,
+          },
         });
 
         return policy;
@@ -89,44 +162,65 @@ export async function finalizePolicy(
         policyId: created.id,
         policyNumber: created.policyNumber,
       };
-    } catch (e: any) {
-      // Unique constraint violation
-      if (String(e?.code) === "P2002") {
-        // If the collision is provider+paymentId, fetch and return (webhook retry etc.)
-        const again = await prisma.policy.findUnique({
-          where: {
-            paymentProvider_paymentId: {
-              paymentProvider: input.paymentProvider,
-              paymentId: input.paymentId,
+    } catch (error: unknown) {
+      if (
+        error instanceof
+          Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        /*
+         * A duplicate payment can occur if two Square webhook deliveries
+         * are handled at almost the same time. Fetch and return the policy
+         * already created by the other request.
+         */
+        const existingAfterCollision =
+          await prisma.policy.findUnique({
+            where: {
+              paymentProvider_paymentId: {
+                paymentProvider:
+                  normalisedInput.paymentProvider,
+                paymentId:
+                  normalisedInput.paymentId,
+              },
             },
-          },
-          select: { id: true, policyNumber: true },
-        });
+            select: {
+              id: true,
+              policyNumber: true,
+            },
+          });
 
-        if (again) {
+        if (existingAfterCollision) {
           return {
             ok: true,
-            policyId: again.id,
-            policyNumber: again.policyNumber,
+            policyId: existingAfterCollision.id,
+            policyNumber:
+              existingAfterCollision.policyNumber,
           };
         }
 
-        // ✅ only retry if the collision was actually policyNumber
-        const target = e?.meta?.target as string[] | undefined;
+        const target = error.meta?.target;
+
+        const targetFields = Array.isArray(target)
+          ? target.map(String)
+          : typeof target === "string"
+            ? [target]
+            : [];
+
         const isPolicyNumberCollision =
-          Array.isArray(target) && target.includes("policyNumber");
+          targetFields.some((field) =>
+            field.includes("policyNumber")
+          );
 
         if (isPolicyNumberCollision) {
-          continue; // retry with a new policy number
+          continue;
         }
-
-        // Otherwise, surface the real unique constraint error
-        throw e;
       }
 
-      throw e;
+      throw error;
     }
   }
 
-  throw new Error("Failed to generate a unique policy number");
+  throw new Error(
+    "Failed to generate a unique policy number"
+  );
 }

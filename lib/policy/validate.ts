@@ -4,10 +4,15 @@ import type { PolicyFinalizeInput } from "./types";
 export function validateFinalizeInput(input: PolicyFinalizeInput) {
   const errors: string[] = [];
 
-  const required = (k: keyof PolicyFinalizeInput) => {
-    const v = input[k] as any;
-    if (v === undefined || v === null || (typeof v === "string" && !v.trim())) {
-      errors.push(`${String(k)} is required`);
+  const required = (key: keyof PolicyFinalizeInput) => {
+    const value = input[key];
+
+    if (
+      value === undefined ||
+      value === null ||
+      (typeof value === "string" && !value.trim())
+    ) {
+      errors.push(`${String(key)} is required`);
     }
   };
 
@@ -25,35 +30,120 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
   required("paymentId");
   required("paymentStatus");
 
-  // numeric sanity
-  if (!Number.isFinite(Number(input.durationMs))) errors.push("durationMs must be a number");
-  if (!Number.isFinite(Number(input.totalAmountPence))) errors.push("totalAmountPence must be a number");
+  const durationMs = Number(input.durationMs);
+  const totalAmountPence = Number(input.totalAmountPence);
 
-  if (!Number.isInteger(Number(input.durationMs))) errors.push("durationMs must be an integer");
-  if (!Number.isInteger(Number(input.totalAmountPence))) errors.push("totalAmountPence must be an integer");
+  // Numeric validation
+  if (!Number.isFinite(durationMs)) {
+    errors.push("durationMs must be a number");
+  }
 
-  if (Number(input.durationMs) <= 0) errors.push("durationMs must be > 0");
-  if (Number(input.totalAmountPence) < 0) errors.push("totalAmountPence must be >= 0");
+  if (!Number.isFinite(totalAmountPence)) {
+    errors.push("totalAmountPence must be a number");
+  }
 
+  if (Number.isFinite(durationMs) && !Number.isInteger(durationMs)) {
+    errors.push("durationMs must be an integer");
+  }
+
+  if (
+    Number.isFinite(totalAmountPence) &&
+    !Number.isInteger(totalAmountPence)
+  ) {
+    errors.push("totalAmountPence must be an integer");
+  }
+
+  if (Number.isFinite(durationMs) && durationMs <= 0) {
+    errors.push("durationMs must be > 0");
+  }
+
+  if (Number.isFinite(totalAmountPence) && totalAmountPence <= 0) {
+    errors.push("totalAmountPence must be > 0");
+  }
+
+  // Policy date validation
   const start = new Date(input.startAt);
   const end = new Date(input.endAt);
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
     errors.push("startAt/endAt must be valid ISO dates");
   } else {
-    if (end.getTime() <= start.getTime()) errors.push("endAt must be after startAt");
-    const ms = end.getTime() - start.getTime();
-    if (Math.abs(ms - Number(input.durationMs)) > 5 * 60 * 1000) {
-      errors.push("durationMs does not match startAt/endAt");
+    if (end.getTime() <= start.getTime()) {
+      errors.push("endAt must be after startAt");
+    }
+
+    if (Number.isFinite(durationMs)) {
+      const calculatedDurationMs = end.getTime() - start.getTime();
+      const toleranceMs = 5 * 60 * 1000;
+
+      if (
+        Math.abs(calculatedDurationMs - durationMs) >
+        toleranceMs
+      ) {
+        errors.push("durationMs does not match startAt/endAt");
+      }
     }
   }
 
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(input.email).trim());
-  if (!emailOk) errors.push("email is invalid");
+  // Customer validation
+  const email = String(input.email ?? "")
+    .trim()
+    .toLowerCase();
+
+  const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  if (!emailIsValid) {
+    errors.push("email is invalid");
+  }
 
   const dob = new Date(input.dob);
-  if (Number.isNaN(dob.getTime())) errors.push("dob is invalid");
-  else if (dob.getTime() > Date.now()) errors.push("dob cannot be in the future");
 
-  return { ok: errors.length === 0, errors };
+  if (Number.isNaN(dob.getTime())) {
+    errors.push("dob is invalid");
+  } else if (dob.getTime() > Date.now()) {
+    errors.push("dob cannot be in the future");
+  }
+
+  const allowedLicenceTypes = [
+    "UK",
+    "International",
+    "Learner",
+  ] as const;
+
+  if (!allowedLicenceTypes.includes(input.licenceType)) {
+    errors.push("licenceType is invalid");
+  }
+
+  const allowedPaymentProviders = [
+    "STRIPE",
+    "SQUARE",
+  ] as const;
+
+  if (!allowedPaymentProviders.includes(input.paymentProvider)) {
+    errors.push("paymentProvider is invalid");
+  }
+
+  const allowedPaymentStatuses = [
+    "PENDING",
+    "PAID",
+    "FAILED",
+    "REFUNDED",
+  ] as const;
+
+  if (!allowedPaymentStatuses.includes(input.paymentStatus)) {
+    errors.push("paymentStatus is invalid");
+  }
+
+  const currency = String(input.currency ?? "GBP")
+    .trim()
+    .toUpperCase();
+
+  if (currency !== "GBP") {
+    errors.push("currency must be GBP");
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+  };
 }

@@ -4,7 +4,7 @@ import type {
 } from "@prisma/client";
 
 export type PolicyFinalizeInput = {
-  // quote
+  // Quote
   vrm: string;
   make?: string | null;
   model?: string | null;
@@ -14,20 +14,22 @@ export type PolicyFinalizeInput = {
   durationMs: number;
   totalAmountPence: number;
 
-  // customer
+  // Customer
   fullName: string;
   dob: string;
   email: string;
   licenceType: "UK" | "International" | "Learner";
   address: string;
 
-  // payment (STRICT, matches Prisma)
-  paymentProvider: PaymentProvider;   // ← enum
-  paymentId: string;                  // Stripe session id
-  paymentStatus: PaymentStatus;       // ← enum
-  stripePaymentIntentId?: string | null;
+  // Payment
+  paymentProvider: PaymentProvider;
+  paymentId: string;
+  paymentStatus: PaymentStatus;
+  currency?: string;
 
-  currency?: string; // default GBP
+  // Legacy Stripe-only field.
+  // Keep nullable so Stripe projects and existing records remain compatible.
+  stripePaymentIntentId?: string | null;
 };
 
 export type PolicyFinalizeResult = {
