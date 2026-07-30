@@ -119,6 +119,13 @@ async function findSquarePolicy(
     });
   }
 
+  /*
+   * Defensive fallback:
+   *
+   * If the webhook created the policy but failed before
+   * writing policyId to PaymentCheckout, find the policy
+   * using the verified Square payment ID.
+   */
   if (checkout.squarePaymentId) {
     return prisma.policy.findUnique({
       where: {
@@ -223,7 +230,7 @@ function ProcessingView() {
           aria-hidden="true"
         />
 
-        <div className="relative mx-auto max-w-[620px]">
+        <div className="relative mx-auto w-full max-w-[620px]">
           <div className="flex justify-center">
             <div className="relative flex h-[92px] w-[92px] items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-[rgba(108,76,243,0.06)]" />
@@ -261,20 +268,21 @@ function ProcessingView() {
             </div>
           </div>
 
-          <div className="mt-6 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-white/80 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[rgb(108,76,243)] shadow-[0_8px_24px_rgba(108,76,243,0.06)] backdrop-blur">
+          <div className="mt-6 flex w-full flex-col items-center text-center">
+            <div className="inline-flex items-center justify-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-white/80 px-4 py-2 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-[rgb(108,76,243)] shadow-[0_8px_24px_rgba(108,76,243,0.06)] backdrop-blur">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[rgb(108,76,243)] opacity-35" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[rgb(108,76,243)]" />
               </span>
+
               Payment confirmed
             </div>
 
-            <h1 className="mx-auto mt-6 max-w-[10ch] text-[2.65rem] font-extrabold leading-[0.92] tracking-[-0.065em] text-slate-950 sm:text-[3.6rem]">
+            <h1 className="mx-auto mt-6 w-full max-w-[11ch] text-center text-[2.65rem] font-extrabold leading-[0.92] tracking-[-0.065em] text-slate-950 sm:text-[3.6rem]">
               We’re preparing your cover.
             </h1>
 
-            <p className="mx-auto mt-5 max-w-[500px] text-[0.98rem] leading-7 text-slate-500 sm:text-[1.05rem]">
+            <p className="mx-auto mt-5 w-full max-w-[500px] text-center text-[0.98rem] leading-7 text-slate-500 sm:text-[1.05rem]">
               Your payment is complete. We’re creating your policy,
               generating the documents and sending everything to your
               inbox.
@@ -282,21 +290,24 @@ function ProcessingView() {
           </div>
 
           <div className="mt-9 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.07)]">
-            <div className="border-b border-slate-100 bg-[linear-gradient(135deg,rgba(108,76,243,0.055),rgba(255,255,255,0.7))] px-6 py-5 sm:px-7">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
-                    Policy progress
-                  </p>
+            <div className="border-b border-slate-100 bg-[linear-gradient(135deg,rgba(108,76,243,0.055),rgba(255,255,255,0.7))] px-6 py-5 text-center sm:px-7">
+              <div className="flex flex-col items-center justify-center">
+                <div className="inline-flex items-center justify-center gap-2 rounded-full border border-[rgba(108,76,243,0.12)] bg-white px-3 py-1.5 text-[11px] font-semibold text-[rgb(108,76,243)] shadow-sm">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[rgb(108,76,243)] opacity-30" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+                  </span>
 
-                  <p className="mt-1 text-[13px] text-slate-500">
-                    This usually completes within a few seconds.
-                  </p>
-                </div>
-
-                <div className="shrink-0 rounded-full border border-[rgba(108,76,243,0.12)] bg-white px-3 py-1.5 text-[11px] font-semibold text-[rgb(108,76,243)] shadow-sm">
                   Processing
                 </div>
+
+                <p className="mt-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+                  Policy progress
+                </p>
+
+                <p className="mt-1 text-center text-[13px] text-slate-500">
+                  This usually completes within a few seconds.
+                </p>
               </div>
             </div>
 
@@ -437,13 +448,14 @@ function ProcessingView() {
             </Link>
           </div>
 
-          <div className="mt-5 flex items-center justify-center gap-2 text-[11.5px] text-slate-400">
+          <div className="mt-5 flex items-center justify-center gap-2 text-center text-[11.5px] text-slate-400">
             <svg
               width="14"
               height="14"
               viewBox="0 0 14 14"
               fill="none"
               aria-hidden="true"
+              className="shrink-0"
             >
               <path
                 d="M7 1.75 11.5 3.5v3.1c0 2.55-1.75 4.8-4.5 5.65C4.25 11.4 2.5 9.15 2.5 6.6V3.5L7 1.75Z"
@@ -569,8 +581,7 @@ export default async function SuccessPage(
           </div>
 
           <p className="mt-8 max-w-[44rem] text-[1.02rem] leading-8 text-slate-600 sm:text-[1.14rem]">
-            Your policy is active.
-            Documents sent to{" "}
+            Your policy is active. Documents sent to{" "}
             <span className="font-semibold text-slate-800">
               {policy.email}
             </span>
@@ -628,6 +639,7 @@ export default async function SuccessPage(
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                   </span>
+
                   ACTIVE
                 </div>
               </div>
