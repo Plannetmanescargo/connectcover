@@ -1,4 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server";
 
 const MAINTENANCE_COOKIE_NAME =
   "coverza_maintenance_bypass";
@@ -17,7 +20,9 @@ function hasValidBypassCookie(
   req: NextRequest
 ): boolean {
   const configuredSecret =
-    process.env.MAINTENANCE_BYPASS_SECRET?.trim();
+    process.env
+      .MAINTENANCE_BYPASS_SECRET
+      ?.trim();
 
   if (!configuredSecret) {
     return false;
@@ -33,7 +38,18 @@ function hasValidBypassCookie(
 function isWellKnownPath(
   pathname: string
 ): boolean {
-  return pathname.startsWith("/.well-known/");
+  return pathname.startsWith(
+    "/.well-known/"
+  );
+}
+
+function isApiPath(
+  pathname: string
+): boolean {
+  return (
+    pathname === "/api" ||
+    pathname.startsWith("/api/")
+  );
 }
 
 function isAlwaysAllowedPath(
@@ -43,7 +59,7 @@ function isAlwaysAllowedPath(
     pathname === "/maintenance.html" ||
     pathname.startsWith("/brand/") ||
     isWellKnownPath(pathname) ||
-    pathname.startsWith("/api/")
+    isApiPath(pathname)
   );
 }
 
@@ -54,23 +70,27 @@ export function middleware(
     req.nextUrl;
 
   /*
-   * Apple Pay domain verification must be served directly
-   * from the exact requested hostname.
+   * API routes and domain-verification files must be
+   * served directly.
    *
-   * Do not redirect:
+   * Do not redirect them from the apex domain to www,
+   * and do not block them during maintenance mode.
    *
-   * coverza.co.uk/.well-known/...
+   * This is required for services such as:
    *
-   * to:
-   *
-   * www.coverza.co.uk/.well-known/...
+   * - Square webhooks
+   * - Apple Pay domain verification
    */
-  if (isWellKnownPath(pathname)) {
+  if (
+    isApiPath(pathname) ||
+    isWellKnownPath(pathname)
+  ) {
     return NextResponse.next();
   }
 
   /*
-   * Force the normal website onto the canonical www hostname.
+   * Force normal website pages onto the canonical
+   * www hostname.
    */
   if (hostname === "coverza.co.uk") {
     const canonicalUrl =
@@ -89,6 +109,7 @@ export function middleware(
    * Private maintenance bypass.
    *
    * Open:
+   *
    * https://www.coverza.co.uk/?maintenance_bypass=YOUR_SECRET
    */
   const suppliedBypassSecret =
