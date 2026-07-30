@@ -92,10 +92,6 @@ async function findSquarePolicy(
       },
     });
 
-  /*
-   * Only a completed Coverza Square checkout may display
-   * the confirmed-policy page.
-   */
   if (
     !checkout ||
     checkout.brand !== "coverza" ||
@@ -105,12 +101,6 @@ async function findSquarePolicy(
     return null;
   }
 
-  /*
-   * Normal path:
-   *
-   * The webhook writes the created Policy ID back to
-   * PaymentCheckout before document fulfilment begins.
-   */
   if (checkout.policyId) {
     return prisma.policy.findUnique({
       where: {
@@ -129,13 +119,6 @@ async function findSquarePolicy(
     });
   }
 
-  /*
-   * Defensive fallback:
-   *
-   * If the webhook created the policy but failed before
-   * writing policyId back to PaymentCheckout, try finding
-   * the policy using the verified Square payment ID.
-   */
   if (checkout.squarePaymentId) {
     return prisma.policy.findUnique({
       where: {
@@ -194,6 +177,33 @@ async function findLegacyStripePolicy(
 ───────────────────────────────────────────────────────── */
 
 function ProcessingView() {
+  const steps = [
+    {
+      label: "Payment processed",
+      description:
+        "Your payment has been securely confirmed.",
+      state: "complete" as const,
+    },
+    {
+      label: "Creating your policy",
+      description:
+        "We’re registering your cover details now.",
+      state: "active" as const,
+    },
+    {
+      label: "Generating documents",
+      description:
+        "Your certificate and policy files are being prepared.",
+      state: "pending" as const,
+    },
+    {
+      label: "Sending your email",
+      description:
+        "Your documents will be delivered automatically.",
+      state: "pending" as const,
+    },
+  ];
+
   return (
     <PageShell
       hideHero
@@ -207,148 +217,251 @@ function ProcessingView() {
         },
       ]}
     >
-      <section className="pt-4 sm:pt-8 lg:pt-12">
-        <div className="mx-auto max-w-[520px]">
-          <div className="flex items-center justify-center">
-            <div className="relative flex h-20 w-20 items-center justify-center">
-              <div className="absolute inset-0 animate-ping rounded-full bg-[rgba(108,76,243,0.10)]" />
+      <section className="relative overflow-hidden pb-8 pt-2 sm:pb-12 sm:pt-6 lg:pb-16 lg:pt-8">
+        <div
+          className="pointer-events-none absolute left-1/2 top-[-180px] h-[460px] w-[760px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(108,76,243,0.13)_0%,rgba(108,76,243,0.04)_42%,rgba(108,76,243,0)_72%)]"
+          aria-hidden="true"
+        />
 
-              <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[rgba(108,76,243,0.08)]">
+        <div className="relative mx-auto max-w-[620px]">
+          <div className="flex justify-center">
+            <div className="relative flex h-[92px] w-[92px] items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-[rgba(108,76,243,0.06)]" />
+
+              <div className="absolute inset-[9px] animate-pulse rounded-full bg-[rgba(108,76,243,0.08)]" />
+
+              <div className="relative flex h-[58px] w-[58px] items-center justify-center rounded-full border border-[rgba(108,76,243,0.14)] bg-white shadow-[0_12px_34px_rgba(108,76,243,0.16)]">
                 <svg
-                  width="28"
-                  height="28"
-                  viewBox="0 0 28 28"
+                  width="30"
+                  height="30"
+                  viewBox="0 0 30 30"
                   fill="none"
                   aria-hidden="true"
+                  className="animate-spin"
+                  style={{
+                    animationDuration: "1.4s",
+                  }}
                 >
                   <circle
-                    cx="14"
-                    cy="14"
-                    r="12"
+                    cx="15"
+                    cy="15"
+                    r="11.5"
+                    stroke="rgba(108,76,243,0.16)"
+                    strokeWidth="3"
+                  />
+
+                  <path
+                    d="M15 3.5A11.5 11.5 0 0 1 26.5 15"
                     stroke="rgb(108,76,243)"
-                    strokeWidth="2.5"
-                    strokeDasharray="50 28"
+                    strokeWidth="3"
                     strokeLinecap="round"
-                    className="animate-spin"
-                    style={{
-                      transformOrigin:
-                        "50% 50%",
-                    }}
                   />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-[rgba(108,76,243,0.05)] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.20em] text-[rgb(108,76,243)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+          <div className="mt-6 text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-white/80 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[rgb(108,76,243)] shadow-[0_8px_24px_rgba(108,76,243,0.06)] backdrop-blur">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[rgb(108,76,243)] opacity-35" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[rgb(108,76,243)]" />
+              </span>
               Payment confirmed
             </div>
 
-            <h1 className="mt-5 text-[2rem] font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-[2.6rem]">
-              Finalising your policy…
+            <h1 className="mx-auto mt-6 max-w-[10ch] text-[2.65rem] font-extrabold leading-[0.92] tracking-[-0.065em] text-slate-950 sm:text-[3.6rem]">
+              We’re preparing your cover.
             </h1>
 
-            <p className="mt-4 text-[0.95rem] leading-[1.85] text-slate-500">
-              This usually takes a few
-              seconds. Keep this tab open
-              and we&apos;ll update
-              automatically.
+            <p className="mx-auto mt-5 max-w-[500px] text-[0.98rem] leading-7 text-slate-500 sm:text-[1.05rem]">
+              Your payment is complete. We’re creating your policy,
+              generating the documents and sending everything to your
+              inbox.
             </p>
           </div>
 
-          <div className="mt-8 overflow-hidden rounded-[1.75rem] border border-slate-100 bg-white">
-            <div className="divide-y divide-slate-100">
-              {[
-                {
-                  label:
-                    "Payment processed",
-                  done: true,
-                },
-                {
-                  label:
-                    "Policy being created",
-                  done: false,
-                },
-                {
-                  label:
-                    "Documents generating",
-                  done: false,
-                },
-                {
-                  label:
-                    "Email being sent",
-                  done: false,
-                },
-              ].map(
-                ({
-                  label,
-                  done,
-                }) => (
-                  <div
-                    key={label}
-                    className="flex items-center gap-3 px-5 py-3.5"
-                  >
-                    {done ? (
-                      <svg
-                        width="22"
-                        height="22"
-                        viewBox="0 0 22 22"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <circle
-                          cx="11"
-                          cy="11"
-                          r="11"
-                          fill="rgb(108,76,243)"
-                        />
+          <div className="mt-9 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.07)]">
+            <div className="border-b border-slate-100 bg-[linear-gradient(135deg,rgba(108,76,243,0.055),rgba(255,255,255,0.7))] px-6 py-5 sm:px-7">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+                    Policy progress
+                  </p>
 
-                        <path
-                          d="M6.5 11.2 9.2 13.9 15.5 7.5"
-                          stroke="#fff"
-                          strokeWidth="1.9"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ) : (
-                      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-slate-200 bg-white">
-                        <span className="h-2 w-2 rounded-full bg-slate-200" />
-                      </span>
-                    )}
+                  <p className="mt-1 text-[13px] text-slate-500">
+                    This usually completes within a few seconds.
+                  </p>
+                </div>
 
-                    <span
-                      className={[
-                        "text-[13.5px] font-semibold",
-                        done
-                          ? "text-slate-900"
-                          : "text-slate-400",
-                      ].join(" ")}
+                <div className="shrink-0 rounded-full border border-[rgba(108,76,243,0.12)] bg-white px-3 py-1.5 text-[11px] font-semibold text-[rgb(108,76,243)] shadow-sm">
+                  Processing
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-3 sm:px-7">
+              {steps.map(
+                (
+                  {
+                    label,
+                    description,
+                    state,
+                  },
+                  index
+                ) => {
+                  const isComplete =
+                    state === "complete";
+
+                  const isActive =
+                    state === "active";
+
+                  return (
+                    <div
+                      key={label}
+                      className="relative flex gap-4 py-4"
                     >
-                      {label}
-                    </span>
-                  </div>
-                )
+                      {index <
+                        steps.length - 1 && (
+                        <div
+                          className={[
+                            "absolute left-[15px] top-[46px] h-[calc(100%-22px)] w-px",
+                            isComplete
+                              ? "bg-[rgba(108,76,243,0.28)]"
+                              : "bg-slate-200",
+                          ].join(" ")}
+                          aria-hidden="true"
+                        />
+                      )}
+
+                      <div className="relative z-10 mt-0.5 shrink-0">
+                        {isComplete ? (
+                          <div className="flex h-[31px] w-[31px] items-center justify-center rounded-full bg-[rgb(108,76,243)] shadow-[0_8px_18px_rgba(108,76,243,0.24)]">
+                            <svg
+                              width="15"
+                              height="15"
+                              viewBox="0 0 15 15"
+                              fill="none"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M3 7.7 6.1 10.6 12 4.6"
+                                stroke="#fff"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        ) : isActive ? (
+                          <div className="relative flex h-[31px] w-[31px] items-center justify-center">
+                            <span className="absolute inset-0 animate-ping rounded-full bg-[rgba(108,76,243,0.22)]" />
+
+                            <span className="relative flex h-[31px] w-[31px] items-center justify-center rounded-full border-2 border-[rgba(108,76,243,0.28)] bg-white">
+                              <span className="h-2.5 w-2.5 rounded-full bg-[rgb(108,76,243)]" />
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex h-[31px] w-[31px] items-center justify-center rounded-full border-2 border-slate-200 bg-white">
+                            <span className="h-2 w-2 rounded-full bg-slate-200" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p
+                            className={[
+                              "text-[14px] font-semibold",
+                              isComplete ||
+                              isActive
+                                ? "text-slate-950"
+                                : "text-slate-400",
+                            ].join(" ")}
+                          >
+                            {label}
+                          </p>
+
+                          {isComplete && (
+                            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-600">
+                              Done
+                            </span>
+                          )}
+
+                          {isActive && (
+                            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[rgb(108,76,243)]">
+                              In progress
+                            </span>
+                          )}
+                        </div>
+
+                        <p
+                          className={[
+                            "mt-1 text-[12.5px] leading-5",
+                            isComplete ||
+                            isActive
+                              ? "text-slate-500"
+                              : "text-slate-300",
+                          ].join(" ")}
+                        >
+                          {description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
               )}
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-5 rounded-[1.4rem] border border-[rgba(108,76,243,0.10)] bg-[rgba(108,76,243,0.035)] px-5 py-4 text-center">
+            <p className="text-[12.5px] leading-6 text-slate-500">
+              Keep this tab open. The page will update automatically
+              as soon as your policy is ready.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
             <Link
               href="/"
-              className="btn-ghost w-full text-center sm:w-auto"
+              className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-slate-200 bg-white px-7 text-[14px] font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md"
             >
               Back to home
             </Link>
 
             <Link
               href="/retrieve-policy"
-              className="btn-ghost w-full text-center sm:w-auto"
+              className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-[rgba(108,76,243,0.18)] bg-[rgba(108,76,243,0.05)] px-7 text-[14px] font-semibold text-[rgb(108,76,243)] transition hover:-translate-y-0.5 hover:bg-[rgba(108,76,243,0.09)]"
             >
               Retrieve policy
             </Link>
+          </div>
+
+          <div className="mt-5 flex items-center justify-center gap-2 text-[11.5px] text-slate-400">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M7 1.75 11.5 3.5v3.1c0 2.55-1.75 4.8-4.5 5.65C4.25 11.4 2.5 9.15 2.5 6.6V3.5L7 1.75Z"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinejoin="round"
+              />
+
+              <path
+                d="m4.8 6.9 1.45 1.45L9.3 5.3"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+
+            Securely processing your policy
           </div>
 
           <AutoRefresh />
@@ -400,13 +513,6 @@ export default async function SuccessPage(
       );
   }
 
-  /*
-   * Square can return the browser before its webhook
-   * has completed.
-   *
-   * AutoRefresh reloads the page until PaymentCheckout
-   * is marked PAID and contains the resulting policyId.
-   */
   if (!policy) {
     return <ProcessingView />;
   }
@@ -494,7 +600,6 @@ export default async function SuccessPage(
       {/* ══ POLICY SECTION ══ */}
       <section className="mt-12">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
-          {/* ── Left: Policy number and details ── */}
           <div className="flex flex-col gap-4">
             <div className="relative overflow-hidden rounded-[2rem] border border-[rgba(108,76,243,0.12)] bg-white px-8 py-8 shadow-[0_2px_24px_rgba(108,76,243,0.06)]">
               <div
@@ -509,15 +614,11 @@ export default async function SuccessPage(
                   </p>
 
                   <p className="mt-3 font-mono text-[2rem] font-extrabold leading-none tracking-[0.02em] text-slate-950 sm:text-[2.6rem]">
-                    {
-                      policy.policyNumber
-                    }
+                    {policy.policyNumber}
                   </p>
 
                   <p className="mt-3 text-[12.5px] text-slate-400">
-                    Save this —
-                    you&apos;ll need it to
-                    retrieve your
+                    Save this — you&apos;ll need it to retrieve your
                     documents.
                   </p>
                 </div>
@@ -539,11 +640,7 @@ export default async function SuccessPage(
                 </p>
 
                 <p className="mt-2 text-[14px] font-semibold leading-snug text-slate-950">
-                  {
-                    fmt(
-                      policy.startAt
-                    )
-                  }
+                  {fmt(policy.startAt)}
                 </p>
               </div>
 
@@ -553,11 +650,7 @@ export default async function SuccessPage(
                 </p>
 
                 <p className="mt-2 text-[14px] font-semibold leading-snug text-slate-950">
-                  {
-                    fmt(
-                      policy.endAt
-                    )
-                  }
+                  {fmt(policy.endAt)}
                 </p>
               </div>
             </div>
@@ -569,11 +662,7 @@ export default async function SuccessPage(
                 </p>
 
                 <p className="mt-2 text-[14px] font-semibold leading-snug text-slate-950">
-                  {
-                    vehicleLine(
-                      policy
-                    )
-                  }
+                  {vehicleLine(policy)}
                 </p>
               </div>
 
@@ -589,7 +678,6 @@ export default async function SuccessPage(
             </div>
           </div>
 
-          {/* ── Right: Steps and actions ── */}
           <div className="flex flex-col gap-4">
             <div className="overflow-hidden rounded-[1.75rem] border border-slate-100 bg-white shadow-[0_1px_12px_rgba(15,23,42,0.04)]">
               <div className="border-b border-slate-100 px-6 py-4">
@@ -641,9 +729,7 @@ export default async function SuccessPage(
                         </p>
 
                         <p className="text-[12px] text-slate-400">
-                          {
-                            description
-                          }
+                          {description}
                         </p>
                       </div>
                     </div>
@@ -685,10 +771,8 @@ export default async function SuccessPage(
             </div>
 
             <p className="text-center text-[12px] leading-[1.7] text-slate-400">
-              MID records update several
-              times daily — your cover is
-              active now even if it
-              hasn&apos;t appeared yet.
+              MID records update several times daily — your cover is
+              active now even if it hasn&apos;t appeared yet.
               Can&apos;t find the email?{" "}
               <Link
                 href="/retrieve-policy"
@@ -724,10 +808,8 @@ export default async function SuccessPage(
             </h2>
 
             <p className="mt-3 text-[0.92rem] leading-[1.75] text-white/70">
-              Retrieve your policy and
-              download your documents
-              again at any time — no need
-              to contact us.
+              Retrieve your policy and download your documents again
+              at any time — no need to contact us.
             </p>
 
             <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
