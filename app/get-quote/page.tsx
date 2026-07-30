@@ -1577,7 +1577,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
               </div>
 
               <p className="mt-4 text-[11.5px] leading-6 text-slate-400">
-                Stripe-secured payment · Documents issued immediately · Ref: {quoteRef}
+                Secure payment powered by Square · Documents issued immediately · Ref: {quoteRef}
               </p>
             </div>
           </div>
