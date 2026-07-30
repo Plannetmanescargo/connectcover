@@ -1,24 +1,23 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 
 export default function AutoRefresh() {
-  const router = useRouter();
   const tries = useRef(0);
 
   useEffect(() => {
-    const id = setInterval(() => {
+    const timeoutId = window.setTimeout(() => {
       tries.current += 1;
-      if (tries.current > 6) {
-        clearInterval(id);
-        return;
-      }
-      router.refresh();
-    }, 2500);
 
-    return () => clearInterval(id);
-  }, [router]);
+      if (tries.current <= 40) {
+        window.location.reload();
+      }
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
 
   return null;
 }

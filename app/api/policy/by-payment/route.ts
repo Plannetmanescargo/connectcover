@@ -1,50 +1,148 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/db/prisma";
+// app/api/policy/by-payment/route.ts
+
 import type { PaymentProvider } from "@prisma/client";
+import { NextResponse } from "next/server";
+
+import { prisma } from "@/db/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/policy/by-payment?provider=stripe&id=cs_... (Stripe Checkout Session ID)
-function coerceProvider(v: string | null): PaymentProvider | null {
-  const s = (v || "").trim().toUpperCase();
-  if (s === "STRIPE") return "STRIPE";
+/**
+ * GET examples:
+ *
+ * Square:
+ * /api/policy/by-payment?provider=square&id=PAYMENT_ID
+ *
+ * Legacy Stripe:
+ * /api/policy/by-payment?provider=stripe&id=cs_...
+ */
+function coerceProvider(
+  value: string | null
+): PaymentProvider | null {
+  const provider = (
+    value ?? ""
+  )
+    .trim()
+    .toUpperCase();
+
+  if (provider === "SQUARE") {
+    return "SQUARE";
+  }
+
+  if (provider === "STRIPE") {
+    return "STRIPE";
+  }
+
   return null;
 }
 
-export async function GET(req: Request) {
-  try {
-    const url = new URL(req.url);
+function getErrorMessage(
+  error: unknown
+): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
 
-    const paymentId = (url.searchParams.get("id") || "").trim();
+  return String(error);
+}
+
+export async function GET(
+  request: Request
+): Promise<NextResponse> {
+  try {
+    const url = new URL(request.url);
+
+    const paymentId = (
+      url.searchParams.get("id") ?? ""
+    ).trim();
+
     if (!paymentId) {
       return NextResponse.json(
-        { ok: false, error: "Missing id" },
-        { status: 400 }
+        {
+          ok: false,
+          error: "Missing id",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const provider = coerceProvider(url.searchParams.get("provider")) ?? "STRIPE";
+    const rawProvider =
+      url.searchParams.get("provider");
 
-    const policy = await prisma.policy.findFirst({
-      where: { paymentProvider: provider, paymentId },
-      select: {
-        id: true,
-        policyNumber: true,
-        paymentStatus: true,
-        createdAt: true,
-      },
-    });
+    const provider =
+      coerceProvider(rawProvider);
 
-    if (!policy) {
-      return NextResponse.json({ ok: true, found: false }, { status: 200 });
+    if (!provider) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Invalid payment provider. Expected square or stripe.",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    return NextResponse.json({ ok: true, found: true, policy });
-  } catch (e: any) {
+    const policy =
+      await prisma.policy.findUnique({
+        where: {
+          paymentProvider_paymentId: {
+            paymentProvider: provider,
+            paymentId,
+          },
+        },
+
+        select: {
+          id: true,
+          policyNumber: true,
+          paymentStatus: true,
+          createdAt: true,
+        },
+      });
+
+    if (!policy) {
+      return NextResponse.json(
+        {
+          ok: true,
+          found: false,
+        },
+        {
+          status: 200,
+        }
+      );
+    }
+
     return NextResponse.json(
-      { ok: false, error: "Lookup failed", message: e?.message ?? String(e) },
-      { status: 500 }
+      {
+        ok: true,
+        found: true,
+        policy,
+      },
+      {
+        status: 200,
+      }
+    );
+  } catch (error: unknown) {
+    console.error(
+      "[policy by-payment] lookup failed",
+      {
+        error: getErrorMessage(error),
+      }
+    );
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Lookup failed",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
