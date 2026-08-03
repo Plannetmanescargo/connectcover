@@ -1,4 +1,5 @@
 // lib/policy/fulfill.ts
+import { Prisma } from "@prisma/client";
 import { Resend } from "resend";
 
 import { prisma } from "@/db/prisma";
@@ -535,7 +536,16 @@ export async function fulfillPolicy(
     });
   }
 
-  // Email policy documents once.
+  /*
+   * Email policy documents once.
+   *
+   * This existing EMAIL_SENT logic has been left unchanged because
+   * EMAIL_SENT is also used by the retrieve-policy route and is allowed
+   * to be repeatable in the database.
+   *
+   * The welcome automation duplication is prevented independently below
+   * using its dedicated partial unique index.
+   */
   const alreadyEmailed =
     await prisma.policyEvent.findFirst({
       where: {
@@ -585,85 +595,153 @@ export async function fulfillPolicy(
     }
   }
 
-  // Add customer to the newsletter audience once.
-  const alreadyAddedToAudience =
-    await prisma.policyEvent.findFirst({
-      where: {
+  /*
+   * Atomically claim newsletter processing before calling Resend.
+   *
+   * The database partial unique index allows only one
+   * NEWSLETTER_CONTACT_ADDED row for each policy.
+   *
+   * Concurrent fulfilment requests will receive Prisma P2002 and will
+   * not call Resend.
+   */
+  let newsletterClaimed = false;
+
+  try {
+    await prisma.policyEvent.create({
+      data: {
         policyId,
         type: "NEWSLETTER_CONTACT_ADDED",
-      },
-      select: {
-        id: true,
-      },
-    });
-
-if (!alreadyAddedToAudience) {
-  const newsletterResult =
-    await syncCustomerToNewsletter({
-      email: policy.email,
-      fullName: policy.fullName,
-    });
-
-  const newsletterWasSkipped =
-    "skipped" in newsletterResult &&
-    newsletterResult.skipped === true;
-
-  if (newsletterResult.ok || newsletterWasSkipped) {
-    try {
-      await prisma.policyEvent.create({
         data: {
+          status: "PROCESSING",
+          email: policy.email,
+        },
+      },
+    });
+
+    newsletterClaimed = true;
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      console.log("[resend contacts] already claimed", {
+        policyId,
+        email: policy.email,
+      });
+    } else {
+      throw error;
+    }
+  }
+
+  if (newsletterClaimed) {
+    const newsletterResult =
+      await syncCustomerToNewsletter({
+        email: policy.email,
+        fullName: policy.fullName,
+      });
+
+    const newsletterWasSkipped =
+      "skipped" in newsletterResult &&
+      newsletterResult.skipped === true;
+
+    if (newsletterResult.ok || newsletterWasSkipped) {
+      await prisma.policyEvent.updateMany({
+        where: {
           policyId,
           type: "NEWSLETTER_CONTACT_ADDED",
+        },
+        data: {
           data: {
+            status: "COMPLETED",
             ok: newsletterResult.ok,
             email: policy.email,
             skipped: newsletterWasSkipped,
           },
         },
       });
-    } catch (error: unknown) {
+    } else {
+      /*
+       * Resend did not complete the operation.
+       *
+       * Delete the claim so a future webhook retry can attempt it again.
+       */
+      await prisma.policyEvent.deleteMany({
+        where: {
+          policyId,
+          type: "NEWSLETTER_CONTACT_ADDED",
+        },
+      });
+
       console.error(
-        "[resend contacts] failed to record event",
+        "[resend contacts] sync failed; claim removed",
         {
           policyId,
-          error: getErrorMessage(error),
+          email: policy.email,
         }
       );
     }
   }
-}
 
-  // Trigger the welcome automation once.
-  const alreadyTriggeredWelcome =
-    await prisma.policyEvent.findFirst({
-      where: {
+  /*
+   * Atomically claim the welcome automation before calling Resend.
+   *
+   * The database partial unique index allows only one
+   * WELCOME_AUTOMATION_TRIGGERED row for each policy.
+   *
+   * Even if Square sends payment.created, payment.updated or retries the
+   * same webhook concurrently, only the request that successfully creates
+   * this claim is allowed to trigger the Resend event.
+   */
+  let welcomeClaimed = false;
+
+  try {
+    await prisma.policyEvent.create({
+      data: {
         policyId,
         type: "WELCOME_AUTOMATION_TRIGGERED",
-      },
-      select: {
-        id: true,
-      },
-    });
-
-if (!alreadyTriggeredWelcome) {
-  const welcomeResult =
-    await triggerWelcomeAutomation({
-      email: policy.email,
-      fullName: policy.fullName,
-      policyNumber: policy.policyNumber,
-    });
-
-  const welcomeWasSkipped =
-    "skipped" in welcomeResult &&
-    welcomeResult.skipped === true;
-
-  if (welcomeResult.ok || welcomeWasSkipped) {
-    try {
-      await prisma.policyEvent.create({
         data: {
+          status: "PROCESSING",
+          email: policy.email,
+        },
+      },
+    });
+
+    welcomeClaimed = true;
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      console.log("[resend welcome] already claimed", {
+        policyId,
+        email: policy.email,
+      });
+    } else {
+      throw error;
+    }
+  }
+
+  if (welcomeClaimed) {
+    const welcomeResult =
+      await triggerWelcomeAutomation({
+        email: policy.email,
+        fullName: policy.fullName,
+        policyNumber: policy.policyNumber,
+      });
+
+    const welcomeWasSkipped =
+      "skipped" in welcomeResult &&
+      welcomeResult.skipped === true;
+
+    if (welcomeResult.ok || welcomeWasSkipped) {
+      await prisma.policyEvent.updateMany({
+        where: {
           policyId,
           type: "WELCOME_AUTOMATION_TRIGGERED",
+        },
+        data: {
           data: {
+            status: "COMPLETED",
             ok: welcomeResult.ok,
             email: policy.email,
             eventId:
@@ -674,17 +752,28 @@ if (!alreadyTriggeredWelcome) {
           },
         },
       });
-    } catch (error: unknown) {
+    } else {
+      /*
+       * Resend did not confirm that the automation event was accepted.
+       *
+       * Delete the claim so a future webhook retry can attempt it again.
+       */
+      await prisma.policyEvent.deleteMany({
+        where: {
+          policyId,
+          type: "WELCOME_AUTOMATION_TRIGGERED",
+        },
+      });
+
       console.error(
-        "[resend welcome] failed to record event",
+        "[resend welcome] trigger failed; claim removed",
         {
           policyId,
-          error: getErrorMessage(error),
+          email: policy.email,
         }
       );
     }
   }
-}
 
   return {
     proposalUrl,
