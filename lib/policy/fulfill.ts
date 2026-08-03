@@ -537,47 +537,73 @@ export async function fulfillPolicy(
   }
 
   /*
-   * Email policy documents once.
+   * Atomically claim the initial policy email before calling Resend.
    *
-   * This existing EMAIL_SENT logic has been left unchanged because
-   * EMAIL_SENT is also used by the retrieve-policy route and is allowed
-   * to be repeatable in the database.
+   * The partial unique database index permits only one EMAIL_SENT event
+   * with source INITIAL_FULFILLMENT for each policy.
    *
-   * The welcome automation duplication is prevented independently below
-   * using its dedicated partial unique index.
+   * Customer-requested retrieval emails remain repeatable because they
+   * do not use source INITIAL_FULFILLMENT.
    */
-  const alreadyEmailed =
-    await prisma.policyEvent.findFirst({
-      where: {
+  let initialEmailClaimed = false;
+
+  try {
+    await prisma.policyEvent.create({
+      data: {
         policyId,
         type: "EMAIL_SENT",
-      },
-      select: {
-        id: true,
-      },
-    });
-
-  if (!alreadyEmailed) {
-    const emailResult = await sendPolicyEmail({
-      to: policy.email,
-      policyNumber: policy.policyNumber,
-      certificateUrl,
-      proposalUrl,
-
-      vrm: policy.vrm,
-      make: policy.make ?? null,
-      model: policy.model ?? null,
-      year: policy.year ?? null,
-      startAtISO: policy.startAt.toISOString(),
-      endAtISO: policy.endAt.toISOString(),
-    });
-
-    try {
-      await prisma.policyEvent.create({
         data: {
+          source: "INITIAL_FULFILLMENT",
+          status: "PROCESSING",
+          to: policy.email,
+        },
+      },
+    });
+
+    initialEmailClaimed = true;
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      console.log("[policy email] already claimed", {
+        policyId,
+        email: policy.email,
+      });
+    } else {
+      throw error;
+    }
+  }
+
+  if (initialEmailClaimed) {
+    try {
+      const emailResult = await sendPolicyEmail({
+        to: policy.email,
+        policyNumber: policy.policyNumber,
+        certificateUrl,
+        proposalUrl,
+
+        vrm: policy.vrm,
+        make: policy.make ?? null,
+        model: policy.model ?? null,
+        year: policy.year ?? null,
+        startAtISO: policy.startAt.toISOString(),
+        endAtISO: policy.endAt.toISOString(),
+      });
+
+      await prisma.policyEvent.updateMany({
+        where: {
           policyId,
           type: "EMAIL_SENT",
           data: {
+            path: ["source"],
+            equals: "INITIAL_FULFILLMENT",
+          },
+        },
+        data: {
+          data: {
+            source: "INITIAL_FULFILLMENT",
+            status: "COMPLETED",
             ok: true,
             to: policy.email,
             messageId: emailResult?.id ?? null,
@@ -585,13 +611,27 @@ export async function fulfillPolicy(
         },
       });
     } catch (error: unknown) {
+      await prisma.policyEvent.deleteMany({
+        where: {
+          policyId,
+          type: "EMAIL_SENT",
+          data: {
+            path: ["source"],
+            equals: "INITIAL_FULFILLMENT",
+          },
+        },
+      });
+
       console.error(
-        "[policy email] sent but failed to record event",
+        "[policy email] send failed; claim removed",
         {
           policyId,
+          email: policy.email,
           error: getErrorMessage(error),
         }
       );
+
+      throw error;
     }
   }
 
@@ -601,8 +641,8 @@ export async function fulfillPolicy(
    * The database partial unique index allows only one
    * NEWSLETTER_CONTACT_ADDED row for each policy.
    *
-   * Concurrent fulfilment requests will receive Prisma P2002 and will
-   * not call Resend.
+   * Concurrent fulfilment requests receive Prisma P2002 and do not
+   * call Resend again.
    */
   let newsletterClaimed = false;
 
@@ -662,8 +702,7 @@ export async function fulfillPolicy(
     } else {
       /*
        * Resend did not complete the operation.
-       *
-       * Delete the claim so a future webhook retry can attempt it again.
+       * Remove the claim so a future retry can attempt it again.
        */
       await prisma.policyEvent.deleteMany({
         where: {
@@ -688,9 +727,9 @@ export async function fulfillPolicy(
    * The database partial unique index allows only one
    * WELCOME_AUTOMATION_TRIGGERED row for each policy.
    *
-   * Even if Square sends payment.created, payment.updated or retries the
-   * same webhook concurrently, only the request that successfully creates
-   * this claim is allowed to trigger the Resend event.
+   * Even if Square sends payment.created, payment.updated, or retries
+   * the same webhook concurrently, only the request that creates this
+   * claim is allowed to trigger the Resend event.
    */
   let welcomeClaimed = false;
 
@@ -755,8 +794,7 @@ export async function fulfillPolicy(
     } else {
       /*
        * Resend did not confirm that the automation event was accepted.
-       *
-       * Delete the claim so a future webhook retry can attempt it again.
+       * Remove the claim so a future retry can attempt it again.
        */
       await prisma.policyEvent.deleteMany({
         where: {
