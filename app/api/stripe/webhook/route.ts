@@ -280,28 +280,55 @@ async function retrieveSquareOrder(args: {
   return result.order;
 }
 
-async function markCheckoutFailed(args: {
+/**
+ * Records an unsuccessful payment attempt without permanently failing
+ * the whole checkout.
+ *
+ * A buyer can retry the same Square payment link. Each attempt may use
+ * a different Square payment ID, so failed or cancelled attempt IDs
+ * must not be stored in PaymentCheckout.squarePaymentId.
+ *
+ * An already-paid checkout is never downgraded.
+ */
+async function recordUnsuccessfulPaymentAttempt(args: {
   checkoutId: string;
-  squarePaymentId?: string;
+  squarePaymentId: string;
+  squareStatus: string;
 }): Promise<void> {
-  const { checkoutId, squarePaymentId } = args;
+  const {
+    checkoutId,
+    squarePaymentId,
+    squareStatus,
+  } = args;
+
+  console.warn(
+    "[square webhook] unsuccessful payment attempt",
+    {
+      checkoutId,
+      squarePaymentId,
+      squareStatus,
+    }
+  );
 
   await prisma.paymentCheckout
-    .update({
+    .updateMany({
       where: {
         id: checkoutId,
+        status: {
+          not: "PAID",
+        },
       },
       data: {
-        status: "FAILED",
-        squarePaymentId:
-          squarePaymentId || undefined,
+        status: "PENDING",
       },
     })
     .catch((error: unknown) => {
       console.error(
-        "[square webhook] failed to mark checkout as failed",
+        "[square webhook] failed to preserve pending checkout",
         {
           checkoutId,
+          squarePaymentId,
+          squareStatus,
           error: getErrorMessage(error),
         }
       );
@@ -427,12 +454,39 @@ async function processCompletedPayment(args: {
     );
   }
 
+  /*
+   * Older webhook logic may have stored a failed attempt's payment ID.
+   *
+   * A valid completed payment may recover a PENDING or FAILED checkout
+   * and replace that stale payment ID.
+   *
+   * Once the checkout is PAID, a different payment ID must never
+   * overwrite the successful payment.
+   */
   if (
+    checkout.status === "PAID" &&
     checkout.squarePaymentId &&
     checkout.squarePaymentId !== payment.id
   ) {
     throw new Error(
-      "PaymentCheckout is already linked to a different Square payment."
+      "Paid PaymentCheckout is already linked to a different Square payment."
+    );
+  }
+
+  if (
+    checkout.status !== "PAID" &&
+    checkout.squarePaymentId &&
+    checkout.squarePaymentId !== payment.id
+  ) {
+    console.warn(
+      "[square webhook] replacing stale payment attempt",
+      {
+        checkoutId: checkout.id,
+        previousPaymentId:
+          checkout.squarePaymentId,
+        completedPaymentId: payment.id,
+        previousStatus: checkout.status,
+      }
     );
   }
 
@@ -524,17 +578,29 @@ async function processCompletedPayment(args: {
       }
     );
 
-    await markCheckoutFailed({
-      checkoutId: checkout.id,
-      squarePaymentId: payment.id,
+    /*
+     * This is a completed, potentially charged payment, so do not mark
+     * it as an ordinary failed checkout and do not acknowledge it as
+     * successfully handled.
+     *
+     * Keep the checkout recoverable and throw so Square can retry the
+     * webhook instead of permanently considering it handled.
+     */
+    await prisma.paymentCheckout.updateMany({
+      where: {
+        id: checkout.id,
+        status: {
+          not: "PAID",
+        },
+      },
+      data: {
+        status: "PENDING",
+      },
     });
 
-    return {
-      ignored: true as const,
-      reason:
-        "payment_or_order_total_mismatch",
-      checkoutId: checkout.id,
-    };
+    throw new Error(
+      "Completed Square payment failed amount or currency validation."
+    );
   }
 
   if (!isLicenceType(checkout.licenceType)) {
@@ -588,6 +654,9 @@ async function processCompletedPayment(args: {
    * Save the completed payment and resulting policy before document
    * fulfilment. This lets the success page find the policy immediately,
    * even while PDFs and email are still being processed.
+   *
+   * A previously FAILED or PENDING checkout is deliberately allowed to
+   * recover to PAID here.
    */
   await prisma.paymentCheckout.update({
     where: {
@@ -876,6 +945,10 @@ export async function POST(
   /*
    * payment.created can arrive before the payment reaches its final
    * status. Only a COMPLETED payment may create a policy.
+   *
+   * FAILED or CANCELED represents an unsuccessful payment attempt, not
+   * necessarily a permanently failed checkout. The buyer may retry the
+   * same payment link and receive a new payment ID.
    */
   if (payment.status !== "COMPLETED") {
     if (
@@ -895,18 +968,24 @@ export async function POST(
             failedOrder.reference_id?.trim();
 
           if (failedCheckoutId) {
-            await markCheckoutFailed({
+            await recordUnsuccessfulPaymentAttempt({
               checkoutId:
                 failedCheckoutId,
               squarePaymentId:
                 payment.id,
+              squareStatus:
+                payment.status,
             });
           }
         } catch (error: unknown) {
           console.error(
-            "[square webhook] failed to record unsuccessful payment",
+            "[square webhook] failed to record unsuccessful payment attempt",
             {
               paymentId: payment.id,
+              orderId:
+                payment.order_id,
+              status:
+                payment.status,
               error:
                 getErrorMessage(error),
             }

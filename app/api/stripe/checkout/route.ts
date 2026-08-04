@@ -428,6 +428,15 @@ export async function POST(
   let paymentCheckoutId: string | null =
     null;
 
+  /*
+   * Becomes true once Square returns a complete and usable payment link
+   * response.
+   *
+   * After this point, a later local database error must not incorrectly
+   * mark the checkout FAILED because Square has already created it.
+   */
+  let squareCheckoutCreated = false;
+
   try {
     const squareAccessToken =
       process.env.SQUARE_ACCESS_TOKEN?.trim();
@@ -560,7 +569,7 @@ export async function POST(
         line_items: [
           {
             name:
-              "Coverza Temporary Insurance Policy",
+              "Coverza Policy Documents",
             quantity: "1",
 
             base_price_money: {
@@ -585,7 +594,7 @@ export async function POST(
       },
 
       description:
-        "Coverza temporary vehicle insurance policy",
+        "Coverza Policy Documents",
     };
 
     const squareResponse = await fetch(
@@ -633,6 +642,12 @@ export async function POST(
       }
     }
 
+    /*
+     * Square explicitly rejected the payment-link request.
+     *
+     * This checkout was never created successfully, so marking the
+     * local checkout FAILED is appropriate.
+     */
     if (!squareResponse.ok) {
       const squareError =
         getSquareErrorMessage(
@@ -654,9 +669,12 @@ export async function POST(
       );
 
       await prisma.paymentCheckout
-        .update({
+        .updateMany({
           where: {
             id: paymentCheckout.id,
+            status: {
+              not: "PAID",
+            },
           },
 
           data: {
@@ -709,6 +727,11 @@ export async function POST(
       squareResult.related_resources
         ?.orders?.[0]?.id;
 
+    /*
+     * Square returned a successful HTTP response, but did not provide
+     * all the references required to use and later reconcile the
+     * checkout.
+     */
     if (
       !checkoutUrl ||
       !squarePaymentLinkId ||
@@ -729,9 +752,12 @@ export async function POST(
       );
 
       await prisma.paymentCheckout
-        .update({
+        .updateMany({
           where: {
             id: paymentCheckout.id,
+            status: {
+              not: "PAID",
+            },
           },
 
           data: {
@@ -750,6 +776,14 @@ export async function POST(
         }
       );
     }
+
+    /*
+     * Square has now confirmed a complete payment link and order.
+     *
+     * From this point onward, an unexpected local error must not mark
+     * the checkout FAILED because the Square checkout already exists.
+     */
+    squareCheckoutCreated = true;
 
     await prisma.paymentCheckout.update({
       where: {
@@ -796,23 +830,54 @@ export async function POST(
       {
         checkoutId:
           paymentCheckoutId,
+        squareCheckoutCreated,
         error:
           getErrorMessage(error),
       }
     );
 
-    if (paymentCheckoutId) {
+    /*
+     * Only mark the local checkout FAILED if Square never confirmed a
+     * complete and usable payment link.
+     *
+     * When Square already created the checkout, keep the local record
+     * recoverable. The Square webhook remains the authority for whether
+     * payment ultimately completed.
+     */
+    if (
+      paymentCheckoutId &&
+      !squareCheckoutCreated
+    ) {
       await prisma.paymentCheckout
-        .update({
+        .updateMany({
           where: {
             id: paymentCheckoutId,
+            status: {
+              not: "PAID",
+            },
           },
 
           data: {
             status: "FAILED",
           },
         })
-        .catch(() => undefined);
+        .catch(
+          (
+            databaseError: unknown
+          ) => {
+            console.error(
+              "[square checkout] failed to record route failure",
+              {
+                checkoutId:
+                  paymentCheckoutId,
+                error:
+                  getErrorMessage(
+                    databaseError
+                  ),
+              }
+            );
+          }
+        );
     }
 
     return NextResponse.json(
