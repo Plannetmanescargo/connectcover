@@ -190,7 +190,7 @@ export default function CancelPage() {
               </div>
 
               <div className="mt-2 text-[1.04rem] font-semibold tracking-[-0.02em] text-slate-950 break-words">
-                support@Coverza.com
+                support@coverza.co.uk
               </div>
 
               <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -199,7 +199,7 @@ export default function CancelPage() {
 
               <div className="mt-5">
                 <a
-                  href="mailto:support@Coverza.com"
+                  href="mailto:support@coverza.co.uk"
                   className="btn-ghost w-full justify-center"
                 >
                   Email support

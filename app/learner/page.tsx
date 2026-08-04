@@ -583,7 +583,7 @@ export default function LearnerPage() {
               </div>
 
               <div className="mt-2 text-[1.08rem] font-semibold tracking-[-0.02em] text-slate-950">
-                support@coverza.com
+                support@coverza.co.uk
               </div>
 
               <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -604,7 +604,7 @@ export default function LearnerPage() {
 
               <div className="mt-5">
                 <a
-                  href="mailto:support@coverza.com"
+                  href="mailto:support@coverza.co.uk"
                   className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
                 >
                   Email support

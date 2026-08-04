@@ -842,7 +842,7 @@ export default function HomePage() {
                         Start your quote
                       </Link>
 
-                      <a href="mailto:support@coverza.com" className="btn-ghost">
+                      <a href="mailto:support@coverza.co.uk" className="btn-ghost">
                         Contact support
                       </a>
                     </div>
@@ -855,7 +855,7 @@ export default function HomePage() {
                     </div>
 
                     <div className="mt-3 whitespace-nowrap text-[1.02rem] font-semibold tracking-[-0.02em] text-slate-950">
-                      support@coverza.com
+                      support@coverza.co.uk
                     </div>
 
                     <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -864,7 +864,7 @@ export default function HomePage() {
 
                     <div className="mt-5">
                       <a
-                        href="mailto:support@coverza.com"
+                        href="mailto:support@coverza.co.uk"
                         className="btn-ghost w-full justify-center"
                       >
                         Email support

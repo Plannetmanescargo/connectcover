@@ -78,7 +78,7 @@ function FieldError({ children }: { children: React.ReactNode }) {
 ───────────────────────────────────────────────────────── */
 
 export default function ContactPage() {
-  const SUPPORT_EMAIL = "support@coverza.com";
+  const SUPPORT_EMAIL = "support@coverza.co.uk";
 
   const [form, setForm] = useState<FormState>({
     name: "", email: "", topic: "General", policyRef: "", message: "", website: "",

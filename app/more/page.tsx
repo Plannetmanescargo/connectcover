@@ -325,7 +325,7 @@ export default function MoreHubPage() {
                     Email
                   </div>
                   <div className="mt-2 text-[1.04rem] font-semibold tracking-[-0.02em] text-slate-950">
-                    support@coverza.com
+                    support@coverza.co.uk
                   </div>
                   <div className="mt-1 text-sm leading-7 text-slate-600">
                     Usually within one business day
