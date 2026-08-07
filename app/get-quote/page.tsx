@@ -1584,126 +1584,116 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
           )}
       </div>
 
-      {/* Email */}
-      {(() => {
-        const emailValue = customer.email.trim();
-        const atIndex = emailValue.lastIndexOf("@");
+{/* Email */}
+{(() => {
+  const emailValue = customer.email.trim();
+  const atIndex = emailValue.lastIndexOf("@");
 
-        const localPart =
-          atIndex >= 0
-            ? emailValue.slice(0, atIndex)
-            : "";
+  const localPart =
+    atIndex >= 0
+      ? emailValue.slice(0, atIndex)
+      : "";
 
-        const typedDomain =
-          atIndex >= 0
-            ? emailValue
-                .slice(atIndex + 1)
-                .toLowerCase()
-            : "";
+  const typedDomain =
+    atIndex >= 0
+      ? emailValue
+          .slice(atIndex + 1)
+          .toLowerCase()
+      : "";
 
-        const matchingDomains =
-          atIndex > 0
-            ? emailDomains.filter(domain =>
-                domain
-                  .toLowerCase()
-                  .startsWith(typedDomain)
-              )
-            : [];
+  const matchingDomains =
+    atIndex > 0
+      ? emailDomains.filter(domain =>
+          domain
+            .toLowerCase()
+            .startsWith(typedDomain)
+        )
+      : [];
 
-        const showSuggestions =
-          atIndex > 0 &&
-          matchingDomains.length > 0 &&
-          !matchingDomains.some(
-            domain =>
-              domain.toLowerCase() ===
-              typedDomain
-          );
+  const showSuggestions =
+    atIndex > 0 &&
+    matchingDomains.length > 0 &&
+    !matchingDomains.some(
+      domain =>
+        domain.toLowerCase() ===
+        typedDomain
+    );
 
-        return (
-          <div>
-            <InputLabel htmlFor="email">
-              Email address{" "}
-              <span className="text-red-400">*</span>
-            </InputLabel>
+  return (
+    <div>
+      <InputLabel htmlFor="email">
+        Email address{" "}
+        <span className="text-red-400">*</span>
+      </InputLabel>
 
-            <div className="relative">
-              <input
-                id="email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                className="input w-full"
-                placeholder="name@email.com"
-                value={customer.email}
-                onChange={e => {
-                  setCustomer(c => ({
-                    ...c,
-                    email: e.target.value,
-                  }));
+      <div className="relative">
+        <input
+          id="email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          className="input w-full"
+          placeholder="name@email.com"
+          value={customer.email}
+          onChange={e => {
+            setCustomer(c => ({
+              ...c,
+              email: e.target.value,
+            }));
 
-                  setFormError(null);
-                }}
-              />
+            setFormError(null);
+          }}
+        />
 
-              {showSuggestions && (
-                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_14px_40px_rgba(15,23,42,0.10)]">
-                  {matchingDomains.map(domain => {
-                    const suggestion =
-                      `${localPart}@${domain}`;
+        {showSuggestions && (
+          <div className="relative z-30 mt-2 overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_14px_40px_rgba(15,23,42,0.10)] sm:absolute sm:left-0 sm:right-0 sm:top-[calc(100%+8px)] sm:mt-0">
+            <div className="max-h-[220px] overflow-y-auto overscroll-contain">
+              {matchingDomains.map(domain => {
+                const suggestion =
+                  `${localPart}@${domain}`;
 
-                    return (
-                      <button
-                        key={domain}
-                        type="button"
-                        className="flex w-full items-center px-4 py-3 text-left text-[14px] transition hover:bg-slate-50"
-                        onMouseDown={e => {
-                          e.preventDefault();
-                        }}
-                        onClick={() => {
-                          setCustomer(c => ({
-                            ...c,
-                            email: suggestion,
-                          }));
+                return (
+                  <button
+                    key={domain}
+                    type="button"
+                    className="flex w-full items-center px-4 py-3 text-left text-[14px] transition hover:bg-slate-50 active:bg-slate-100"
+                    onClick={() => {
+                      setCustomer(c => ({
+                        ...c,
+                        email: suggestion,
+                      }));
 
-                          setFormError(null);
+                      setFormError(null);
+                    }}
+                  >
+                    <span className="font-medium text-slate-900">
+                      {localPart}
+                    </span>
 
-                          requestAnimationFrame(() => {
-                            const emailInput =
-                              document.getElementById(
-                                "email"
-                              ) as HTMLInputElement | null;
-
-                            emailInput?.focus();
-                          });
-                        }}
-                      >
-                        <span className="font-medium text-slate-900">
-                          {localPart}
-                        </span>
-
-                        <span className="text-slate-500">
-                          @{domain}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                    <span className="text-slate-500">
+                      @{domain}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-
-            {customer.email &&
-            validEmail(customer.email) ? (
-              <FieldError>
-                {validEmail(customer.email)}
-              </FieldError>
-            ) : (
-              <InputHint>
-                Documents are emailed here immediately after payment.
-              </InputHint>
-            )}
           </div>
-        );
-      })()}
+        )}
+      </div>
+
+      {customer.email &&
+      validEmail(customer.email) ? (
+        <FieldError>
+          {validEmail(customer.email)}
+        </FieldError>
+      ) : (
+        <InputHint>
+          Documents are emailed here immediately after payment.
+        </InputHint>
+      )}
+    </div>
+  );
+})()}
 
       <div>
         <InputLabel htmlFor="licenceType">
