@@ -83,6 +83,14 @@ function validEmail(email: string): string | null {
   }
   return null;
 }
+const emailDomains = [
+  "gmail.com",
+  "outlook.com",
+  "hotmail.com",
+  "yahoo.com",
+  "icloud.com",
+  "live.co.uk",
+];
 function pad2(n: number) { return String(n).padStart(2, "0"); }
 function toDatetimeLocalValue(d: Date) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -1059,375 +1067,687 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
           </StepShell>
         )}
 
-        {/* ══════════════════ STEP 2 — Cover ══════════════════ */}
-        {activeStep === 2 && (
-          <StepShell
-            step={2} total={TOTAL_STEPS}
-            heading="How long do you need cover?"
-            sub="Pick a preset or build a custom window. Cover runs from 1 hour up to 12 months."
-            continueLabel="Continue"
-            onContinue={continueFromStep}
-            onBack={() => goToStep(1)}
+{/* ══════════════════ STEP 2 — Cover ══════════════════ */}
+{activeStep === 2 && (
+  <StepShell
+    step={2}
+    total={TOTAL_STEPS}
+    heading="How long do you need cover?"
+    sub="Pick a preset or build a custom window. Cover runs from 1 hour up to 12 months."
+    continueLabel="Continue"
+    onContinue={continueFromStep}
+    onBack={() => goToStep(1)}
+  >
+    {/* ── 5 cover tiles ── */}
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {([
+        {
+          key: "1hour" as CoverChoice,
+          label: "1 hour",
+          sub: "Quick cover for a short trip or errand",
+          Icon: IconClock,
+        },
+        {
+          key: "1day" as CoverChoice,
+          label: "1 day",
+          sub: "Single trip, test drive or same-day use",
+          Icon: IconCalendarDay,
+        },
+        {
+          key: "1week" as CoverChoice,
+          label: "1 week",
+          sub: "Flexibility across several days",
+          Icon: IconCalendarWeek,
+        },
+        {
+          key: "1month" as CoverChoice,
+          label: "1 month",
+          sub: "Full calendar month from start date",
+          Icon: IconCalendarMonth,
+        },
+        {
+          key: "custom" as CoverChoice,
+          label: "Custom",
+          sub: "Set your own precise start and end",
+          Icon: IconSliders,
+        },
+      ] as {
+        key: CoverChoice;
+        label: string;
+        sub: string;
+        Icon: React.FC<{ className?: string }>;
+      }[]).map(({ key, label, sub, Icon }) => {
+        const active = coverChoice === key;
+
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => selectCoverChoice(key)}
+            className={[
+              "group relative rounded-[1.6rem] border p-5 text-left transition-all duration-200",
+              active
+                ? "border-[rgb(108,76,243)] bg-[rgb(108,76,243)] shadow-[0_12px_36px_rgba(108,76,243,0.24)]"
+                : "border-slate-200 bg-white hover:border-[rgba(108,76,243,0.30)] hover:shadow-[0_6px_20px_rgba(108,76,243,0.08)]",
+            ].join(" ")}
           >
-            {/* ── 5 cover tiles ── */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-
-              {([
-                {
-                  key:   "1hour" as CoverChoice,
-                  label: "1 hour",
-                  sub:   "Quick cover for a short trip or errand",
-                  Icon:  IconClock,
-                },
-                {
-                  key:   "1day" as CoverChoice,
-                  label: "1 day",
-                  sub:   "Single trip, test drive or same-day use",
-                  Icon:  IconCalendarDay,
-                },
-                {
-                  key:   "1week" as CoverChoice,
-                  label: "1 week",
-                  sub:   "Flexibility across several days",
-                  Icon:  IconCalendarWeek,
-                },
-                {
-                  key:   "1month" as CoverChoice,
-                  label: "1 month",
-                  sub:   "Full calendar month from start date",
-                  Icon:  IconCalendarMonth,
-                },
-                {
-                  key:   "custom" as CoverChoice,
-                  label: "Custom",
-                  sub:   "Set your own precise start and end",
-                  Icon:  IconSliders,
-                },
-              ] as { key: CoverChoice; label: string; sub: string; Icon: React.FC<{ className?: string }> }[]).map(({ key, label, sub, Icon }) => {
-                const active = coverChoice === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => selectCoverChoice(key)}
-                    className={[
-                      "group relative rounded-[1.6rem] border p-5 text-left transition-all duration-200",
-                      active
-                        ? "border-[rgb(108,76,243)] bg-[rgb(108,76,243)] shadow-[0_12px_36px_rgba(108,76,243,0.24)]"
-                        : "border-slate-200 bg-white hover:border-[rgba(108,76,243,0.30)] hover:shadow-[0_6px_20px_rgba(108,76,243,0.08)]",
-                    ].join(" ")}
-                  >
-                    <span className={[
-                      "mb-4 flex h-10 w-10 items-center justify-center rounded-[0.85rem] border transition-all",
-                      active
-                        ? "border-white/20 bg-white/15 text-white"
-                        : "border-slate-200 bg-slate-50 text-[rgb(108,76,243)]",
-                    ].join(" ")} aria-hidden="true">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <p className={["text-[1.05rem] font-extrabold tracking-tight", active ? "!text-white" : "text-slate-950"].join(" ")}>
-                      {label}
-                    </p>
-                    <p className={["mt-1.5 text-[12px] leading-snug", active ? "!text-white/65" : "text-slate-500"].join(" ")}>
-                      {sub}
-                    </p>
-                    {active && (
-                      <span className="absolute bottom-4 right-4 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-white">
-                        <IconCheck className="h-3 w-3" />
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* ── 1-hour clarification note ── */}
-            {coverChoice === "1hour" && startAt && endAt && (
-              <div className="mt-4 flex items-start gap-3 rounded-[1.25rem] border border-[rgba(108,76,243,0.12)] bg-[rgba(108,76,243,0.04)] px-4 py-4">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[rgba(108,76,243,0.15)] text-[rgb(108,76,243)]">
-                  <IconCheck className="h-3 w-3" />
-                </span>
-                <div>
-                  <p className="text-[13px] font-semibold text-slate-900">
-                    Cover from <span className="text-[rgb(108,76,243)]">{prettyDateTime(startAt)}</span>{" "}
-                    to <span className="text-[rgb(108,76,243)]">{prettyDateTime(endAt)}</span>
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-slate-500">
-                    One hour of cover. You can adjust the start time using Custom if needed.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* ── 1-month clarification note ── */}
-            {coverChoice === "1month" && startAt && endAt && (
-              <div className="mt-4 flex items-start gap-3 rounded-[1.25rem] border border-[rgba(108,76,243,0.12)] bg-[rgba(108,76,243,0.04)] px-4 py-4">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[rgba(108,76,243,0.15)] text-[rgb(108,76,243)]">
-                  <IconCheck className="h-3 w-3" />
-                </span>
-                <div>
-                  <p className="text-[13px] font-semibold text-slate-900">
-                    Cover from <span className="text-[rgb(108,76,243)]">{prettyDateTime(startAt)}</span>{" "}
-                    to <span className="text-[rgb(108,76,243)]">{prettyDateTime(endAt)}</span>
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-slate-500">
-                    One full calendar month — end date respects the actual days in each month.
-                  </p>
-                </div>
-              </div>
-            )}
-
-{coverChoice === "custom" && (
-  <div className="mt-5 rounded-[1.5rem] border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
-    <p className="mb-5 text-[12.5px] font-semibold text-slate-500">
-      Choose the unit, set how long you need, then pick your start date and time.
-    </p>
-
-    <div className="grid gap-4">
-
-      {/* Row 1: Unit selector */}
-      <div>
-        <InputLabel>Cover unit</InputLabel>
-        <div className="grid grid-cols-4 gap-2">
-          {(["hours", "days", "weeks", "months"] as DurationUnit[]).map(u => (
-            <button
-              key={u}
-              type="button"
-              onClick={() => {
-                const nextValue = String(clampDuration(Number(durationValue) || 1, u));
-                setDurationUnit(u);
-                setDurationValue(nextValue);
-                setEndAt(calculateEndAt(startAt, nextValue, u));
-                setFormError(null);
-              }}
+            <span
               className={[
-                "rounded-[0.9rem] border py-2.5 text-[13px] font-semibold capitalize transition-all",
-                durationUnit === u
-                  ? "border-[rgb(108,76,243)] bg-[rgb(108,76,243)] !text-white shadow-[0_4px_14px_rgba(108,76,243,0.20)]"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-[rgba(108,76,243,0.30)]",
+                "mb-4 flex h-10 w-10 items-center justify-center rounded-[0.85rem] border transition-all",
+                active
+                  ? "border-white/20 bg-white/15 text-white"
+                  : "border-slate-200 bg-slate-50 text-[rgb(108,76,243)]",
+              ].join(" ")}
+              aria-hidden="true"
+            >
+              <Icon className="h-5 w-5" />
+            </span>
+
+            <p
+              className={[
+                "text-[1.05rem] font-extrabold tracking-tight",
+                active ? "!text-white" : "text-slate-950",
               ].join(" ")}
             >
-              {u}
-            </button>
-          ))}
-        </div>
-      </div>
+              {label}
+            </p>
 
-      {/* Row 2: Stepper with disabled states + singular/plural label */}
-      <div>
-        {(() => {
-          const currentDuration = Number(durationValue) || 1;
-          const atMin = currentDuration <= UNIT_CONFIG[durationUnit].min;
-          const atMax = currentDuration >= UNIT_CONFIG[durationUnit].max;
-          const durationUnitLabel = currentDuration === 1
-            ? durationUnit.slice(0, -1)   // "hour", "day", "week", "month"
-            : durationUnit;               // "hours", "days", "weeks", "months"
+            <p
+              className={[
+                "mt-1.5 text-[12px] leading-snug",
+                active ? "!text-white/65" : "text-slate-500",
+              ].join(" ")}
+            >
+              {sub}
+            </p>
 
-          return (
-            <>
-              <InputLabel>{UNIT_CONFIG[durationUnit].label} needed</InputLabel>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = String(clampDuration(currentDuration - 1, durationUnit));
-                    setDurationValue(next);
-                    setEndAt(calculateEndAt(startAt, next, durationUnit));
-                    setFormError(null);
-                  }}
-                  disabled={atMin}
-                  className={[
-                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-[20px] font-bold transition active:scale-95",
-                    atMin
-                      ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-[rgba(108,76,243,0.30)] hover:text-[rgb(108,76,243)]",
-                  ].join(" ")}
-                  aria-label="Decrease"
-                >
-                  −
-                </button>
-
-                <div className="flex-1 rounded-[0.9rem] border border-slate-200 bg-white px-4 py-3 text-center">
-                  <span className="text-[1.5rem] font-extrabold tracking-tight text-slate-950">
-                    {durationValue}
-                  </span>
-                  <span className="ml-1.5 text-[13px] font-semibold text-slate-400">
-                    {durationUnitLabel}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = String(clampDuration(currentDuration + 1, durationUnit));
-                    setDurationValue(next);
-                    setEndAt(calculateEndAt(startAt, next, durationUnit));
-                    setFormError(null);
-                  }}
-                  disabled={atMax}
-                  className={[
-                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-[20px] font-bold transition active:scale-95",
-                    atMax
-                      ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-[rgba(108,76,243,0.30)] hover:text-[rgb(108,76,243)]",
-                  ].join(" ")}
-                  aria-label="Increase"
-                >
-                  +
-                </button>
-              </div>
-              <p className="mt-1.5 text-center text-[11.5px] text-slate-400">
-                Min {UNIT_CONFIG[durationUnit].min} · Max {UNIT_CONFIG[durationUnit].max}
-              </p>
-            </>
-          );
-        })()}
-      </div>
-
-      {/* Row 3: Start date + time */}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <InputLabel>Start date</InputLabel>
-          <input
-            type="date"
-            className="input block w-full text-[16px] [appearance:none]"
-            value={startParts.date}
-            onChange={(e) => {
-              const next = joinDTL(e.target.value, startParts.time || "00:00");
-              setStartAt(next);
-              setEndAt(calculateEndAt(next, durationValue, durationUnit));
-              setFormError(null);
-            }}
-          />
-        </div>
-        <div>
-          <InputLabel>Start time</InputLabel>
-          <input
-            type="time"
-            className="input block w-full text-[16px] [appearance:none]"
-            value={startParts.time}
-            onChange={(e) => {
-              const next = joinDTL(startParts.date, e.target.value);
-              setStartAt(next);
-              setEndAt(calculateEndAt(next, durationValue, durationUnit));
-              setFormError(null);
-            }}
-          />
-        </div>
-      </div>
-
+            {active && (
+              <span className="absolute bottom-4 right-4 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-white">
+                <IconCheck className="h-3 w-3" />
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
 
-    {/* Summary preview with live price */}
-    {startAt && endAt && durationMs > 0 && (
-      <div className="mt-4 rounded-[1.1rem] border border-[rgba(108,76,243,0.12)] bg-white px-4 py-3.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">Cover window</p>
-            <p className="mt-1 text-[13px] font-semibold text-slate-900">
+    {/* ── Preset cover summary ── */}
+    {coverChoice !== "custom" && startAt && endAt && (
+      <div className="mt-4 flex items-start gap-3 rounded-[1.25rem] border border-[rgba(108,76,243,0.12)] bg-[rgba(108,76,243,0.04)] px-4 py-4">
+        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[rgba(108,76,243,0.15)] text-[rgb(108,76,243)]">
+          <IconCheck className="h-3 w-3" />
+        </span>
+
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold leading-5 text-slate-900">
+            Cover from{" "}
+            <span className="text-[rgb(108,76,243)]">
               {prettyDateTime(startAt)}
-            </p>
-            <p className="text-[12px] text-slate-400">
-              to {prettyDateTime(endAt)}
-            </p>
-          </div>
-          <div className="shrink-0 text-right">
-            <span className="inline-block rounded-full bg-[rgba(108,76,243,0.08)] px-3 py-1.5 text-[13px] font-extrabold text-[rgb(108,76,243)]">
-              {(() => {
-                const n = Number(durationValue) || 1;
-                const label = n === 1 ? durationUnit.slice(0, -1) : durationUnit;
-                return `${n} ${label}`;
-              })()}
+            </span>{" "}
+            to{" "}
+            <span className="text-[rgb(108,76,243)]">
+              {prettyDateTime(endAt)}
             </span>
-            {price && (
-              <p className="mt-1.5 text-[15px] font-extrabold text-slate-950">
-                {moneyGBP(price.total)}
-              </p>
-            )}
-          </div>
+          </p>
+
+          <p className="mt-0.5 text-[12px] leading-5 text-slate-500">
+            {coverChoice === "1hour" &&
+              "One hour of cover. You can adjust the start time using Custom if needed."}
+
+            {coverChoice === "1day" &&
+              "One full day of cover from the start time shown above."}
+
+            {coverChoice === "1week" &&
+              "One full week of cover from the start time shown above."}
+
+            {coverChoice === "1month" &&
+              "One full calendar month — the end date respects the actual number of days in each month."}
+          </p>
         </div>
       </div>
     )}
-  </div>
-)}
 
-            {!coverWithinLimit && endAt && (
-              <FieldError>Cover can't exceed 12 months. Please adjust your end date.</FieldError>
-            )}
-            {formError && <div className="mt-4"><FieldError>{formError}</FieldError></div>}
-          </StepShell>
-        )}
+    {/* ── Custom cover ── */}
+    {coverChoice === "custom" && (
+      <div className="mt-5 rounded-[1.5rem] border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+        <p className="mb-5 text-[12.5px] font-semibold text-slate-500">
+          Choose the unit, set how long you need, then pick your start date and time.
+        </p>
 
-        {/* ══════════════════ STEP 3 — Driver details ══════════════════ */}
-        {activeStep === 3 && (
-          <StepShell
-            step={3} total={TOTAL_STEPS}
-            heading="Tell us about you"
-            sub="Used for your quote confirmation and policy documents. Your name must match your driving licence."
-            continueLabel="Continue"
-            onContinue={continueFromStep}
-            onBack={() => goToStep(2)}
-          >
-<div className="grid gap-6">
-  <p className="text-[12px] text-slate-400">
-    Fields marked <span className="text-red-400">*</span> are required.
-  </p>
-  <div>
-    <InputLabel htmlFor="fullName">Full name <span className="text-red-400">*</span></InputLabel>
-                <input id="fullName" className="input" placeholder="e.g. Jane Smith"
-                  value={customer.fullName}
-                  onChange={e => { setCustomer(c => ({ ...c, fullName: e.target.value })); setFormError(null); }} />
-                <InputHint>Must match your driving licence exactly.</InputHint>
-              </div>
+        <div className="grid gap-4">
+          {/* Row 1: Unit selector */}
+          <div>
+            <InputLabel>Cover unit</InputLabel>
 
-              <div>
-                <InputLabel htmlFor="dob">Date of birth <span className="text-red-400">*</span></InputLabel>
-                <input id="dob" type="date" className="input block w-full text-[16px] [appearance:none]"
-                  value={customer.dob}
-                  onChange={e => { setCustomer(c => ({ ...c, dob: e.target.value })); setCommittedDob(""); setFormError(null); }}
-                  onBlur={e => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) setCommittedDob(e.target.value); }} />
-                {/* Age only shows after blur with a complete date — never mid-entry */}
-                {!committedDob && !customer.dob && (
-                  <InputHint>Used to confirm driver eligibility.</InputHint>
-                )}
-                {committedDob && (ageYears ?? 99) < 17 && (
-                  <FieldError>You must be 17 or over to get cover.</FieldError>
-                )}
-                {committedDob && dobAge !== null && (ageYears ?? 0) >= 17 && (
-                  <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.18)] bg-[rgba(108,76,243,0.07)] px-3.5 py-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
-                    <span className="text-[13px] font-semibold text-[rgb(108,76,243)]">
-                      {dobAge.years} years{dobAge.months > 0 ? `, ${dobAge.months} month${dobAge.months === 1 ? "" : "s"}` : ""} old
-                    </span>
+            <div className="grid grid-cols-4 gap-2">
+              {(["hours", "days", "weeks", "months"] as DurationUnit[]).map(
+                u => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => {
+                      const nextValue = String(
+                        clampDuration(
+                          Number(durationValue) || 1,
+                          u
+                        )
+                      );
+
+                      setDurationUnit(u);
+                      setDurationValue(nextValue);
+                      setEndAt(
+                        calculateEndAt(
+                          startAt,
+                          nextValue,
+                          u
+                        )
+                      );
+                      setFormError(null);
+                    }}
+                    className={[
+                      "rounded-[0.9rem] border py-2.5 text-[13px] font-semibold capitalize transition-all",
+                      durationUnit === u
+                        ? "border-[rgb(108,76,243)] bg-[rgb(108,76,243)] !text-white shadow-[0_4px_14px_rgba(108,76,243,0.20)]"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-[rgba(108,76,243,0.30)]",
+                    ].join(" ")}
+                  >
+                    {u}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: Stepper */}
+          <div>
+            {(() => {
+              const currentDuration =
+                Number(durationValue) || 1;
+
+              const atMin =
+                currentDuration <=
+                UNIT_CONFIG[durationUnit].min;
+
+              const atMax =
+                currentDuration >=
+                UNIT_CONFIG[durationUnit].max;
+
+              const durationUnitLabel =
+                currentDuration === 1
+                  ? durationUnit.slice(0, -1)
+                  : durationUnit;
+
+              return (
+                <>
+                  <InputLabel>
+                    {UNIT_CONFIG[durationUnit].label} needed
+                  </InputLabel>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = String(
+                          clampDuration(
+                            currentDuration - 1,
+                            durationUnit
+                          )
+                        );
+
+                        setDurationValue(next);
+                        setEndAt(
+                          calculateEndAt(
+                            startAt,
+                            next,
+                            durationUnit
+                          )
+                        );
+                        setFormError(null);
+                      }}
+                      disabled={atMin}
+                      className={[
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-[20px] font-bold transition active:scale-95",
+                        atMin
+                          ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-[rgba(108,76,243,0.30)] hover:text-[rgb(108,76,243)]",
+                      ].join(" ")}
+                      aria-label="Decrease"
+                    >
+                      −
+                    </button>
+
+                    <div className="flex-1 rounded-[0.9rem] border border-slate-200 bg-white px-4 py-3 text-center">
+                      <span className="text-[1.5rem] font-extrabold tracking-tight text-slate-950">
+                        {durationValue}
+                      </span>
+
+                      <span className="ml-1.5 text-[13px] font-semibold text-slate-400">
+                        {durationUnitLabel}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = String(
+                          clampDuration(
+                            currentDuration + 1,
+                            durationUnit
+                          )
+                        );
+
+                        setDurationValue(next);
+                        setEndAt(
+                          calculateEndAt(
+                            startAt,
+                            next,
+                            durationUnit
+                          )
+                        );
+                        setFormError(null);
+                      }}
+                      disabled={atMax}
+                      className={[
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-[20px] font-bold transition active:scale-95",
+                        atMax
+                          ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-[rgba(108,76,243,0.30)] hover:text-[rgb(108,76,243)]",
+                      ].join(" ")}
+                      aria-label="Increase"
+                    >
+                      +
+                    </button>
                   </div>
-                )}
-              </div>
 
-<div>
-  <InputLabel htmlFor="email">Email address <span className="text-red-400">*</span></InputLabel>
-  <input id="email" className="input" placeholder="name@email.com" inputMode="email"
-    value={customer.email}
-    onChange={e => { setCustomer(c => ({ ...c, email: e.target.value })); setFormError(null); }} />
-  {customer.email && validEmail(customer.email)
-    ? <FieldError>{validEmail(customer.email)}</FieldError>
-    : <InputHint>Documents are emailed here immediately after payment.</InputHint>}
-</div>
+                  <p className="mt-1.5 text-center text-[11.5px] text-slate-400">
+                    Min {UNIT_CONFIG[durationUnit].min} · Max{" "}
+                    {UNIT_CONFIG[durationUnit].max}
+                  </p>
+                </>
+              );
+            })()}
+          </div>
 
-              <div>
-                <InputLabel htmlFor="licenceType">Licence type <span className="text-red-400">*</span></InputLabel>
-                <select id="licenceType" className="input"
-                  value={customer.licenceType}
-                  onChange={e => { setCustomer(c => ({ ...c, licenceType: e.target.value as DrivingLicenceType })); setFormError(null); }}>
-                  <option value="Full UK">Full UK licence</option>
-                  <option value="International">International licence</option>
-                  <option value="Learner">Learner licence</option>
-                </select>
-              </div>
+          {/* Row 3: Start date + time */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <InputLabel>Start date</InputLabel>
+
+              <input
+                type="date"
+                className="input block w-full text-[16px] [appearance:none]"
+                value={startParts.date}
+                onChange={e => {
+                  const next = joinDTL(
+                    e.target.value,
+                    startParts.time || "00:00"
+                  );
+
+                  setStartAt(next);
+
+                  setEndAt(
+                    calculateEndAt(
+                      next,
+                      durationValue,
+                      durationUnit
+                    )
+                  );
+
+                  setFormError(null);
+                }}
+              />
             </div>
 
-            {formError && <div className="mt-4"><FieldError>{formError}</FieldError></div>}
-          </StepShell>
+            <div>
+              <InputLabel>Start time</InputLabel>
+
+              <input
+                type="time"
+                className="input block w-full text-[16px] [appearance:none]"
+                value={startParts.time}
+                onChange={e => {
+                  const next = joinDTL(
+                    startParts.date,
+                    e.target.value
+                  );
+
+                  setStartAt(next);
+
+                  setEndAt(
+                    calculateEndAt(
+                      next,
+                      durationValue,
+                      durationUnit
+                    )
+                  );
+
+                  setFormError(null);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Summary preview with live price */}
+        {startAt && endAt && durationMs > 0 && (
+          <div className="mt-4 rounded-[1.1rem] border border-[rgba(108,76,243,0.12)] bg-white px-4 py-3.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                  Cover window
+                </p>
+
+                <p className="mt-1 text-[13px] font-semibold text-slate-900">
+                  {prettyDateTime(startAt)}
+                </p>
+
+                <p className="text-[12px] text-slate-400">
+                  to {prettyDateTime(endAt)}
+                </p>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <span className="inline-block rounded-full bg-[rgba(108,76,243,0.08)] px-3 py-1.5 text-[13px] font-extrabold text-[rgb(108,76,243)]">
+                  {(() => {
+                    const n =
+                      Number(durationValue) || 1;
+
+                    const label =
+                      n === 1
+                        ? durationUnit.slice(0, -1)
+                        : durationUnit;
+
+                    return `${n} ${label}`;
+                  })()}
+                </span>
+
+                {price && (
+                  <p className="mt-1.5 text-[15px] font-extrabold text-slate-950">
+                    {moneyGBP(price.total)}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         )}
+      </div>
+    )}
+
+    {!coverWithinLimit && endAt && (
+      <FieldError>
+        Cover can&apos;t exceed 12 months. Please adjust your end date.
+      </FieldError>
+    )}
+
+    {formError && (
+      <div className="mt-4">
+        <FieldError>
+          {formError}
+        </FieldError>
+      </div>
+    )}
+  </StepShell>
+)}
+
+{/* ══════════════════ STEP 3 — Driver details ══════════════════ */}
+{activeStep === 3 && (
+  <StepShell
+    step={3}
+    total={TOTAL_STEPS}
+    heading="Tell us about you"
+    sub="Used for your quote confirmation and policy documents. Your name must match your driving licence."
+    continueLabel="Continue"
+    onContinue={continueFromStep}
+    onBack={() => goToStep(2)}
+  >
+    <div className="grid gap-6">
+      <p className="text-[12px] text-slate-400">
+        Fields marked <span className="text-red-400">*</span> are required.
+      </p>
+
+      <div>
+        <InputLabel htmlFor="fullName">
+          Full name <span className="text-red-400">*</span>
+        </InputLabel>
+
+        <input
+          id="fullName"
+          className="input"
+          placeholder="e.g. Jane Smith"
+          value={customer.fullName}
+          onChange={e => {
+            setCustomer(c => ({
+              ...c,
+              fullName: e.target.value,
+            }));
+            setFormError(null);
+          }}
+        />
+
+        <InputHint>
+          Must match your driving licence exactly.
+        </InputHint>
+      </div>
+
+      <div>
+        <InputLabel htmlFor="dob">
+          Date of birth <span className="text-red-400">*</span>
+        </InputLabel>
+
+        <input
+          id="dob"
+          type="date"
+          className="input block w-full text-[16px] [appearance:none]"
+          value={customer.dob}
+          onChange={e => {
+            setCustomer(c => ({
+              ...c,
+              dob: e.target.value,
+            }));
+            setCommittedDob("");
+            setFormError(null);
+          }}
+          onBlur={e => {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
+              setCommittedDob(e.target.value);
+            }
+          }}
+        />
+
+        {/* Age only shows after blur with a complete date — never mid-entry */}
+        {!committedDob && !customer.dob && (
+          <InputHint>
+            Used to confirm driver eligibility.
+          </InputHint>
+        )}
+
+        {committedDob && (ageYears ?? 99) < 17 && (
+          <FieldError>
+            You must be 17 or over to get cover.
+          </FieldError>
+        )}
+
+        {committedDob &&
+          dobAge !== null &&
+          (ageYears ?? 0) >= 17 && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.18)] bg-[rgba(108,76,243,0.07)] px-3.5 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+
+              <span className="text-[13px] font-semibold text-[rgb(108,76,243)]">
+                {dobAge.years} years
+                {dobAge.months > 0
+                  ? `, ${dobAge.months} month${dobAge.months === 1 ? "" : "s"}`
+                  : ""}{" "}
+                old
+              </span>
+            </div>
+          )}
+      </div>
+
+      {/* Email */}
+      {(() => {
+        const emailValue = customer.email.trim();
+        const atIndex = emailValue.lastIndexOf("@");
+
+        const localPart =
+          atIndex >= 0
+            ? emailValue.slice(0, atIndex)
+            : "";
+
+        const typedDomain =
+          atIndex >= 0
+            ? emailValue
+                .slice(atIndex + 1)
+                .toLowerCase()
+            : "";
+
+        const matchingDomains =
+          atIndex > 0
+            ? emailDomains.filter(domain =>
+                domain
+                  .toLowerCase()
+                  .startsWith(typedDomain)
+              )
+            : [];
+
+        const showSuggestions =
+          atIndex > 0 &&
+          matchingDomains.length > 0 &&
+          !matchingDomains.some(
+            domain =>
+              domain.toLowerCase() ===
+              typedDomain
+          );
+
+        return (
+          <div>
+            <InputLabel htmlFor="email">
+              Email address{" "}
+              <span className="text-red-400">*</span>
+            </InputLabel>
+
+            <div className="relative">
+              <input
+                id="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                className="input w-full"
+                placeholder="name@email.com"
+                value={customer.email}
+                onChange={e => {
+                  setCustomer(c => ({
+                    ...c,
+                    email: e.target.value,
+                  }));
+
+                  setFormError(null);
+                }}
+              />
+
+              {showSuggestions && (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_14px_40px_rgba(15,23,42,0.10)]">
+                  {matchingDomains.map(domain => {
+                    const suggestion =
+                      `${localPart}@${domain}`;
+
+                    return (
+                      <button
+                        key={domain}
+                        type="button"
+                        className="flex w-full items-center px-4 py-3 text-left text-[14px] transition hover:bg-slate-50"
+                        onMouseDown={e => {
+                          e.preventDefault();
+                        }}
+                        onClick={() => {
+                          setCustomer(c => ({
+                            ...c,
+                            email: suggestion,
+                          }));
+
+                          setFormError(null);
+
+                          requestAnimationFrame(() => {
+                            const emailInput =
+                              document.getElementById(
+                                "email"
+                              ) as HTMLInputElement | null;
+
+                            emailInput?.focus();
+                          });
+                        }}
+                      >
+                        <span className="font-medium text-slate-900">
+                          {localPart}
+                        </span>
+
+                        <span className="text-slate-500">
+                          @{domain}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {customer.email &&
+            validEmail(customer.email) ? (
+              <FieldError>
+                {validEmail(customer.email)}
+              </FieldError>
+            ) : (
+              <InputHint>
+                Documents are emailed here immediately after payment.
+              </InputHint>
+            )}
+          </div>
+        );
+      })()}
+
+      <div>
+        <InputLabel htmlFor="licenceType">
+          Licence type <span className="text-red-400">*</span>
+        </InputLabel>
+
+        <select
+          id="licenceType"
+          className="input"
+          value={customer.licenceType}
+          onChange={e => {
+            setCustomer(c => ({
+              ...c,
+              licenceType:
+                e.target.value as DrivingLicenceType,
+            }));
+
+            setFormError(null);
+          }}
+        >
+          <option value="Full UK">
+            Full UK licence
+          </option>
+
+          <option value="International">
+            International licence
+          </option>
+
+          <option value="Learner">
+            Learner licence
+          </option>
+        </select>
+      </div>
+    </div>
+
+    {formError && (
+      <div className="mt-4">
+        <FieldError>
+          {formError}
+        </FieldError>
+      </div>
+    )}
+  </StepShell>
+)}
 
         {/* ══════════════════ STEP 4 — Address ══════════════════ */}
 
@@ -1483,105 +1803,280 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
           </StepShell>
         )}
 
-        {/* ══════════════════ STEP 5 — Review & pay ══════════════════ */}
-        {activeStep === 5 && (
-          <div className="relative overflow-hidden rounded-[2.25rem] border border-slate-200/70 bg-white shadow-[0_24px_80px_rgba(108,76,243,0.07),0_2px_8px_rgba(15,23,42,0.04)]">
-            <div className="h-[3px] w-full bg-[rgb(108,76,243)]" />
-            <div className="px-6 pb-8 pt-7 sm:px-10 sm:pb-10 sm:pt-8">
+{/* ══════════════════ STEP 5 — Review & pay ══════════════════ */}
+{activeStep === 5 && (
+  <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="mx-auto w-full max-w-[820px]">
 
-              <h2 className="text-[1.75rem] font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-[2.4rem]">
-                Everything look right?
-              </h2>
-              <p className="mt-3 max-w-[38rem] text-[0.93rem] leading-[1.8] text-slate-500">
-                Review your details below. Documents are emailed the moment checkout completes.
+      {/* Header */}
+      <div
+        className="w-screen text-center"
+        style={{
+          marginLeft: "calc(50% - 50vw)",
+        }}
+      >
+        <div className="mx-auto w-full max-w-[760px] px-5 sm:px-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.14)] bg-[rgba(108,76,243,0.055)] px-3.5 py-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
+
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[rgb(108,76,243)]">
+              Final review
+            </span>
+          </div>
+
+          <h2 className="mx-auto mt-5 w-full max-w-[620px] text-center text-[2.15rem] font-extrabold leading-[0.95] tracking-[-0.055em] text-slate-950 sm:text-[2.8rem]">
+            Everything look right?
+          </h2>
+
+          <p className="mx-auto mt-4 w-full max-w-[560px] text-center text-[14px] leading-6 text-slate-500 sm:text-[15px]">
+            Check your details before continuing to secure payment.
+          </p>
+        </div>
+      </div>
+
+      {/* Main review card */}
+      <div className="mt-8 overflow-hidden rounded-[26px] border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+
+        {/* Vehicle + cover */}
+        <div className="relative overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+          <div
+            className="pointer-events-none absolute right-[-70px] top-[-90px] h-[190px] w-[190px] rounded-full bg-[rgba(108,76,243,0.05)]"
+            aria-hidden="true"
+          />
+
+          <div className="relative">
+            <p className="text-[10px] font-bold uppercase tracking-[0.19em] text-[rgb(108,76,243)]/60">
+              Your cover
+            </p>
+
+            <div className="mt-3">
+              <p className="text-[1.85rem] font-extrabold uppercase leading-none tracking-[-0.045em] text-slate-950 sm:text-[2.15rem]">
+                {vrmDisplay || "—"}
               </p>
 
-              {/* Receipt table */}
-              <div className="mt-8 overflow-hidden rounded-[1.75rem] border border-slate-100">
-                <div className="divide-y divide-slate-100">
-                  {[
-                    { label: "Vehicle",      value: summaryVehicle,                     step: 1 as Step },
-                    { label: "Cover period", value: summaryCover,                       step: 2 as Step },
-                    { label: "Driver",       value: customer.fullName.trim() || "—",    step: 3 as Step },
-                    { label: "Address",      value: buildAddressString(address) || "—", step: 4 as Step },
-                    { label: "Email",        value: customer.email.trim() || "—",       step: 3 as Step },
-                  ].map(({ label, value, step }) => (
-                    <div key={label} className="flex items-start justify-between gap-4 px-5 py-4">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">{label}</p>
-                        <p className="mt-0.5 break-words text-[13.5px] font-semibold leading-snug text-slate-900">{value}</p>
-                      </div>
-                      <button type="button" onClick={() => goToStep(step)}
-                        className="shrink-0 self-start rounded-full border border-slate-200 bg-white px-3 py-1 text-[11.5px] font-semibold text-slate-500 transition hover:border-[rgba(108,76,243,0.30)] hover:text-[rgb(108,76,243)]">
-                        Edit
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              <p className="mt-2 max-w-[560px] text-[14px] font-semibold leading-5 text-slate-700 sm:text-[15px]">
+                {[
+                  vehicle?.make ?? manualMake,
+                  vehicle?.model ?? manualModel,
+                  vehicle?.year ?? manualYear,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || summaryVehicle}
+              </p>
 
-                {/* Price footer */}
-                <div className="border-t border-slate-200 bg-slate-50/60 px-5 py-5">
-                  <div className="flex items-end justify-between gap-4">
-                    <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">Total due today</p>
-                      {price && (
-                        <p className="mt-1 text-[13px] text-slate-500">
-                          {price.units} {price.unitLabel}{price.units === 1 ? "" : "s"} · {price.label.toLowerCase()} rate · inc. VAT
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-[2.4rem] font-extrabold leading-none tracking-[-0.06em] text-slate-950">
-                      {price ? moneyGBP(price.total) : "—"}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <p className="mt-2 max-w-[560px] text-[12.5px] leading-5 text-slate-400">
+                {summaryCover}
+              </p>
+            </div>
 
-              {/* Process steps */}
-              <div className="mt-6 overflow-hidden rounded-[1.4rem] border border-slate-100 bg-white">
-                <div className="divide-y divide-slate-100">
-                  {[
-                    { n: "01", label: "Payment processed securely" },
-                    { n: "02", label: "Policy created in your name" },
-                    { n: "03", label: "Documents emailed instantly" },
-                  ].map(({ n, label }) => (
-                    <div key={n} className="flex items-center gap-4 px-5 py-3.5">
-                      <span className="text-[11px] font-bold tabular-nums text-[rgb(108,76,243)]/50">{n}</span>
-                      <span className="text-[13px] font-semibold text-slate-700">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
+              <button
+                type="button"
+                onClick={() => goToStep(1)}
+                className="text-[12px] font-semibold text-slate-400 underline decoration-slate-200 underline-offset-4 transition hover:text-[rgb(108,76,243)]"
+              >
+                Edit vehicle
+              </button>
 
-              {formError && (
-                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-                  <p className="text-[13px] font-semibold text-red-700">Something needs attention</p>
-                  <p className="mt-0.5 text-[13px] text-red-600">{formError}</p>
-                </div>
+              <button
+                type="button"
+                onClick={() => goToStep(2)}
+                className="text-[12px] font-semibold text-slate-400 underline decoration-slate-200 underline-offset-4 transition hover:text-[rgb(108,76,243)]"
+              >
+                Edit cover
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-px bg-slate-100" />
+
+        {/* Details */}
+        <div className="px-5 py-2 sm:px-7">
+          {[
+            {
+              label: "Driver",
+              value: customer.fullName.trim() || "—",
+              step: 3 as Step,
+            },
+            {
+              label: "Date of birth",
+              value: customer.dob
+                ? new Date(`${customer.dob}T00:00:00`).toLocaleDateString(
+                    "en-GB",
+                    {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    }
+                  )
+                : "—",
+              step: 3 as Step,
+            },
+            {
+              label: "Licence",
+              value: customer.licenceType || "—",
+              step: 3 as Step,
+            },
+            {
+              label: "Email",
+              value: customer.email.trim() || "—",
+              step: 3 as Step,
+            },
+            {
+              label: "Address",
+              value: buildAddressString(address) || "—",
+              step: 4 as Step,
+            },
+          ].map(({ label, value, step }) => (
+            <div
+              key={label}
+              className="grid grid-cols-[88px_minmax(0,1fr)_auto] items-start gap-3 border-b border-slate-100 py-4 last:border-b-0 sm:grid-cols-[125px_minmax(0,1fr)_auto] sm:gap-5"
+            >
+              <p className="pt-[1px] text-[11px] font-medium text-slate-400">
+                {label}
+              </p>
+
+              <p className="min-w-0 break-words text-[13.5px] font-semibold leading-5 text-slate-800">
+                {value}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => goToStep(step)}
+                className="text-[11.5px] font-semibold text-slate-400 transition hover:text-[rgb(108,76,243)]"
+              >
+                Edit
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Price */}
+        <div className="border-t border-slate-100 bg-[linear-gradient(135deg,rgba(108,76,243,0.042),rgba(248,250,252,0.82))] px-5 py-7 sm:px-7 sm:py-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[rgb(108,76,243)]/60">
+                Total due today
+              </p>
+
+              {price && (
+                <p className="mt-2 max-w-[390px] text-[12.5px] leading-5 text-slate-500">
+                  {price.units} {price.unitLabel}
+                  {price.units === 1 ? "" : "s"} ·{" "}
+                  {price.label.toLowerCase()} rate · inc. VAT
+                </p>
               )}
+            </div>
 
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <button type="button"
-                  onClick={onContinueToPayment}
-                  disabled={!canCheckout || checkoutLoading}
-                  className="inline-flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-full bg-[rgb(108,76,243)] px-8 text-[15px] font-semibold !text-white shadow-[0_12px_36px_rgba(108,76,243,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[rgb(96,66,225)] hover:shadow-[0_16px_44px_rgba(108,76,243,0.36)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:w-auto"
-                >
-                  {checkoutLoading
-                    ? <><IconSpinner /> Processing…</>
-                    : <>Pay {price ? moneyGBP(price.total) : "now"} <IconArrow /></>}
-                </button>
-                <button type="button" onClick={() => goToStep(4)}
-                  className="inline-flex min-h-[52px] w-full items-center justify-center rounded-full border border-slate-200 bg-white px-8 text-[15px] font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto">
-                  Back
-                </button>
-              </div>
+            <div className="pt-1 sm:pt-0 sm:text-right">
+              <p className="text-[2.9rem] font-extrabold leading-none tracking-[-0.065em] text-slate-950 sm:text-[3.15rem]">
+                {price ? moneyGBP(price.total) : "—"}
+              </p>
 
-              <p className="mt-4 text-[11.5px] leading-6 text-slate-400">
-                Secure payment powered by Square · Documents issued immediately · Ref: {quoteRef}
+              <p className="mt-2.5 text-[11px] font-medium text-slate-400">
+                Nothing else to pay today
               </p>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* What happens next */}
+      <div className="mt-5 grid gap-2 sm:grid-cols-3">
+        {[
+          {
+            label: "Secure payment",
+            sub: "Processed by Square",
+          },
+          {
+            label: "Policy created",
+            sub: "After payment confirms",
+          },
+          {
+            label: "Documents emailed",
+            sub: "Once your policy is ready",
+          },
+        ].map(({ label, sub }) => (
+          <div
+            key={label}
+            className="flex items-center gap-3 rounded-[14px] border border-slate-100/90 bg-white/80 px-4 py-3 shadow-[0_3px_14px_rgba(15,23,42,0.02)]"
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgba(108,76,243,0.07)] text-[rgb(108,76,243)]">
+              <IconCheck className="h-3 w-3" />
+            </span>
+
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-slate-700">
+                {label}
+              </p>
+
+              <p className="mt-0.5 text-[10.5px] leading-4 text-slate-400">
+                {sub}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Error */}
+      {formError && (
+        <div className="mt-5 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3.5">
+          <p className="text-[13px] font-semibold text-red-700">
+            Something needs attention
+          </p>
+
+          <p className="mt-1 text-[13px] leading-5 text-red-600">
+            {formError}
+          </p>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+        <button
+          type="button"
+          onClick={onContinueToPayment}
+          disabled={!canCheckout || checkoutLoading}
+          className="inline-flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-full bg-[rgb(108,76,243)] px-8 text-[15px] font-semibold !text-white shadow-[0_12px_32px_rgba(108,76,243,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[rgb(96,66,225)] hover:shadow-[0_16px_42px_rgba(108,76,243,0.32)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:w-auto"
+        >
+          {checkoutLoading ? (
+            <>
+              <IconSpinner />
+              Processing…
+            </>
+          ) : (
+            <>
+              Pay {price ? moneyGBP(price.total) : "now"}
+              <IconArrow />
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => goToStep(4)}
+          className="inline-flex min-h-[54px] w-full items-center justify-center rounded-full border border-slate-200 bg-white px-8 text-[15px] font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
+        >
+          Back
+        </button>
+      </div>
+
+      {/* Footer reassurance */}
+      <div className="mt-5 text-center">
+        <p className="text-[11.5px] leading-5 text-slate-500">
+          Secure payment powered by Square
+          <span className="mx-2 text-slate-300">·</span>
+          Documents issued after successful payment
+        </p>
+
+        <p className="mt-1.5 text-[10.5px] font-medium text-slate-400">
+          Quote reference: {quoteRef}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
       </section>
 
