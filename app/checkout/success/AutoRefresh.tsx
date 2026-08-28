@@ -8,64 +8,26 @@ export default function AutoRefresh() {
   const tries = useRef(0);
 
   useEffect(() => {
-    let timeoutId: number | undefined;
-    let cancelled = false;
-
-    const refresh = () => {
-      if (cancelled) return;
-
+    const intervalId = window.setInterval(() => {
       tries.current += 1;
 
       /*
-       * Stop after roughly 2 minutes.
+       * Check every 3 seconds for up to 2 minutes.
        */
-      if (tries.current > 70) {
+      if (tries.current > 40) {
+        window.clearInterval(intervalId);
         return;
       }
 
       /*
-       * Re-run the server component without doing
+       * Re-run the server component without performing
        * a complete browser-page reload.
        */
       router.refresh();
-
-      /*
-       * Fast polling immediately after payment,
-       * then progressively back off.
-       *
-       *  1–15  = every 800ms
-       * 16–35  = every 1.5s
-       * 36+    = every 3s
-       */
-      let delay = 3000;
-
-      if (tries.current <= 15) {
-        delay = 800;
-      } else if (tries.current <= 35) {
-        delay = 1500;
-      }
-
-      timeoutId = window.setTimeout(
-        refresh,
-        delay
-      );
-    };
-
-    /*
-     * Don't make the customer wait 3 seconds
-     * for the first retry.
-     */
-    timeoutId = window.setTimeout(
-      refresh,
-      500
-    );
+    }, 3000);
 
     return () => {
-      cancelled = true;
-
-      if (timeoutId) {
-        window.clearTimeout(timeoutId);
-      }
+      window.clearInterval(intervalId);
     };
   }, [router]);
 
