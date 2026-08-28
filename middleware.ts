@@ -92,12 +92,12 @@ export function middleware(
    * Force normal website pages onto the canonical
    * www hostname.
    */
-  if (hostname === "coverza.co.uk") {
+  if (hostname === "coverza.uk") {
     const canonicalUrl =
       req.nextUrl.clone();
 
     canonicalUrl.hostname =
-      "www.coverza.co.uk";
+      "www.coverza.uk";
 
     return NextResponse.redirect(
       canonicalUrl,
@@ -110,7 +110,7 @@ export function middleware(
    *
    * Open:
    *
-   * https://www.coverza.co.uk/?maintenance_bypass=YOUR_SECRET
+   * https://www.coverza.uk/?maintenance_bypass=YOUR_SECRET
    */
   const suppliedBypassSecret =
     req.nextUrl.searchParams

@@ -722,7 +722,7 @@ export async function POST(
   /*
    * This must exactly match the URL entered in Square:
    *
-   * https://www.coverza.co.uk/api/stripe/webhook
+   * https://www.coverza.uk/api/stripe/webhook
    *
    * The protocol, hostname, www and path must all match.
    */

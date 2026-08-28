@@ -16,7 +16,7 @@ const inter = Inter({
    METADATA (COVERZA)
 ========================================================= */
 export const metadata: Metadata = {
-  metadataBase: new URL("https://coverza.co.uk"),
+  metadataBase: new URL("https://coverza.uk"),
 
   title: {
     default: "Coverza | Temporary Car Insurance That Fits Around You",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   ],
 
   alternates: {
-    canonical: "https://coverza.co.uk",
+    canonical: "https://coverza.uk",
   },
 
   robots: {
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
 
   openGraph: {
     type: "website",
-    url: "https://coverza.co.uk",
+    url: "https://coverza.uk",
     title: "Coverza | Temporary Car Insurance That Fits Around You",
     description:
       "Flexible temporary car insurance from 1 hour to 28 days. Get covered quickly with a simple online journey and instant documents.",

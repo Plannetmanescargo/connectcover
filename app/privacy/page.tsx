@@ -111,7 +111,7 @@ export default function PrivacyPolicyPage() {
               <br />
               <strong>Registered address:</strong> 5/5 Crutchett’s Ramp, Gibraltar, GX11 1AA
               <br />
-              <strong>Contact email:</strong> support@coverza.co.uk
+              <strong>Contact email:</strong> support@coverza.uk
             </p>
             <p>
               If another insurer, underwriter, claims handler or service provider also
@@ -372,7 +372,7 @@ export default function PrivacyPolicyPage() {
               is used, please contact us:
             </p>
             <p>
-              <strong>Email:</strong> support@coverza.co.uk
+              <strong>Email:</strong> support@coverza.uk
               <br />
               <strong>Address:</strong> 5/5 Crutchett’s Ramp, Gibraltar, GX11 1AA
             </p>
