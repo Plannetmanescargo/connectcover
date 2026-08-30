@@ -40,6 +40,7 @@ type SquarePayment = {
   customer_id?: string;
   buyer_email_address?: string;
   receipt_url?: string;
+  source_type?: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -155,6 +156,16 @@ function isPositiveIntegerAmount(
     typeof value === "number" &&
     Number.isInteger(value) &&
     value > 0
+  );
+}
+
+function isNonNegativeIntegerAmount(
+  value: unknown
+): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 0
   );
 }
 
@@ -522,13 +533,35 @@ async function processCompletedPayment(args: {
   const expectedCurrency =
     checkout.currency.trim().toUpperCase();
 
+  /*
+   * Square-reported discount information.
+   *
+   * For ordinary discounted payments, Square's final order total
+   * and payment total must match.
+   *
+   * For a legitimate 100% discount, Square creates a COMPLETED
+   * zero-value payment. We only accept that special case when
+   * Square explicitly reports a discount equal to the entire
+   * original Coverza amount.
+   *
+   * We deliberately do NOT infer a 100% discount merely because
+   * an order happens to have a £0 total.
+   */
+  const reportedSquareDiscountAmount =
+    order.total_discount_money?.amount;
+
+  const reportedSquareDiscountCurrency =
+    normaliseCurrency(
+      order.total_discount_money?.currency
+    );
+
   const squareDiscountAmount =
-    typeof order.total_discount_money?.amount ===
+    typeof reportedSquareDiscountAmount ===
       "number" &&
     Number.isInteger(
-      order.total_discount_money.amount
+      reportedSquareDiscountAmount
     )
-      ? order.total_discount_money.amount
+      ? reportedSquareDiscountAmount
       : Math.max(
           0,
           originalCoverzaAmount -
@@ -537,24 +570,99 @@ async function processCompletedPayment(args: {
               : originalCoverzaAmount)
         );
 
+  /*
+   * Normal Square payment:
+   *
+   * Example:
+   * Coverza quote: £24.99
+   * Square discount: £5.00
+   * Square total: £19.99
+   * Payment: £19.99
+   */
+  const isStandardPaidOrder =
+    isPositiveIntegerAmount(
+      squareOrderTotal
+    ) &&
+    isPositiveIntegerAmount(
+      paidAmount
+    ) &&
+    paidAmount === squareOrderTotal;
+
+  /*
+   * Legitimate fully-discounted Square order.
+   *
+   * Example:
+   * Coverza quote: £1.99
+   * Square discount: £1.99
+   * Square order total: £0.00
+   * Square payment total: £0.00
+   *
+   * Square represented the observed £0 checkout as
+   * source_type CASH. No actual cash payment is assumed here;
+   * this is only accepted alongside Square's explicit full
+   * discount data.
+   */
+  const isFullyDiscountedOrder =
+    squareOrderTotal === 0 &&
+    paidAmount === 0 &&
+    payment.source_type === "CASH" &&
+
+    typeof reportedSquareDiscountAmount ===
+      "number" &&
+    Number.isInteger(
+      reportedSquareDiscountAmount
+    ) &&
+
+    reportedSquareDiscountAmount ===
+      originalCoverzaAmount &&
+
+    reportedSquareDiscountCurrency ===
+      expectedCurrency;
+
   const paymentIsValid =
+    /*
+     * Coverza's original quote must always be a genuine
+     * positive amount.
+     */
     isPositiveIntegerAmount(
       originalCoverzaAmount
     ) &&
-    isPositiveIntegerAmount(squareOrderTotal) &&
-    isPositiveIntegerAmount(paidAmount) &&
 
-    // Payment must exactly equal Square's final order total.
-    paidAmount === squareOrderTotal &&
+    /*
+     * Square totals may be zero only because the
+     * fully-discounted path below validates them.
+     */
+    isNonNegativeIntegerAmount(
+      squareOrderTotal
+    ) &&
+    isNonNegativeIntegerAmount(
+      paidAmount
+    ) &&
 
-    // Square must never charge more than Coverza quoted.
-    squareOrderTotal <= originalCoverzaAmount &&
+    /*
+     * Either a normal paid transaction or a strictly
+     * verified 100%-discounted transaction.
+     */
+    (
+      isStandardPaidOrder ||
+      isFullyDiscountedOrder
+    ) &&
 
-    // Order and payment currencies must match Coverza.
+    /*
+     * Square must never charge more than Coverza quoted.
+     */
+    squareOrderTotal <=
+      originalCoverzaAmount &&
+
+    /*
+     * Order and payment currencies must match Coverza.
+     */
     orderCurrency === expectedCurrency &&
     paidCurrency === expectedCurrency &&
 
-    // Coverza currently operates in GBP only.
+    /*
+     * Coverza currently operates in GBP only.
+     */
     expectedCurrency === "GBP";
 
   if (!paymentIsValid) {
@@ -571,6 +679,19 @@ async function processCompletedPayment(args: {
         paidAmount: paidAmount ?? null,
 
         squareDiscountAmount,
+
+        paymentSourceType:
+          payment.source_type ?? null,
+
+        reportedSquareDiscountAmount:
+          reportedSquareDiscountAmount ??
+          null,
+
+        reportedSquareDiscountCurrency:
+          reportedSquareDiscountCurrency ||
+          null,
+
+        isFullyDiscountedOrder,
 
         expectedCurrency,
         orderCurrency,
@@ -681,6 +802,12 @@ async function processCompletedPayment(args: {
     squareDiscountAmount,
     finalPaidAmount: paidAmount,
     currency: expectedCurrency,
+
+        fullyDiscounted:
+      isFullyDiscountedOrder,
+    paymentSourceType:
+      payment.source_type ?? null,
+      
   });
 
   /*

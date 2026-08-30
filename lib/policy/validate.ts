@@ -1,4 +1,5 @@
 // lib/policy/validate.ts
+
 import type { PolicyFinalizeInput } from "./types";
 
 export function validateFinalizeInput(input: PolicyFinalizeInput) {
@@ -31,7 +32,9 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
   required("paymentStatus");
 
   const durationMs = Number(input.durationMs);
-  const totalAmountPence = Number(input.totalAmountPence);
+  const totalAmountPence = Number(
+    input.totalAmountPence
+  );
 
   // Numeric validation
   if (!Number.isFinite(durationMs)) {
@@ -39,48 +42,110 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
   }
 
   if (!Number.isFinite(totalAmountPence)) {
-    errors.push("totalAmountPence must be a number");
+    errors.push(
+      "totalAmountPence must be a number"
+    );
   }
 
-  if (Number.isFinite(durationMs) && !Number.isInteger(durationMs)) {
-    errors.push("durationMs must be an integer");
+  if (
+    Number.isFinite(durationMs) &&
+    !Number.isInteger(durationMs)
+  ) {
+    errors.push(
+      "durationMs must be an integer"
+    );
   }
 
   if (
     Number.isFinite(totalAmountPence) &&
     !Number.isInteger(totalAmountPence)
   ) {
-    errors.push("totalAmountPence must be an integer");
+    errors.push(
+      "totalAmountPence must be an integer"
+    );
   }
 
-  if (Number.isFinite(durationMs) && durationMs <= 0) {
+  if (
+    Number.isFinite(durationMs) &&
+    durationMs <= 0
+  ) {
     errors.push("durationMs must be > 0");
   }
 
-  if (Number.isFinite(totalAmountPence) && totalAmountPence <= 0) {
-    errors.push("totalAmountPence must be > 0");
+  /*
+   * A normal policy must have a positive amount.
+   *
+   * The only exception is a legitimate £0 Square
+   * transaction produced by a fully-discounted order.
+   *
+   * The Square webhook performs the stronger validation
+   * before finalizePolicy() is called. It verifies that:
+   *
+   * - the original Coverza quote was positive
+   * - Square's final order total is £0
+   * - Square's payment total is £0
+   * - Square reports a discount equal to the full
+   *   original Coverza amount
+   * - the payment is COMPLETED
+   * - the order belongs to the expected checkout/location
+   *
+   * This validator therefore permits £0 only when the
+   * payment provider is Square and the payment has already
+   * been confirmed as PAID.
+   */
+  if (Number.isFinite(totalAmountPence)) {
+    if (totalAmountPence < 0) {
+      errors.push(
+        "totalAmountPence must be >= 0"
+      );
+    }
+
+    if (
+      totalAmountPence === 0 &&
+      !(
+        input.paymentProvider === "SQUARE" &&
+        input.paymentStatus === "PAID"
+      )
+    ) {
+      errors.push(
+        "zero-value policies are only allowed for paid Square transactions"
+      );
+    }
   }
 
   // Policy date validation
   const start = new Date(input.startAt);
   const end = new Date(input.endAt);
 
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    errors.push("startAt/endAt must be valid ISO dates");
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime())
+  ) {
+    errors.push(
+      "startAt/endAt must be valid ISO dates"
+    );
   } else {
     if (end.getTime() <= start.getTime()) {
-      errors.push("endAt must be after startAt");
+      errors.push(
+        "endAt must be after startAt"
+      );
     }
 
     if (Number.isFinite(durationMs)) {
-      const calculatedDurationMs = end.getTime() - start.getTime();
-      const toleranceMs = 5 * 60 * 1000;
+      const calculatedDurationMs =
+        end.getTime() - start.getTime();
+
+      const toleranceMs =
+        5 * 60 * 1000;
 
       if (
-        Math.abs(calculatedDurationMs - durationMs) >
-        toleranceMs
+        Math.abs(
+          calculatedDurationMs - durationMs
+        ) > toleranceMs
       ) {
-        errors.push("durationMs does not match startAt/endAt");
+        errors.push(
+          "durationMs does not match startAt/endAt"
+        );
       }
     }
   }
@@ -90,7 +155,10 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
     .trim()
     .toLowerCase();
 
-  const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const emailIsValid =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      email
+    );
 
   if (!emailIsValid) {
     errors.push("email is invalid");
@@ -101,7 +169,9 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
   if (Number.isNaN(dob.getTime())) {
     errors.push("dob is invalid");
   } else if (dob.getTime() > Date.now()) {
-    errors.push("dob cannot be in the future");
+    errors.push(
+      "dob cannot be in the future"
+    );
   }
 
   const allowedLicenceTypes = [
@@ -110,8 +180,14 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
     "Learner",
   ] as const;
 
-  if (!allowedLicenceTypes.includes(input.licenceType)) {
-    errors.push("licenceType is invalid");
+  if (
+    !allowedLicenceTypes.includes(
+      input.licenceType
+    )
+  ) {
+    errors.push(
+      "licenceType is invalid"
+    );
   }
 
   const allowedPaymentProviders = [
@@ -119,8 +195,14 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
     "SQUARE",
   ] as const;
 
-  if (!allowedPaymentProviders.includes(input.paymentProvider)) {
-    errors.push("paymentProvider is invalid");
+  if (
+    !allowedPaymentProviders.includes(
+      input.paymentProvider
+    )
+  ) {
+    errors.push(
+      "paymentProvider is invalid"
+    );
   }
 
   const allowedPaymentStatuses = [
@@ -130,16 +212,26 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
     "REFUNDED",
   ] as const;
 
-  if (!allowedPaymentStatuses.includes(input.paymentStatus)) {
-    errors.push("paymentStatus is invalid");
+  if (
+    !allowedPaymentStatuses.includes(
+      input.paymentStatus
+    )
+  ) {
+    errors.push(
+      "paymentStatus is invalid"
+    );
   }
 
-  const currency = String(input.currency ?? "GBP")
+  const currency = String(
+    input.currency ?? "GBP"
+  )
     .trim()
     .toUpperCase();
 
   if (currency !== "GBP") {
-    errors.push("currency must be GBP");
+    errors.push(
+      "currency must be GBP"
+    );
   }
 
   return {
