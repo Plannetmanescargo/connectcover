@@ -1,4 +1,5 @@
 // lib/email/sendPolicyEmail.ts
+import { POLICY_TIME_ZONE } from "@/lib/policy/dateTime";
 import { Resend } from "resend";
 
 type SendPolicyEmailInput = {
@@ -53,6 +54,7 @@ function fmtDateTime(iso?: string | null) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleString("en-GB", {
+    timeZone: POLICY_TIME_ZONE,
     weekday: "short",
     day: "2-digit",
     month: "short",

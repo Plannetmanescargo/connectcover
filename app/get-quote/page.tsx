@@ -879,7 +879,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
 }));
       sessionStorage.setItem("coverza_checkout_payload", JSON.stringify({
         quoteRef: ref,
-        quote: { vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear, startAt, endAt, durationMs },
+        quote: { vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear, startAt: new Date(startAt).toISOString(), endAt: new Date(endAt).toISOString(), durationMs },
         customer: { ...customer, address: addrStr },
         pricing: { selectedLabel: price.label, units: price.units, unitLabel: price.unitLabel, unitPrice: price.unitPrice, total: price.total, rateCard: RATES },
         createdAt: new Date().toISOString(),
@@ -892,7 +892,9 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
         body: JSON.stringify({
           quote: {
             vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear,
-            startAt: startAt, endAt: endAt,
+            // Preserve the browser-selected instants across the server boundary.
+            startAt: new Date(startAt).toISOString(),
+            endAt: new Date(endAt).toISOString(),
             durationMs, totalAmountPence: Math.round(price.total * 100),
           },
           customer: {

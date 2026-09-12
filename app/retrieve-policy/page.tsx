@@ -1,5 +1,6 @@
 "use client";
 
+import { POLICY_TIME_ZONE } from "@/lib/policy/dateTime";
 import { useState } from "react";
 import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
@@ -40,6 +41,7 @@ function isEmail(s: string) {
 function fmt(iso: string) {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("en-GB", {
+    timeZone: POLICY_TIME_ZONE,
     weekday: "short", day: "2-digit", month: "short",
     year: "numeric", hour: "2-digit", minute: "2-digit",
   });
