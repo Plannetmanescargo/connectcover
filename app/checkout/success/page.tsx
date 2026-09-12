@@ -1,3 +1,4 @@
+import { POLICY_TIME_ZONE } from "@/lib/policy/dateTime";
 import Link from "next/link";
 
 import PageShell from "@/components/site/PageShell";
@@ -31,6 +32,7 @@ type ConfirmedPolicy = {
 
 function fmt(date: Date): string {
   return new Date(date).toLocaleString("en-GB", {
+    timeZone: POLICY_TIME_ZONE,
     weekday: "short",
     day: "2-digit",
     month: "short",

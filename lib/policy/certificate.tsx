@@ -1,5 +1,6 @@
 // lib/policy/certificate.tsx
 import React from "react";
+import { formatPolicyDateTime } from "./dateTime";
 import {
   Document,
   Page,
@@ -30,20 +31,8 @@ export type CertificatePdfInput = {
   signatureUrl?: string | null; // optional override
 };
 
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-
 function formatLongUKDateTime(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-
-  const day = d.getDate();
-  const month = d.toLocaleString("en-GB", { month: "long" });
-  const year = d.getFullYear();
-  const hh = pad2(d.getHours());
-  const mm = pad2(d.getMinutes());
-  return `${hh}:${mm} hours - ${day} ${month} ${year}`;
+  return formatPolicyDateTime(iso, "certificate");
 }
 
 function vehicleDesc(make?: string | null, model?: string | null, year?: string | null) {

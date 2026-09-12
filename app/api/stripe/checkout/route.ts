@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/db/prisma";
+import { hasExplicitTimeZone } from "@/lib/policy/dateTime";
 
 export const runtime = "nodejs";
 
@@ -297,6 +298,15 @@ function validateCheckoutBody(
     return {
       ok: false,
       error: "Invalid customer.licenceType",
+    };
+  }
+
+  // Older open quote pages may still submit timezone-free local times.
+  // Ask for a refresh instead of silently storing them in the server timezone.
+  if (!hasExplicitTimeZone(body.quote.startAt) || !hasExplicitTimeZone(body.quote.endAt)) {
+    return {
+      ok: false,
+      error: "Please refresh the quote page and confirm your cover times before paying.",
     };
   }
 
