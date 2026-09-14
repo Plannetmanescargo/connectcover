@@ -1,152 +1,52 @@
 import { NextResponse } from "next/server";
+import { fetchRapidCarCheck, normaliseRegistration, VehicleLookupError, type VehicleSummary } from "@/lib/vehicle/rapidCarCheck";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function normaliseVrm(input: string) {
-  return input.replace(/\s+/g, "").toUpperCase().trim();
-}
+// Best-effort burst protection and in-flight deduplication per server instance.
+// These are not a distributed quota: the provider owns the monthly allowance.
+const bursts = new Map<string, { count: number; until: number }>();
+const pending = new Map<string, Promise<VehicleSummary>>();
 
-// Safe getter for nested objects
-function get(obj: any, path: (string | number)[]) {
-  return path.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), obj);
-}
-
-// Make a clean-ish title for display
-function titleCase(s: any) {
-  if (!s || typeof s !== "string") return null;
-  const cleaned = s.trim().toLowerCase();
-  if (!cleaned) return null;
-  return cleaned.replace(/\b[a-z]/g, (m) => m.toUpperCase());
-}
-
-function buildSummary(payload: any) {
-  // Your payload is the raw "vehicle" object from the provider
-  const vi =
-    get(payload, ["Results", "VehicleDetails", "VehicleIdentification"]) ??
-    get(payload, ["results", "vehicleDetails", "vehicleIdentification"]) ??
-    null;
-
-  const vhColour =
-    get(payload, ["Results", "VehicleDetails", "VehicleHistory", "ColourDetails", "CurrentColour"]) ??
-    get(payload, ["Results", "VehicleDetails", "VehicleHistory", "ColourDetails", "currentColour"]) ??
-    null;
-
-  const make =
-    titleCase(get(vi, ["DvlaMake"]) ?? get(vi, ["dvlaMake"]) ?? get(payload, ["Results", "ModelDetails", "ModelIdentification", "Make"])) ??
-    null;
-
-  const modelRaw =
-    get(vi, ["DvlaModel"]) ??
-    get(vi, ["dvlaModel"]) ??
-    get(payload, ["Results", "ModelDetails", "ModelIdentification", "Model"]) ??
-    null;
-
-  const model = titleCase(modelRaw);
-
-  const year =
-    get(vi, ["YearOfManufacture"]) ??
-    get(vi, ["yearOfManufacture"]) ??
-    null;
-
-  const fuelType =
-    titleCase(get(vi, ["DvlaFuelType"]) ?? get(vi, ["dvlaFuelType"]) ?? get(payload, ["Results", "ModelDetails", "Powertrain", "FuelType"])) ??
-    null;
-
-  const colour = titleCase(vhColour) ?? null;
-
-  const providerStatus =
-    get(payload, ["ResponseInformation", "StatusCode"]) ??
-    get(payload, ["responseInformation", "statusCode"]) ??
-    null;
-
-  const providerMessage =
-    get(payload, ["ResponseInformation", "StatusMessage"]) ??
-    get(payload, ["responseInformation", "statusMessage"]) ??
-    null;
-
-  return {
-    make,
-    model,
-    year: typeof year === "number" ? year : year ? Number(year) : null,
-    colour,
-    fuelType,
-    providerStatus,
-    providerMessage,
-  };
+function json(body: unknown, status = 200) {
+  return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => null);
-    const vrmRaw = body?.vrm;
-
-    if (!vrmRaw || typeof vrmRaw !== "string") {
-      return NextResponse.json({ ok: false, error: "Vehicle registration is required" }, { status: 400 });
+    const origin = req.headers.get("origin");
+    if ((origin && origin !== new URL(req.url).origin) || req.headers.get("sec-fetch-site") === "cross-site") {
+      return json({ ok: false, error: "Please use the vehicle lookup on our website." }, 403);
     }
+    const text = await req.text();
+    if (text.length > 256) return json({ ok: false, error: "Invalid vehicle lookup request." }, 400);
+    let body;
+    try { body = JSON.parse(text); } catch { return json({ ok: false, error: "Invalid vehicle lookup request." }, 400); }
+    const vrm = normaliseRegistration(body?.vrm);
+    if (!vrm) return json({ ok: false, error: "Please enter a valid registration number." }, 400);
 
-    const API_KEY = process.env.VEHICLE_DATA_GLOBAL_API_KEY;
-    const ENDPOINT = process.env.VEHICLE_DATA_GLOBAL_ENDPOINT;
-    const PACKAGE = process.env.VEHICLE_DATA_GLOBAL_PACKAGE;
-
-    if (!API_KEY || !ENDPOINT || !PACKAGE) {
-      return NextResponse.json(
-        { ok: false, error: "Server misconfigured (missing Vehicle Data Global env vars)" },
-        { status: 500 }
-      );
+    const now = Date.now();
+    for (const [key, value] of bursts) if (value.until <= now) bursts.delete(key);
+    // Vercel supplies this header; do not trust arbitrary forwarded IPs elsewhere.
+    const ip = process.env.VERCEL ? req.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() : null;
+    const client = ip || "local";
+    const burst = bursts.get(client) || { count: 0, until: now + 60_000 };
+    if (burst.count >= 10 || (!bursts.has(client) && bursts.size >= 10_000)) {
+      return json({ ok: false, error: "Too many searches. Wait a minute or enter the vehicle details manually." }, 429);
     }
+    burst.count += 1;
+    bursts.set(client, burst);
 
-    const VRM = normaliseVrm(vrmRaw);
-
-    if (VRM.length < 5 || VRM.length > 8) {
-      return NextResponse.json({ ok: false, error: "Please enter a valid registration number" }, { status: 400 });
+    let lookup = pending.get(vrm);
+    if (!lookup) {
+      lookup = fetchRapidCarCheck(vrm).finally(() => pending.delete(vrm));
+      pending.set(vrm, lookup);
     }
-
-    const url =
-      `${ENDPOINT}` +
-      `?apiKey=${encodeURIComponent(API_KEY)}` +
-      `&packageName=${encodeURIComponent(PACKAGE)}` +
-      `&vrm=${encodeURIComponent(VRM)}`;
-
-    const res = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-      headers: { accept: "application/json" },
-    });
-
-    const text = await res.text();
-    let providerData: any = null;
-
-    try {
-      providerData = JSON.parse(text);
-    } catch {
-      providerData = { raw: text };
-    }
-
-    if (!res.ok) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Vehicle lookup failed",
-          status: res.status,
-          providerMessage: providerData?.ResponseInformation?.StatusMessage ?? providerData?.responseInformation?.statusMessage ?? undefined,
-        },
-        { status: 502 }
-      );
-    }
-
-    const summary = buildSummary(providerData);
-
-    return NextResponse.json({
-      ok: true,
-      vrm: VRM,
-      vehicle: providerData, // full raw payload (for debugging / future use)
-      summary,               // ✅ what the UI should use
-    });
-  } catch (err: any) {
-    return NextResponse.json(
-      { ok: false, error: "Unexpected server error", message: err?.message ?? String(err) },
-      { status: 500 }
-    );
+    const summary = await lookup;
+    return json({ ok: true, vrm, summary });
+  } catch (error) {
+    if (error instanceof VehicleLookupError) return json({ ok: false, error: error.message }, error.status);
+    return json({ ok: false, error: "Vehicle lookup is temporarily unavailable. Please enter the details manually." }, 503);
   }
 }

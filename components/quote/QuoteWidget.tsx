@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+
+import VehicleDataAttribution from "@/components/quote/VehicleDataAttribution";
+import { normaliseRegistration } from "@/lib/vehicle/registration";
 
 type DurationUnit = "hours" | "days" | "weeks" | "months";
 type Step = 1 | 2 | 3;
@@ -37,6 +40,7 @@ export default function QuoteWidget({
   const [step, setStep] = useState<Step>(1);
 
   const [vrm, setVrm] = useState("");
+  const lookupInProgress = useRef(false);
   const [loading, setLoading] = useState(false);
 
   const [vehicle, setVehicle] = useState<any>(null);
@@ -73,7 +77,7 @@ export default function QuoteWidget({
   const lookupColour = vehicle?.colour || "";
   const lookupFuel = vehicle?.fuelType || "";
 
-  const hasLookupBasics = Boolean(lookupMake || lookupModel);
+  const hasLookupBasics = Boolean(lookupMake && lookupModel);
 
   const chosenMake = manualMode ? manualMake.trim() : lookupMake || manualMake.trim();
   const chosenModel = manualMode ? manualModel.trim() : lookupModel || manualModel.trim();
@@ -84,7 +88,7 @@ export default function QuoteWidget({
     ? manualBasicsComplete
     : hasLookupBasics || manualBasicsComplete;
 
-  const vehicleReady = vrm.length >= 5 && hasChosenVehicleBasics;
+  const vehicleReady = Boolean(normaliseRegistration(vrm)) && hasChosenVehicleBasics;
 
   const durationNumber = Number(durationValue);
   const hasValidDurationValue = Number.isFinite(durationNumber) && durationNumber > 0;
@@ -177,19 +181,19 @@ export default function QuoteWidget({
     return Number.isFinite(s) && Number.isFinite(e) && e > s;
   }, [startAt, endAt, requireDates]);
 
-  const canLookupNow = useMemo(() => vrm.length >= 5 && !loading, [vrm, loading]);
+  const canLookupNow = useMemo(() => Boolean(normaliseRegistration(vrm)) && !loading, [vrm, loading]);
 
   const canContinue = useMemo(() => {
     const hasDates = !requireDates ? true : Boolean(startAt && endAt);
-    return Boolean(vrm.length >= 5 && hasChosenVehicleBasics && hasDates && datesValid);
+    return Boolean(normaliseRegistration(vrm) && hasChosenVehicleBasics && hasDates && datesValid);
   }, [vrm, requireDates, startAt, endAt, datesValid, hasChosenVehicleBasics]);
 
   const vehicleTitle = useMemo(() => {
-    const mm = [lookupMake || manualMake, lookupModel || manualModel]
+    const mm = [chosenMake, chosenModel]
       .filter(Boolean)
       .join(" ");
     return mm || "Vehicle details";
-  }, [lookupMake, lookupModel, manualMake, manualModel]);
+  }, [chosenMake, chosenModel]);
 
   const activeQuickPick = useMemo(() => {
     return QUICK_DURATION_OPTIONS.find(
@@ -205,7 +209,8 @@ export default function QuoteWidget({
 
   async function lookupVehicle(vrmOverride?: string) {
     const vrmToUse = normaliseVrm(vrmOverride ?? vrm);
-    if (vrmToUse.length < 5 || loading) return;
+    if (!normaliseRegistration(vrmToUse) || lookupInProgress.current || vehicle) return;
+    lookupInProgress.current = true;
 
     setLoading(true);
     setLookupError(null);
@@ -216,6 +221,7 @@ export default function QuoteWidget({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ vrm: vrmToUse }),
+        signal: AbortSignal.timeout(15_000),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -230,15 +236,15 @@ export default function QuoteWidget({
       const model = summary?.model ?? "";
       const year = summary?.year ? String(summary.year) : "";
 
-      if (make && !manualMake) setManualMake(make);
-      if (model && !manualModel) setManualModel(model);
-      if (year && !manualYear) setManualYear(year);
-
-      if (!make || !model) setManualMode(true);
+      setManualMake(make);
+      setManualModel(model);
+      setManualYear(year);
+      setManualMode(!make || !model);
     } catch (e: any) {
       setLookupError(e?.message || "Vehicle lookup failed. Please try again.");
       setManualMode(true);
     } finally {
+      lookupInProgress.current = false;
       setLoading(false);
     }
   }
@@ -445,9 +451,12 @@ export default function QuoteWidget({
                     className="input min-w-0 w-full vrm-display"
                     placeholder="e.g. AB12 CDE"
                     value={vrmDisplay}
+                    disabled={loading}
                     onChange={(e) => {
                       const next = normaliseVrm(e.target.value);
+                      if (next === vrm) return;
                       setVrm(next);
+                      setManualMake(""); setManualModel(""); setManualYear("");
                       setFormError(null);
                       setLookupError(null);
                       setVehicle(null);
@@ -487,6 +496,8 @@ export default function QuoteWidget({
                   </button>
                 </div>
 
+                <VehicleDataAttribution />
+
                 {lookupError ? (
                   <div
                     id="vrm-error"
@@ -517,7 +528,7 @@ export default function QuoteWidget({
                         </div>
                       </div>
 
-                      <span className="badge self-start">{hasLookupBasics ? "Verified" : "Check"}</span>
+                      <span className="badge self-start">Check details</span>
                     </div>
                   </div>
                 ) : null}
