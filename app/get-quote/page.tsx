@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
+
+import VehicleDataAttribution from "@/components/quote/VehicleDataAttribution";
+import { normaliseRegistration } from "@/lib/vehicle/registration";
 
 /* =========================================================
    Types
@@ -541,6 +544,7 @@ export default function GetQuotePage() {
 
   // Step 1
   const [vrm,            setVrm]            = useState("");
+  const lookupInProgress = useRef(false);
   const [loadingVehicle, setLoadingVehicle] = useState(false);
   const [vehicle,        setVehicle]        = useState<VehicleLookupSummary | null>(null);
   const [lookupError,    setLookupError]    = useState<string | null>(null);
@@ -616,10 +620,10 @@ if (draft?.endAt) {
   const vehicleTitle = [chosenMake, chosenModel].filter(Boolean).join(" ") || "Vehicle";
 
   const vehicleReady = useMemo(() => {
-    const hasVrm     = vrm.length >= 5;
+    const hasVrm     = Boolean(normaliseRegistration(vrm));
     const hasDetails = manualMode
       ? Boolean(manualMake.trim() && manualModel.trim())
-      : Boolean(lookupMake || lookupModel || (manualMake.trim() && manualModel.trim()));
+      : Boolean((lookupMake && lookupModel) || (manualMake.trim() && manualModel.trim()));
     return hasVrm && hasDetails;
   }, [vrm, manualMode, manualMake, manualModel, lookupMake, lookupModel]);
 
@@ -818,20 +822,21 @@ function continueFromStep() {
   /* ── vehicle lookup ── */
   async function lookupVehicle(vrmOverride?: string) {
     const v = normaliseVrm(vrmOverride ?? vrm);
-    if (v.length < 5 || loadingVehicle) return;
+    if (!normaliseRegistration(v) || lookupInProgress.current || vehicle) return;
+    lookupInProgress.current = true;
     setLoadingVehicle(true); setLookupError(null); setFormError(null); setVehicle(null);
     try {
-      const res  = await fetch("/api/vehicle/lookup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ vrm: v }) });
+      const res  = await fetch("/api/vehicle/lookup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ vrm: v }), signal: AbortSignal.timeout(15_000) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.error || "Vehicle lookup failed.");
       const s = data?.summary ?? null; setVehicle(s);
-      if (s?.make  && !manualMake)  setManualMake(String(s.make));
-      if (s?.model && !manualModel) setManualModel(String(s.model));
-      if (s?.year  && !manualYear)  setManualYear(String(s.year));
-      if (!s?.make || !s?.model) setManualMode(true);
+      setManualMake(s?.make || "");
+      setManualModel(s?.model || "");
+      setManualYear(s?.year ? String(s.year) : "");
+      setManualMode(!s?.make || !s?.model);
     } catch (e: any) {
       setLookupError(e?.message || "Vehicle lookup failed."); setManualMode(true);
-    } finally { setLoadingVehicle(false); }
+    } finally { lookupInProgress.current = false; setLoadingVehicle(false); }
   }
 
   /* ── cover choice selection ── */
@@ -993,13 +998,19 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
                   className="input flex-1 text-[1.2rem] font-extrabold uppercase tracking-[0.15em]"
                   placeholder="AB12 CDE"
                   value={vrmDisplay}
+                  disabled={loadingVehicle}
                   autoCapitalize="characters" autoCorrect="off" spellCheck={false}
-                  onChange={e => { setVrm(normaliseVrm(e.target.value)); setVehicle(null); setLookupError(null); setFormError(null); }}
+                  onChange={e => {
+                    const next = normaliseVrm(e.target.value);
+                    if (next === vrm) return;
+                    setVrm(next); setVehicle(null); setLookupError(null); setFormError(null);
+                    setManualMake(""); setManualModel(""); setManualYear("");
+                  }}
                   onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); lookupVehicle(vrm); } }}
                 />
                 <button type="button"
                   onClick={() => lookupVehicle(vrm)}
-                  disabled={vrm.length < 5 || loadingVehicle}
+                  disabled={!normaliseRegistration(vrm) || loadingVehicle}
                   className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   {loadingVehicle ? <><IconSpinner /> Checking…</> : "Check reg"}
@@ -1016,6 +1027,8 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
               </div>
             </div>
 
+            <VehicleDataAttribution />
+
             {lookupError && (
               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
                 <p className="text-[13px] font-semibold text-amber-800">Couldn't look this up automatically</p>
@@ -1026,7 +1039,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
             {vehicle && (
               <div className="mt-5 flex items-start justify-between gap-4 rounded-[1.5rem] border border-[rgba(108,76,243,0.12)] bg-[rgba(108,76,243,0.04)] p-5">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[rgb(108,76,243)]/60">Confirmed</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[rgb(108,76,243)]/60">Check your vehicle details</p>
                   <p className="mt-1 text-[1rem] font-extrabold tracking-tight text-slate-950">
                     {[lookupMake, lookupModel].filter(Boolean).join(" ") || "Vehicle not found. Please enter details below!"}
                   </p>
