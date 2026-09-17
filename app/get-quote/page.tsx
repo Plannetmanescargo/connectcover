@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
 
+import { RATES } from "@/lib/payments/pricing";
 import VehicleDataAttribution from "@/components/quote/VehicleDataAttribution";
 import { normaliseRegistration } from "@/lib/vehicle/registration";
 
@@ -40,14 +41,6 @@ const UNIT_CONFIG: Record<DurationUnit, { label: string; min: number; max: numbe
   weeks:  { label: "Weeks",  min: 1,  max: 4,  step: 1 },
   months: { label: "Months", min: 1,  max: 12, step: 1 },
 };
-
-// Rates per unit
-const RATES = {
-  hour:  1.99,
-  day:   24.99,
-  week:  149.99,
-  month: 290.00,
-} as const;
 
 /* =========================================================
    Helpers
@@ -892,9 +885,10 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
       sessionStorage.setItem("coverza_quote_ref", ref);
     } catch {}
     try {
-      const res = await fetch("/api/stripe/checkout", {
+      const res = await fetch("/api/worldpay/checkout", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          pricing: { rateType: price.rateType, units: price.units, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
           quote: {
             vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear,
             // Preserve the browser-selected instants across the server boundary.
