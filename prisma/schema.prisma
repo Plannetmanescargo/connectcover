@@ -19,6 +19,7 @@ enum PolicyStatus {
 enum PaymentProvider {
   STRIPE
   SQUARE
+  WORLDPAY
 }
 
 enum PaymentStatus {
@@ -130,6 +131,14 @@ model PaymentCheckout {
   squarePaymentLinkId String? @unique
   squareOrderId       String? @unique
   squarePaymentId     String? @unique
+
+  // Worldpay references and a bounded lease for webhook retries.
+  worldpayTransactionReference String? @unique
+  worldpayPaymentId String? @unique
+  worldpayEntity String?
+  worldpayEnvironment String?
+  worldpayProcessingUntil DateTime?
+  worldpayFulfilledAt DateTime?
 
   // Policy created after successful payment
   policyId String? @unique

@@ -67,17 +67,17 @@ function vehicleLine(policy: {
 }
 
 /**
- * Square redirects back with our own PaymentCheckout ID:
+ * Hosted checkouts redirect back with our own PaymentCheckout ID:
  *
  * /checkout/success?provider=square&checkout_id=...
  *
- * The Square webhook then:
+ * The verified provider webhook then:
  *
  * 1. confirms the completed payment;
  * 2. creates the Policy;
  * 3. writes the resulting policyId to PaymentCheckout.
  */
-async function findSquarePolicy(
+async function findCheckoutPolicy(
   checkoutId: string
 ): Promise<ConfirmedPolicy | null> {
   const checkout =
@@ -91,13 +91,14 @@ async function findSquarePolicy(
         paymentProvider: true,
         policyId: true,
         squarePaymentId: true,
+        worldpayTransactionReference: true,
       },
     });
 
   if (
     !checkout ||
     checkout.brand !== "coverza" ||
-    checkout.paymentProvider !== "SQUARE" ||
+    (checkout.paymentProvider !== "SQUARE" && checkout.paymentProvider !== "WORLDPAY") ||
     checkout.status !== "PAID"
   ) {
     return null;
@@ -126,15 +127,16 @@ async function findSquarePolicy(
    *
    * If the webhook created the policy but failed before
    * writing policyId to PaymentCheckout, find the policy
-   * using the verified Square payment ID.
+   * using the provider's stable policy payment key.
    */
-  if (checkout.squarePaymentId) {
+  const paymentId = checkout.paymentProvider === "WORLDPAY"
+    ? checkout.worldpayTransactionReference : checkout.squarePaymentId;
+  if (paymentId) {
     return prisma.policy.findUnique({
       where: {
         paymentProvider_paymentId: {
-          paymentProvider: "SQUARE",
-          paymentId:
-            checkout.squarePaymentId,
+          paymentProvider: checkout.paymentProvider,
+          paymentId,
         },
       },
       select: {
@@ -515,7 +517,7 @@ export default async function SuccessPage(
 
   if (checkoutId) {
     policy =
-      await findSquarePolicy(
+      await findCheckoutPolicy(
         checkoutId
       );
   } else if (
@@ -528,6 +530,17 @@ export default async function SuccessPage(
   }
 
   if (!policy) {
+    if (searchParams.provider === "worldpay") {
+      return <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Payment status" }]}>
+        <section className="mx-auto max-w-xl px-6 py-16 text-center">
+          <h1 className="text-3xl font-bold">Waiting for payment confirmation</h1>
+          <p className="mt-5 text-slate-600">Your cover is not confirmed yet. This page checks for confirmation for two minutes. Your policy details will appear once we receive it.</p>
+          <p className="mt-4 text-slate-600">If this takes longer, check your email or contact support before paying again.</p>
+          <Link className="mt-6 inline-block underline" href="/help-support">Contact support</Link>
+          <AutoRefresh />
+        </section>
+      </PageShell>;
+    }
     return <ProcessingView />;
   }
 

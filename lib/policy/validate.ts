@@ -193,6 +193,7 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
   const allowedPaymentProviders = [
     "STRIPE",
     "SQUARE",
+    "WORLDPAY",
   ] as const;
 
   if (
