@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getWorldpayEnvironment, getWorldpayWebhookSecurity } from "@/lib/worldpay/config";
 import { verifyWorldpaySignature } from "@/lib/worldpay/signature";
 import { isWorldpayVercelSource } from "@/lib/worldpay/source-ip";
 import { parseWorldpayEvent } from "@/lib/worldpay/events";
-import { processWorldpayEvent } from "@/lib/worldpay/process-event";
+import { saveWorldpayJob, runWorldpayJob } from "@/lib/worldpay/jobs";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -28,15 +28,16 @@ export async function POST(request: Request) {
   // WPecom enables its supported events at account level. Token events have
   // a different shape and must not block delivery or create a policy.
   if (!event) return NextResponse.json({ received: true });
-  console.info("[worldpay webhook] event received", { eventId: event.eventId, type: event.eventDetails.type });
+  console.info("[worldpay webhook] event received", { eventId: event.eventId, type: event.eventDetails.type, transactionReference: event.eventDetails.transactionReference });
   try {
-    await processWorldpayEvent(event, environment);
+    const jobId = await saveWorldpayJob(event, environment);
+    after(() => runWorldpayJob(jobId));
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("[worldpay webhook] processing failed", {
+    console.error("[worldpay webhook] could not persist event", {
       eventId: event.eventId, type: event.eventDetails.type,
       error: error instanceof Error ? error.message : "Unknown error",
     });
-    return NextResponse.json({ error: "Payment processing incomplete; retry required." }, { status: 500 });
+    return NextResponse.json({ error: "Event not saved; retry required." }, { status: 500 });
   }
 }

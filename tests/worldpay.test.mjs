@@ -120,14 +120,23 @@ test('wrong environment is ignored, mismatched paid amounts never reach finaliza
   await assert.rejects(f.process(e, 'try')); assert.equal(f.calls.finalize, 0);
 });
 
-test('webhook route rejects unsigned requests and returns retryable errors for downstream failures', async () => {
+test('webhook acknowledges durable storage before processing and rejects unsigned or unsaved events', async () => {
   process.env.WORLDPAY_ENVIRONMENT = 'try'; process.env.WORLDPAY_WEBHOOK_KEY_ID = '3'; process.env.WORLDPAY_WEBHOOK_SECRET = keys['3'];
-  const f = fixture(); const { POST } = load('app/api/worldpay/webhook/route.ts', { ...f.mocks, 'next/server': { NextResponse: Response } });
+  let failSave = false; let saved = 0; let processed = 0; const tasks = [];
+  const { POST } = load('app/api/worldpay/webhook/route.ts', {
+    'next/server': { NextResponse: Response, after: fn => tasks.push(fn) },
+    '@/lib/worldpay/jobs': {
+      saveWorldpayJob: async () => { if (failSave) throw new Error('database unavailable'); saved++; return 'job'; },
+      runWorldpayJob: async () => { processed++; },
+    },
+  });
   const body = JSON.stringify(event());
   const req = signature => new Request('https://example.com/api/worldpay/webhook', { method: 'POST', body, headers: signature ? { 'Event-Signature': signature } : {} });
-  assert.equal((await POST(req(null))).status, 400); assert.equal(f.calls.finalize, 0);
-  f.calls.failFulfill = true; assert.equal((await POST(req(sign(body)))).status, 500);
-  f.calls.failFulfill = false; assert.equal((await POST(req(sign(body)))).status, 200);
+  assert.equal((await POST(req(null))).status, 400); assert.equal(saved, 0);
+  failSave = true; assert.equal((await POST(req(sign(body)))).status, 500); assert.equal(tasks.length, 0);
+  failSave = false; assert.equal((await POST(req(sign(body)))).status, 200);
+  assert.equal(saved, 1); assert.equal(processed, 0);
+  await tasks[0](); assert.equal(processed, 1);
 });
 
 test('checkout route sends Basic Auth, server price and all result URLs to HPP without touching legacy provider records', async () => {
@@ -195,21 +204,22 @@ test('IP mode fails closed outside deployed Vercel; missing/invalid mode never d
   await withEnv(wpecomEnv, () => assert.deepEqual(getWorldpayWebhookSecurity(), { mode: 'vercel-ip' }));
 });
 
-test('WPecom route authorizes by Vercel source before parsing and processes unsigned settlement exactly once', async () => {
+test('WPecom authenticates before storage; duplicate deliveries are acknowledged without inline fulfilment', async () => {
   await withEnv(wpecomEnv, async () => {
-    const f = fixture(); const { POST } = load('app/api/worldpay/webhook/route.ts', { ...f.mocks, 'next/server': { NextResponse: Response } });
+    let saves = 0; const tasks = [];
+    const { POST } = load('app/api/worldpay/webhook/route.ts', {
+      'next/server': { NextResponse: Response, after: fn => tasks.push(fn) },
+      '@/lib/worldpay/jobs': { saveWorldpayJob: async () => { saves++; return 'same-job'; }, runWorldpayJob: async () => {} },
+    });
     const request = (ip, body = JSON.stringify(event())) => new Request('https://example.com/api/worldpay/webhook', {
-      method: 'POST', body, headers: { 'x-vercel-forwarded-for': ip, 'x-forwarded-for': '34.246.73.11' },
+      method: 'POST', body, headers: { 'x-vercel-forwarded-for': ip },
     });
     assert.equal((await POST(request('203.0.113.9', 'not json'))).status, 403);
-    assert.equal(f.calls.finalize, 0);
     assert.equal((await POST(request('34.246.73.11', 'not json'))).status, 400);
-    const mismatch = event(); mismatch.eventDetails.amount.value = 1;
-    assert.equal((await POST(request('34.246.73.11', JSON.stringify(mismatch)))).status, 500);
-    assert.equal(f.calls.finalize, 0);
+    assert.equal(saves, 0);
     assert.equal((await POST(request('34.246.73.11'))).status, 200);
     assert.equal((await POST(request('34.246.73.11'))).status, 200);
-    assert.equal(f.calls.finalize, 1); assert.equal(f.calls.fulfill, 1);
+    assert.equal(saves, 2); assert.equal(tasks.length, 2);
   });
 });
 
@@ -271,4 +281,129 @@ test('status only confirms a paid Worldpay checkout with an existing policy and 
   assert.deepEqual(await (await GET(request())).json(), { confirmed: false });
   response = await GET(new Request('https://example.test/api/worldpay/status'));
   assert.equal(response.status, 400);
+});
+
+function queueFixture() {
+  const rows = new Map(); let runs = 0; let fail = false;
+  const matches = (row, where) => {
+    if (!row || row.completedAt) return false;
+    if (where.leaseUntil) return row.leaseUntil?.getTime() === where.leaseUntil.getTime();
+    return row.nextAttemptAt <= where.nextAttemptAt.lte && (!row.leaseUntil || row.leaseUntil <= where.OR[1].leaseUntil.lte);
+  };
+  const jobs = load('lib/worldpay/jobs.ts', {
+    '@/db/prisma': { prisma: { worldpayJob: {
+      upsert: async ({ where, create }) => { if (!rows.has(where.id)) rows.set(where.id, { ...create, completedAt: null, leaseUntil: null, nextAttemptAt: new Date(), attempts: 0 }); },
+      updateMany: async ({ where, data }) => {
+        const row = rows.get(where.id); if (!matches(row, where)) return { count: 0 };
+        const attempts = row.attempts; Object.assign(row, data);
+        if (data.attempts) row.attempts = attempts + 1;
+        return { count: 1 };
+      },
+      findUniqueOrThrow: async ({ where }) => rows.get(where.id),
+      findMany: async ({ where }) => [...rows.values()].filter(row => matches(row, where)),
+    } } },
+    './process-event': { processWorldpayEvent: async () => { runs++; if (fail) throw new Error('temporary failure'); } },
+  });
+  return { ...jobs, rows, runs: () => runs, setFail: value => { fail = value; } };
+}
+
+test('durable inbox deduplicates events, strips card data and recovers failures without another webhook', async () => {
+  const f = queueFixture(); const e = event(); e.eventDetails.cardNumber = 'must-not-store';
+  const id = await f.saveWorldpayJob(e, 'try');
+  await f.saveWorldpayJob(e, 'try'); assert.equal(f.rows.size, 1);
+  assert.equal(JSON.stringify(f.rows.get(id).event).includes('must-not-store'), false);
+  f.setFail(true); await f.runWorldpayJob(id);
+  assert.equal(f.rows.get(id).completedAt, null); assert.match(f.rows.get(id).lastError, /temporary/);
+  f.setFail(false); f.rows.get(id).nextAttemptAt = new Date(0);
+  await f.drainWorldpayJobs(); assert.ok(f.rows.get(id).completedAt);
+  await f.runWorldpayJob(id); assert.equal(f.runs(), 2);
+});
+
+test('queue leases prevent overlapping work and recover killed workers after lease expiry', async () => {
+  const f = queueFixture(); const id = await f.saveWorldpayJob(event(), 'try');
+  f.rows.get(id).leaseUntil = new Date(Date.now() + 90_000);
+  await f.runWorldpayJob(id); assert.equal(f.runs(), 0);
+  f.rows.get(id).leaseUntil = new Date(0);
+  await Promise.all([f.runWorldpayJob(id), f.runWorldpayJob(id)]);
+  assert.equal(f.runs(), 1);
+});
+
+test('query fallback accepts only explicit full settlement, never authorization, partial capture or refunds', () => {
+  const { settlementFromQuery } = load('lib/worldpay/reconcile.ts');
+  const p = { paymentId: 'payment-1', transactionReference: 'wp_try_test', entity: 'test-entity',
+    value: { amount: 199, currency: 'GBP' }, lastEvent: 'settlementRequestSubmitted',
+    events: [{ eventName: 'settlementRequested' }, { eventName: 'settlementRequestSubmitted' }] };
+  assert.equal(settlementFromQuery(p).eventDetails.type, 'sentForSettlement');
+  for (const lastEvent of ['authorizationSucceeded', 'saleSucceeded', 'settlementRequested', 'refundRequested', 'unknown']) {
+    assert.equal(settlementFromQuery({ ...p, lastEvent }), null);
+  }
+  assert.equal(settlementFromQuery({ ...p, events: [{ eventName: 'settlementRequestSubmitted', type: 'partialSettlement' }] }), null);
+  assert.equal(settlementFromQuery({ ...p, events: undefined }), null);
+});
+
+test('cron fails closed without its secret and only executes with the matching bearer token', async () => {
+  let drains = 0;
+  const { GET } = load('app/api/cron/worldpay/route.ts', { '@/lib/worldpay/jobs': { drainWorldpayJobs: async () => { drains++; } } });
+  await withEnv({ CRON_SECRET: undefined }, async () => assert.equal((await GET(new Request('https://example.test'))).status, 503));
+  await withEnv({ CRON_SECRET: 'test-cron-secret' }, async () => {
+    assert.equal((await GET(new Request('https://example.test'))).status, 401);
+    assert.equal((await GET(new Request('https://example.test', { headers: { authorization: 'Bearer test-cron-secret' } }))).status, 200);
+    assert.equal(drains, 1);
+  });
+});
+
+test('query reconciliation verifies amount/entity/reference, throttles tabs and survives provider denial', async () => {
+  const f = fixture(); f.checkout.createdAt = new Date(); f.checkout.worldpayQueryAfter = null;
+  let fetched = 0; let saved = 0; let ran = 0; let mismatch = false; let denied = false;
+  f.mocks['@/db/prisma'].prisma.paymentCheckout.updateMany = async ({ data }) => {
+    if (f.checkout.worldpayQueryAfter > new Date()) return { count: 0 };
+    Object.assign(f.checkout, data); return { count: 1 };
+  };
+  const { reconcileWorldpayCheckout } = load('lib/worldpay/reconcile.ts', { ...f.mocks,
+    './jobs': { saveWorldpayJob: async () => { saved++; return 'job'; }, runWorldpayJob: async () => { ran++; } },
+  });
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    fetched++; assert.equal(new URL(url).origin, 'https://try.access.worldpay.com');
+    assert.equal(options.redirect, 'error'); assert.match(options.headers.Authorization, /^Basic /);
+    if (denied) return new Response('', { status: 403 });
+    const payment = { paymentId: 'payment-1', entity: 'test-entity', transactionReference: 'wp_try_test',
+      value: { amount: mismatch ? 1 : 199, currency: 'GBP' }, lastEvent: 'settlementRequestSubmitted',
+      events: [{ eventName: 'settlementRequestSubmitted' }] };
+    return Response.json(url.includes('?') ? { _embedded: { payments: [payment] } } : payment);
+  };
+  try {
+    await withEnv({ ...wpecomEnv, WORLDPAY_PAYMENT_QUERIES_ENABLED: 'true', WORLDPAY_API_USERNAME: 'user',
+      WORLDPAY_API_PASSWORD: 'password', WORLDPAY_ENTITY: 'test-entity', WORLDPAY_NARRATIVE: 'Test', NEXT_PUBLIC_BASE_URL: 'https://example.test' }, async () => {
+      mismatch = true; await reconcileWorldpayCheckout('checkout-1'); assert.equal(saved, 0);
+      await reconcileWorldpayCheckout('checkout-1'); assert.equal(fetched, 2);
+      mismatch = false; f.checkout.worldpayQueryAfter = null;
+      await reconcileWorldpayCheckout('checkout-1'); assert.equal(saved, 1); assert.equal(ran, 1);
+      denied = true; f.checkout.worldpayQueryAfter = null;
+      await reconcileWorldpayCheckout('checkout-1'); assert.equal(saved, 1);
+      assert.ok(f.checkout.worldpayQueryAfter.getTime() > Date.now() + 290_000);
+    });
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('Worldpay email retries recover an interrupted claim using the same key, but not after the safe retry window', async () => {
+  const { Prisma } = require('@prisma/client');
+  let status = 'PROCESSING'; let age = 0; let sends = 0;
+  const { fulfillPolicy } = load('lib/policy/fulfill.ts', {
+    '@/db/prisma': { prisma: {
+      policy: { findUnique: async () => ({ id: 'policy-1', policyNumber: 'TEST-1', status: 'ACTIVE', email: 'test@example.com',
+        startAt: new Date(), endAt: new Date(), documents: [{ kind: 'PROPOSAL', url: 'https://example.test/p.pdf' }, { kind: 'CERTIFICATE', url: 'https://example.test/c.pdf' }] }) },
+      policyEvent: {
+        create: async () => { throw new Prisma.PrismaClientKnownRequestError('duplicate', { code: 'P2002', clientVersion: '6.19.1' }); },
+        findFirst: async () => ({ data: { status, idempotencyKey: 'worldpay-policy/policy-1' }, createdAt: new Date(Date.now() - age) }),
+        updateMany: async () => { status = 'COMPLETED'; },
+      },
+    } },
+    '@/lib/email/sendPolicyEmail': { sendPolicyEmail: async input => { sends++; assert.equal(input.idempotencyKey, 'worldpay-policy/policy-1'); return { id: 'email-1' }; } },
+  });
+  await fulfillPolicy('policy-1', { durableEmail: true }); assert.equal(sends, 1);
+  await fulfillPolicy('policy-1', { durableEmail: true }); assert.equal(sends, 1);
+  status = 'PROCESSING'; age = 24 * 60 * 60_000;
+  await assert.rejects(fulfillPolicy('policy-1', { durableEmail: true }), /manual reconciliation/);
+  assert.equal(sends, 1);
 });

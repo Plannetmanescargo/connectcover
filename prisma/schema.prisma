@@ -139,6 +139,7 @@ model PaymentCheckout {
   worldpayEnvironment String?
   worldpayProcessingUntil DateTime?
   worldpayFulfilledAt DateTime?
+  worldpayQueryAfter DateTime?
 
   // Policy created after successful payment
   policyId String? @unique
@@ -181,4 +182,18 @@ model PolicyEvent {
 
   @@index([policyId])
   @@index([type])
+}
+
+// Minimal authenticated payment event; no card/customer payloads are retained.
+model WorldpayJob {
+  id String @id
+  environment String
+  event Json
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  nextAttemptAt DateTime @default(now())
+  leaseUntil DateTime?
+  attempts Int @default(0)
+  lastError String?
+  @@index([completedAt, nextAttemptAt])
 }

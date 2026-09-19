@@ -3,6 +3,7 @@ import { POLICY_TIME_ZONE } from "@/lib/policy/dateTime";
 import { Resend } from "resend";
 
 type SendPolicyEmailInput = {
+  idempotencyKey?: string;
   to: string;
   policyNumber: string;
   certificateUrl: string;
@@ -495,7 +496,7 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
         path: proposalUrl,
       },
     ],
-  });
+  }, input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined);
 
   if (res.error) {
     console.error("[sendPolicyEmail] Resend error", res.error);

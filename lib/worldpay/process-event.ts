@@ -61,9 +61,9 @@ export async function processWorldpayEvent(event: WorldpayEvent, environment: st
       ...(d.paymentId ? { worldpayPaymentId: d.paymentId } : {}),
     } });
     console.info("[worldpay webhook] policy confirmed", { checkoutId: checkout.id, eventId: event.eventId, elapsedMs: Date.now() - started });
-    // Await durable fulfilment. A failure returns non-200 so Worldpay retries;
+    // The durable job remains pending on failure for the internal retry worker;
     // finalizePolicy and fulfillPolicy reuse the saved policy/documents/email events.
-    await fulfillPolicy(policy.policyId);
+    await fulfillPolicy(policy.policyId, { durableEmail: true });
     await prisma.paymentCheckout.update({ where: { id: checkout.id }, data: { worldpayFulfilledAt: new Date() } });
   } finally {
     await prisma.paymentCheckout.updateMany({ where: { id: checkout.id, worldpayProcessingUntil: lease }, data: { worldpayProcessingUntil: null } });
