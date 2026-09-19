@@ -152,3 +152,94 @@ test('checkout route sends Basic Auth, server price and all result URLs to HPP w
     for (const url of Object.values(request.resultURLs)) assert.equal(new URL(url).origin, 'https://example.com');
   } finally { globalThis.fetch = realFetch; }
 });
+
+async function withEnv(values, run) {
+  const before = Object.fromEntries(Object.keys(values).map(key => [key, process.env[key]]));
+  try {
+    for (const [key, value] of Object.entries(values)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+    return await run();
+  } finally {
+    for (const [key, value] of Object.entries(before)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+}
+const wpecomEnv = {
+  WORLDPAY_WEBHOOK_SECURITY: 'vercel-ip', VERCEL: '1', NODE_ENV: 'production',
+  WORLDPAY_ENVIRONMENT: 'try', WORLDPAY_WEBHOOK_KEY_ID: undefined, WORLDPAY_WEBHOOK_SECRET: undefined,
+};
+
+test('WPecom accepts every published source IP and rejects missing, foreign or ambiguous sources', async () => {
+  const { WORLDPAY_WEBHOOK_IPS, isWorldpayVercelSource } = load('lib/worldpay/source-ip.ts');
+  await withEnv(wpecomEnv, () => {
+    assert.equal(new Set(WORLDPAY_WEBHOOK_IPS).size, 33);
+    for (const ip of WORLDPAY_WEBHOOK_IPS) {
+      assert.equal(isWorldpayVercelSource(new Headers({ 'x-vercel-forwarded-for': ip })), true);
+      assert.equal(isWorldpayVercelSource(new Headers({ 'x-vercel-forwarded-for': `::ffff:${ip}` })), true);
+    }
+    for (const value of ['', '203.0.113.9', '127.0.0.1', '::1', '34.246.73.11, 203.0.113.9', '203.0.113.9, 34.246.73.11', '34.246.73.11:443', '34.246.73.11.attacker.example']) {
+      assert.equal(isWorldpayVercelSource(new Headers({ 'x-vercel-forwarded-for': value })), false);
+    }
+    assert.equal(isWorldpayVercelSource(new Headers({ 'x-forwarded-for': WORLDPAY_WEBHOOK_IPS[0], 'x-real-ip': WORLDPAY_WEBHOOK_IPS[0], 'cf-connecting-ip': WORLDPAY_WEBHOOK_IPS[0] })), false);
+    assert.equal(isWorldpayVercelSource(new Headers({ 'x-vercel-forwarded-for': '203.0.113.9', 'x-forwarded-for': WORLDPAY_WEBHOOK_IPS[0] })), false);
+  });
+});
+
+test('IP mode fails closed outside deployed Vercel; missing/invalid mode never disables authentication', async () => {
+  const { getWorldpayWebhookSecurity } = load('lib/worldpay/config.ts');
+  for (const patch of [{ VERCEL: undefined }, { VERCEL: '0' }, { NODE_ENV: 'development' }, { WORLDPAY_WEBHOOK_SECURITY: 'none' }, { WORLDPAY_WEBHOOK_SECURITY: undefined }]) {
+    await withEnv({ ...wpecomEnv, ...patch }, () => assert.throws(() => getWorldpayWebhookSecurity()));
+  }
+  await withEnv(wpecomEnv, () => assert.deepEqual(getWorldpayWebhookSecurity(), { mode: 'vercel-ip' }));
+});
+
+test('WPecom route authorizes by Vercel source before parsing and processes unsigned settlement exactly once', async () => {
+  await withEnv(wpecomEnv, async () => {
+    const f = fixture(); const { POST } = load('app/api/worldpay/webhook/route.ts', { ...f.mocks, 'next/server': { NextResponse: Response } });
+    const request = (ip, body = JSON.stringify(event())) => new Request('https://example.com/api/worldpay/webhook', {
+      method: 'POST', body, headers: { 'x-vercel-forwarded-for': ip, 'x-forwarded-for': '34.246.73.11' },
+    });
+    assert.equal((await POST(request('203.0.113.9', 'not json'))).status, 403);
+    assert.equal(f.calls.finalize, 0);
+    assert.equal((await POST(request('34.246.73.11', 'not json'))).status, 400);
+    const mismatch = event(); mismatch.eventDetails.amount.value = 1;
+    assert.equal((await POST(request('34.246.73.11', JSON.stringify(mismatch)))).status, 500);
+    assert.equal(f.calls.finalize, 0);
+    assert.equal((await POST(request('34.246.73.11'))).status, 200);
+    assert.equal((await POST(request('34.246.73.11'))).status, 200);
+    assert.equal(f.calls.finalize, 1); assert.equal(f.calls.fulfill, 1);
+  });
+});
+
+test('WPecom checkout requires no Enterprise secret but still validates API configuration', async () => {
+  await withEnv({ ...wpecomEnv, WORLDPAY_API_USERNAME: 'api-user', WORLDPAY_API_PASSWORD: 'api-password',
+    WORLDPAY_ENTITY: 'test-entity', WORLDPAY_NARRATIVE: 'Test Merchant', NEXT_PUBLIC_BASE_URL: 'https://example.com' }, async () => {
+    const { getWorldpayConfig } = load('lib/worldpay/config.ts');
+    assert.equal(getWorldpayConfig().endpoint, 'https://try.access.worldpay.com/payment_pages');
+    await withEnv({ WORLDPAY_API_PASSWORD: undefined }, () => assert.throws(() => getWorldpayConfig()));
+  });
+});
+
+test('HMAC mode still rejects an unsigned event even if an approved source header is supplied', async () => {
+  await withEnv({ ...wpecomEnv, WORLDPAY_WEBHOOK_SECURITY: 'hmac', WORLDPAY_WEBHOOK_KEY_ID: '3', WORLDPAY_WEBHOOK_SECRET: keys['3'] }, async () => {
+    const f = fixture(); const { POST } = load('app/api/worldpay/webhook/route.ts', { ...f.mocks, 'next/server': { NextResponse: Response } });
+    const response = await POST(new Request('https://example.com/api/worldpay/webhook', {
+      method: 'POST', body: JSON.stringify(event()), headers: { 'x-vercel-forwarded-for': '34.246.73.11' },
+    }));
+    assert.equal(response.status, 400); assert.equal(f.calls.finalize, 0);
+  });
+});
+
+test('account-wide token notifications are acknowledged only after source authentication and never issue policies', async () => {
+  await withEnv(wpecomEnv, async () => {
+    const f = fixture(); const { POST } = load('app/api/worldpay/webhook/route.ts', { ...f.mocks, 'next/server': { NextResponse: Response } });
+    const body = JSON.stringify({ eventType: 'tokenCreated', eventId: 'token-event', notificationId: 'notification', eventDetails: { transactionReference: 'wp_try_test' } });
+    for (const [ip, expected] of [['34.246.73.11', 200], ['203.0.113.9', 403]]) {
+      const response = await POST(new Request('https://example.com/api/worldpay/webhook', { method: 'POST', body, headers: { 'x-vercel-forwarded-for': ip } }));
+      assert.equal(response.status, expected);
+    }
+    assert.equal(f.calls.finalize, 0); assert.equal(f.calls.fulfill, 0);
+  });
+});
