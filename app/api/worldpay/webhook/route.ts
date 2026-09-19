@@ -28,6 +28,7 @@ export async function POST(request: Request) {
   // WPecom enables its supported events at account level. Token events have
   // a different shape and must not block delivery or create a policy.
   if (!event) return NextResponse.json({ received: true });
+  console.info("[worldpay webhook] event received", { eventId: event.eventId, type: event.eventDetails.type });
   try {
     await processWorldpayEvent(event, environment);
     return NextResponse.json({ received: true });

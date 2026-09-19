@@ -4,6 +4,7 @@ import { fulfillPolicy } from "@/lib/policy/fulfill";
 import { assertWorldpayPayment, type WorldpayEvent } from "./events";
 
 export async function processWorldpayEvent(event: WorldpayEvent, environment: string) {
+  const started = Date.now();
   const d = event.eventDetails;
   if (d.classification !== "payment" || !d.transactionReference.startsWith(`wp_${environment}_`)) return;
   const checkout = await prisma.paymentCheckout.findUnique({ where: { worldpayTransactionReference: d.transactionReference } });
@@ -59,6 +60,7 @@ export async function processWorldpayEvent(event: WorldpayEvent, environment: st
       status: "PAID", policyId: policy.policyId,
       ...(d.paymentId ? { worldpayPaymentId: d.paymentId } : {}),
     } });
+    console.info("[worldpay webhook] policy confirmed", { checkoutId: checkout.id, eventId: event.eventId, elapsedMs: Date.now() - started });
     // Await durable fulfilment. A failure returns non-200 so Worldpay retries;
     // finalizePolicy and fulfillPolicy reuse the saved policy/documents/email events.
     await fulfillPolicy(policy.policyId);

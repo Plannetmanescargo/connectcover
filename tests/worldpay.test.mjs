@@ -243,3 +243,32 @@ test('account-wide token notifications are acknowledged only after source authen
     assert.equal(f.calls.finalize, 0); assert.equal(f.calls.fulfill, 0);
   });
 });
+
+test('status only confirms a paid Worldpay checkout with an existing policy and exposes no customer data', async () => {
+  const checkout = { brand: 'coverza', paymentProvider: 'WORLDPAY', status: 'PENDING', policyId: 'policy-1', worldpayTransactionReference: 'wp_try_test' };
+  let policy = { id: 'policy-1' };
+  let policyLookups = 0;
+  const { GET } = load('app/api/worldpay/status/route.ts', {
+    '@/db/prisma': { prisma: {
+      paymentCheckout: { findUnique: async () => checkout },
+      policy: { findUnique: async () => { policyLookups++; return policy; } },
+    } },
+  });
+  const request = () => new Request('https://example.test/api/worldpay/status?checkout_id=checkout-1');
+  assert.deepEqual(await (await GET(request())).json(), { confirmed: false });
+  assert.equal(policyLookups, 0);
+  checkout.status = 'PAID';
+  let response = await GET(request());
+  assert.deepEqual(await response.json(), { confirmed: true });
+  assert.match(response.headers.get('cache-control'), /no-store/);
+  policy = null;
+  assert.deepEqual(await (await GET(request())).json(), { confirmed: false });
+  policy = { id: 'policy-1' };
+  checkout.paymentProvider = 'SQUARE';
+  assert.deepEqual(await (await GET(request())).json(), { confirmed: false });
+  checkout.paymentProvider = 'WORLDPAY';
+  checkout.brand = 'other';
+  assert.deepEqual(await (await GET(request())).json(), { confirmed: false });
+  response = await GET(new Request('https://example.test/api/worldpay/status'));
+  assert.equal(response.status, 400);
+});
