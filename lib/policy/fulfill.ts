@@ -343,7 +343,8 @@ async function triggerWelcomeAutomation(policy: {
 }
 
 export async function fulfillPolicy(
-  policyId: string
+  policyId: string,
+  options: { durableEmail?: boolean } = {}
 ): Promise<FulfillResult> {
   const policy = await prisma.policy.findUnique({
     where: {
@@ -554,6 +555,7 @@ export async function fulfillPolicy(
         type: "EMAIL_SENT",
         data: {
           source: "INITIAL_FULFILLMENT",
+          ...(options.durableEmail ? { idempotencyKey: `worldpay-policy/${policyId}` } : {}),
           status: "PROCESSING",
           to: policy.email,
         },
@@ -566,6 +568,20 @@ export async function fulfillPolicy(
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
+      if (options.durableEmail) {
+        const claim = await prisma.policyEvent.findFirst({ where: {
+          policyId, type: "EMAIL_SENT", data: { path: ["source"], equals: "INITIAL_FULFILLMENT" },
+        } });
+        const data = claim?.data as { status?: string; idempotencyKey?: string } | null;
+        if (data?.status !== "COMPLETED") {
+          if (!claim || data?.idempotencyKey !== `worldpay-policy/${policyId}` || Date.now() - claim.createdAt.getTime() > 23 * 60 * 60_000) {
+            throw new Error("Initial email requires manual reconciliation: missing retry key or expired idempotency window");
+          }
+          // The Worldpay checkout lease serializes these calls. Retrying the
+          // same Resend key recovers a worker killed after the provider accepted.
+          initialEmailClaimed = true;
+        }
+      }
       console.log("[policy email] already claimed", {
         policyId,
         email: policy.email,
@@ -578,6 +594,7 @@ export async function fulfillPolicy(
   if (initialEmailClaimed) {
     try {
       const emailResult = await sendPolicyEmail({
+        ...(options.durableEmail ? { idempotencyKey: `worldpay-policy/${policyId}` } : {}),
         to: policy.email,
         policyNumber: policy.policyNumber,
         certificateUrl,
@@ -611,7 +628,7 @@ export async function fulfillPolicy(
         },
       });
     } catch (error: unknown) {
-      await prisma.policyEvent.deleteMany({
+      if (!options.durableEmail) await prisma.policyEvent.deleteMany({
         where: {
           policyId,
           type: "EMAIL_SENT",
@@ -623,7 +640,7 @@ export async function fulfillPolicy(
       });
 
       console.error(
-        "[policy email] send failed; claim removed",
+        "[policy email] send failed; retry required",
         {
           policyId,
           email: policy.email,

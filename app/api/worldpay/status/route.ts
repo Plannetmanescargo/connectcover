@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { prisma } from "@/db/prisma";
+import { reconcileWorldpayCheckout } from "@/lib/worldpay/reconcile";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
@@ -17,7 +19,11 @@ export async function GET(request: Request) {
       worldpayTransactionReference: true,
     },
   });
-  if (!checkout || checkout.brand !== "coverza" || checkout.paymentProvider !== "WORLDPAY" || checkout.status !== "PAID") return reply(false);
+  if (!checkout || checkout.brand !== "coverza" || checkout.paymentProvider !== "WORLDPAY") return reply(false);
+  if (checkout.status !== "PAID") {
+    if (process.env.WORLDPAY_PAYMENT_QUERIES_ENABLED === "true") after(() => reconcileWorldpayCheckout(id));
+    return reply(false);
+  }
   const policy = checkout.policyId
     ? await prisma.policy.findUnique({ where: { id: checkout.policyId }, select: { id: true } })
     : checkout.worldpayTransactionReference

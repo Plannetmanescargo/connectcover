@@ -94,7 +94,7 @@ The code change does not publish the Vercel firewall rule or configure DNS. Thos
    npx prisma migrate deploy
    npx prisma generate
    ```
-   `DATABASE_URL` and `DIRECT_URL` must refer to the intended database. The migration adds `WORLDPAY` and nullable columns; it does not delete or rewrite existing records. The normal build generates the client but does **not** apply migrations.
+   `DATABASE_URL` and `DIRECT_URL` must refer to the intended database. The migrations add `WORLDPAY`, nullable columns and the `WorldpayJob` inbox; it does not delete or rewrite existing records. The normal build generates the client but does **not** apply migrations.
 3. Set all environment variables, register the webhook and deploy the branch to the test environment. Keep preview protection from blocking webhooks.
 4. Complete a Worldpay test checkout. Check the amount, return URL, source-authenticated webhook, one policy, PDF storage and email delivery. Replay the event and confirm it does not create another policy or email.
 5. Validate refused/cancelled payment returns and the awaiting-confirmation page. They must not show active cover.
@@ -110,8 +110,8 @@ The source change alone does not register the webhook, set Vercel secrets, apply
 - Legacy HPP event shapes without merchant/payment IDs are accepted only after source authentication and with matching reference/amount/currency.
 - In Enterprise mode, `Event-Signature` uses `keyId/SHA256/signature`; multiple header entries are selected by configured key ID. Hex and canonical padded base64 digest encodings are accepted.
 - A 90-second database lease serializes duplicate deliveries. The route runtime budget is 60 seconds. Failed fulfilment releases the lease; a killed worker's lease expires for a later retry.
-- Policy creation, PDFs and email are awaited before acknowledging successful processing. Worldpay may retry after 10 seconds; an overlapping request fails for retry while the worker holds the lease. Once fulfilment succeeds, later events are acknowledged without running it again. No untracked background promise is used.
-- Monitor non-200 webhook responses and reconcile paid Worldpay transactions that remain unfulfilled. Worldpay retries for a limited period (documented as up to one week); replay through Worldpay after correcting configuration or downstream failures. Long-running fulfilment must complete within the route's runtime budget.
+- The authenticated webhook persists a minimal event to `WorldpayJob` before returning 200. Next.js `after()` starts processing after the response. An upsert deduplicates event IDs; separate 90-second job and checkout leases prevent overlapping fulfilment. Database write failures still return 500 to Worldpay. Document/email failures now retry internally without blocking acknowledgement.
+- Monitor non-200 webhook responses, `[worldpay worker] retry required`, and incomplete `WorldpayJob` records. The protected cron worker retries saved jobs each minute, including expired leases after killed functions. Each job has a 60-second function budget and failed jobs are retained, not discarded. Worldpay retries unsaved events; saved events are our responsibility.
 - Do not rotate API environments in place while their events are still pending. Use separate sandbox/live deployments and matching API/environment settings.
 - Worldpay coupons are not implemented; Square dashboard coupons do not transfer to this integration.
 
@@ -133,3 +133,38 @@ Tests mock external services; they do not charge cards or substitute for the san
 - [Vercel source IP headers](https://vercel.com/docs/headers/request-headers)
 - [Vercel firewall rule conditions](https://vercel.com/docs/vercel-firewall/vercel-waf/rule-configuration)
 - [HMAC signature verification (Enterprise)](https://docs.worldpay.com/access/products/events/signature)
+
+
+## Durable processing rollout (PR following the confirmation polling fix)
+
+Before merging/deploying this change:
+
+1. Apply `20260919140000_worldpay_jobs` to the intended production database using `npx prisma migrate deploy` from a checkout containing this branch. This is additive and compatible with the previous application. `prisma generate` alone is insufficient.
+2. Add a strong random server-only `CRON_SECRET` in Vercel Production. Vercel sends it as `Authorization: Bearer ...` to `/api/cron/worldpay`.
+3. The included `vercel.json` schedules recovery every minute. This requires **Vercel Pro or Enterprise**; Hobby only supports daily cron and will reject this schedule. For another scheduler, call the same protected endpoint every minute and configure an appropriate deployment schedule before merging. Do not use a daily recovery schedule for production fulfilment.
+4. Optionally set `WORLDPAY_PAYMENT_QUERIES_ENABLED=true` to exercise the read-only provider fallback with your existing API credentials. It defaults off. Account access must be verified live: a 401/403 logs the status and imposes a five-minute per-checkout cooldown; webhooks continue working. Disable the flag if unsupported and request Worldpay access.
+5. Deploy, verify `/api/cron/worldpay` runs with 200 in Vercel cron logs, and verify an unauthenticated call returns 401. Keep the existing webhook firewall rule scoped to `/api/worldpay/webhook`; it must not block the cron or browser status routes.
+6. Verify one authorized purchase: early webhook acknowledgement, a completed inbox job, one policy and one email. The success page can confirm once the policy is stored, before documents/email finish. Compare actual browser timing and event timestamps; do not infer acknowledgement time from total function duration, which now includes `after()` work.
+
+The status endpoint schedules query reconciliation after its response, without waiting for provider latency. Across tabs, only one query attempt per checkout is claimed every ten seconds, with two provider calls limited to three seconds each. Queries are limited to the first thirty minutes of a checkout. Only a single matching payment and detailed `settlementRequestSubmitted` state are accepted, with exact entity/reference/payment ID/GBP amount checks; partial settlement, authorization-only, refund, unknown or ambiguous results do not confirm cover. Returned hyperlinks are not followed. Successful reconciliation enters the same durable processing path as webhooks.
+
+Worldpay explicitly describes Payment Queries as an aggregation service with up to **60 seconds** of lag. Settlement event coverage and WPecom access must be verified for this account. This fallback can reduce reliance on delayed notifications but cannot guarantee a 3–5-second payment-to-cover SLA. If both verified sources lag, escalate with Worldpay rather than treating a browser redirect as proof of payment.
+
+Worldpay initial policy emails use a stable Resend idempotency key. Interrupted claims retry within 23 hours (inside Resend's 24-hour window). Old claims without a retry key or claims beyond that window remain failed for manual reconciliation; inspect Resend delivery before clearing a claim. Existing completed emails are skipped. Legacy processor calls and customer-requested resend behavior retain their previous semantics.
+
+Useful operational query (run in your database console):
+
+```sql
+SELECT "id", "environment", "createdAt", "attempts", "nextAttemptAt", "leaseUntil", "lastError"
+FROM "WorldpayJob"
+WHERE "completedAt" IS NULL
+ORDER BY "createdAt";
+```
+
+References:
+- https://docs.worldpay.com/access/products/payment-queries
+- https://docs.worldpay.com/access/products/payment-queries/query-by-trans-ref
+- https://docs.worldpay.com/access/products/payment-queries/retrieve-by-payment-id
+- https://nextjs.org/docs/app/api-reference/functions/after
+- https://vercel.com/docs/cron-jobs/manage-cron-jobs
+- https://resend.com/docs/dashboard/emails/idempotency-keys
