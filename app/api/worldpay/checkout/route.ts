@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({ transactionReference,
         merchant: { entity: config.entity }, narrative: { line1: config.narrative },
         value: { currency: "GBP", amount: quote.totalAmountPence },
-        description: "Coverza temporary vehicle cover",
+        description: "Car Solutions",
         settlement: { auto: true },
         riskData: { account: { type: "guestUser", email: quote.email } },
         resultURLs: { successURL: success, pendingURL: success,
