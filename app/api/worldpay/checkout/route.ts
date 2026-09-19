@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     // Worldpay explicitly uses multiple hosted domains: no brittle hostname allowlist.
     return NextResponse.json({ url, provider: "worldpay", checkoutId });
   } catch {
-    // Keep ambiguous setups recoverable: a later signed webhook remains authoritative.
+    // Keep ambiguous setups recoverable: an authenticated webhook remains authoritative.
     console.error("[worldpay checkout] setup failed", { checkoutId });
     return NextResponse.json({ error: "We could not start the payment. Please try again." }, { status: 502 });
   }

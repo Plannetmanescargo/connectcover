@@ -10,8 +10,12 @@ export type WorldpayEvent = {
   };
 };
 
-export function parseWorldpayEvent(value: unknown): WorldpayEvent {
+export function parseWorldpayEvent(value: unknown): WorldpayEvent | null {
   if (!value || typeof value !== "object") throw new Error("Invalid event");
+  if ("eventType" in value && value.eventType === "tokenCreated") {
+    if (!("eventId" in value) || typeof value.eventId !== "string" || !value.eventId) throw new Error("Invalid token event");
+    return null;
+  }
   const event = value as WorldpayEvent;
   const detail = event.eventDetails;
   if (typeof event.eventId !== "string" || !event.eventId || !detail ||
@@ -32,8 +36,8 @@ export function assertWorldpayPayment(event: WorldpayEvent, checkout: {
       checkout.totalAmountPence <= 0 || d.amount?.currencyCode !== checkout.currency || checkout.currency !== "GBP") {
     throw new Error("Payment reference, amount, currency or state mismatch");
   }
-  // Older HPP events omit merchant/paymentId. The signature and unique reference
-  // still bind those events to this checkout; validate the extra fields when present.
+  // Older HPP events omit merchant/paymentId. The authenticated source and unique
+  // reference bind those events to this checkout; check extra fields when present.
   if (d.merchant !== undefined && d.merchant?.entity !== checkout.worldpayEntity) throw new Error("Merchant mismatch");
   if (checkout.worldpayPaymentId && d.paymentId && checkout.worldpayPaymentId !== d.paymentId) throw new Error("Payment ID mismatch");
 }
