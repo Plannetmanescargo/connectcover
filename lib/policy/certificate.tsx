@@ -228,15 +228,10 @@ const styles = StyleSheet.create({
     borderTopColor: "#111827",
     paddingTop: 8,
   },
-  certify: {
+  documentSummary: {
     fontSize: 9,
     lineHeight: 1.25,
     marginBottom: 8,
-  },
-  underwriter: {
-    fontSize: 9,
-    fontStyle: "italic",
-    marginBottom: 10,
   },
 
   sigRow: {
@@ -251,7 +246,6 @@ const styles = StyleSheet.create({
   sigImg: { width: 300, height: 80, objectFit: "contain" },
 
   sigName: { fontSize: 10, fontWeight: 800 },
-  sigRole: { fontSize: 9, marginTop: 2 },
 
   noteBox: {
     borderWidth: 1,
@@ -261,13 +255,6 @@ const styles = StyleSheet.create({
   noteTitle: { fontSize: 9, fontWeight: 800, marginBottom: 4 },
   noteLine: { fontSize: 8.5, lineHeight: 1.25 },
 
-  bottomLegal: {
-    marginTop: 8,
-    fontSize: 7.6,
-    color: "#111827",
-    lineHeight: 1.25,
-    textAlign: "center",
-  },
 });
 
 function CertificateDoc(input: CertificatePdfInput) {
@@ -293,7 +280,7 @@ function CertificateDoc(input: CertificatePdfInput) {
               <Text style={styles.headerCompany} wrap={false}>
                 ACCELERANT INSURANCE UK LIMITED
               </Text>
-              <Text style={styles.headerTitle}>CERTIFICATE OF MOTOR INSURANCE</Text>
+              <Text style={styles.headerTitle}>CERTIFICATE OF MOTOR COVER</Text>
             </View>
 
             <View style={styles.headerRight}>
@@ -320,7 +307,7 @@ function CertificateDoc(input: CertificatePdfInput) {
                   <View style={styles.subLine}>
                     <Text style={styles.subKey}>b)</Text>
                     <Text style={styles.subText}>
-                      Any vehicle supplied to the Policyholder under an agreement between Accelerant Insurance UK Limited and a repairer,
+                      Any vehicle supplied to the cover holder under an agreement between Accelerant Insurance UK Limited and a repairer,
                       whilst the vehicle shown in (a) above is being repaired
                     </Text>
                   </View>
@@ -363,7 +350,7 @@ function CertificateDoc(input: CertificatePdfInput) {
               left={
                 <View style={styles.subLine}>
                   <Text style={styles.subKey}>a)</Text>
-                  <Text style={styles.subText}>Name of Policyholder</Text>
+                  <Text style={styles.subText}>Name of Cover Holder</Text>
                 </View>
               }
               right={
@@ -378,7 +365,7 @@ function CertificateDoc(input: CertificatePdfInput) {
               n="4"
               left={
                 <Text style={styles.label}>
-                  Effective time and date of the commencement of insurance for the purposes of the relevant law:
+                  Cover start date and time:
                 </Text>
               }
               right={
@@ -391,7 +378,7 @@ function CertificateDoc(input: CertificatePdfInput) {
             {/* 5 */}
             <CertRow
               n="5"
-              left={<Text style={styles.label}>Date of expiry of insurance:</Text>}
+              left={<Text style={styles.label}>Cover end date and time:</Text>}
               right={
                 <View>
                   <Text style={styles.valueStrong}>{formatLongUKDateTime(input.endAtISO)}</Text>
@@ -409,7 +396,7 @@ function CertificateDoc(input: CertificatePdfInput) {
               }
               right={
                 <View>
-                  <Text style={styles.valueStrong}>The Policyholder</Text>
+                  <Text style={styles.valueStrong}>The Cover Holder</Text>
                 </View>
               }
             />
@@ -421,7 +408,7 @@ function CertificateDoc(input: CertificatePdfInput) {
               right={
                 <View>
                   <Text style={styles.valueStrong}>
-                    Use for social domestic and pleasure purposes and by the Policyholder in person in connection with his/her business or profession.
+                    Use for social, domestic and pleasure purposes, and by the cover holder in person in connection with their business or profession.
                   </Text>
                 </View>
               }
@@ -432,7 +419,7 @@ function CertificateDoc(input: CertificatePdfInput) {
               <Text style={[styles.label, { fontWeight: 800, marginBottom: 4 }]}>Exclusions</Text>
               <Text style={[styles.value, { fontSize: 9.3, lineHeight: 1.25 }]}>
                 • Use for hiring commercial travelling or use for any purpose in connection with the Motor Trade.{"\n"}
-                • The insurance does not cover use for racing, pacemaking, competition, rallies, trials or speedtesting.{"\n"}
+                • Cover excludes use for racing, pacemaking, competition, rallies, trials or speedtesting.{"\n"}
                 • Use to secure the release of a motor vehicle, other than the vehicle identified above by its registration mark, which has been seized by, or on behalf of any Government or public authority.
               </Text>
             </View>
@@ -440,27 +427,21 @@ function CertificateDoc(input: CertificatePdfInput) {
 
           {/* FOOTER */}
           <View style={styles.footerWrap}>
-            <Text style={styles.certify}>
-              I hereby certify that the Insurance Policy to which this Certificate relates satisfies the requirements of the relevant Law
-              applicable in Great Britain, Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.
-            </Text>
-
-            <Text style={styles.underwriter}>
-              Underwritten by Accelerant Insurance UK Limited - Authorised Insurers
+            <Text style={styles.documentSummary}>
+              This document records the named cover holder, vehicle details, cover period and permitted use.
             </Text>
 
             <View style={styles.sigRow}>
               <View style={styles.sigLeft}>
                 <Image style={styles.sigImg} src={sigSrc} />
                 <Text style={styles.sigName}>Emma Huntington</Text>
-                <Text style={styles.sigRole}>for the Authorised Insurers</Text>
               </View>
 
               <View style={{ width: "48%" }}>
                 <View style={styles.noteBox}>
                   <Text style={styles.noteTitle}>NOTE:</Text>
                   <Text style={styles.noteLine}>
-                    For full details of the insurance cover reference should be made to the policy.
+                    Please refer to your cover documents for full details of your cover.
                   </Text>
                   <Text style={[styles.noteLine, { marginTop: 5 }]}>
                     <Text style={{ fontWeight: 800 }}>ADVICE TO THIRD PARTIES:</Text>{" "}
@@ -473,15 +454,6 @@ function CertificateDoc(input: CertificatePdfInput) {
                 </View>
               </View>
             </View>
-
-            <Text style={styles.bottomLegal}>
-              We hereby certify that the policy satisfies the requirements of the relevant law applicable in Great Britain, Northern Ireland,
-              the Isle of Man, and the islands of Alderney, Guernsey and Jersey. Coverza Limited is authorised by the Gibraltar Financial
-              Services Commission to carry on insurance business under the Financial Services Act 2019 and Financial Services Regulations 2020,
-              registered address 5/5 Crutchett’s Ramp, Gibraltar. Details about our regulation by the Financial Conduct Authority and Prudential
-              Regulation Authority are available on request. Registered in England and Wales as ACCELERANT INSURANCE UK LIMITED. Reg. No. 03326800.
-              Registered Address: One, Fleet Place, London, England, EC4M 7WS. Authorised and regulated by the Financial Conduct Authority (207658).
-            </Text>
           </View>
         </View>
       </Page>

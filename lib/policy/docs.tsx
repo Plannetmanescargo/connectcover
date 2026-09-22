@@ -212,12 +212,6 @@ const styles = StyleSheet.create({
     color: INK,
     fontWeight: 900,
   },
-  footerBottom: {
-    marginTop: 4,
-    fontSize: 6.15,
-    color: MUTED,
-    lineHeight: 1.1,
-  },
 
   /* Top title area */
   titleBlock: {
@@ -469,33 +463,20 @@ function Footer({
       <View style={styles.footerGrid}>
         <View style={styles.footerLeft}>
           <Text style={styles.footerSmall}>
-            We hereby certify that the policy satisfies the requirements of the relevant law applicable in Great Britain,
-            Northern Ireland, the Isle of Man, and the islands of Alderney, Guernsey and Jersey.
+            This document records the information you provided, your cover details and your declarations.
           </Text>
-
           <Text style={[styles.footerMuted, { marginTop: 3 }]}>
-            Coverza Limited is authorised by the Gibraltar Financial Services Commission to carry on insurance business
-            under the Financial Services Act 2019 and Financial Services Regulations 2020.
+            Please read it carefully and keep it with your other cover documents.
           </Text>
         </View>
 
         <View style={styles.footerRight}>
-          <Text style={styles.footerSmall}>
-            Details about our regulation by the Financial Conduct Authority and Prudential Regulation Authority are
-            available on request.
-          </Text>
-
           <View style={styles.sigRow}>
             <Image style={styles.sigImg} src={sigSrc} />
-            <Text style={styles.sigName}>Emma Huntington, for the Authorised Insurers</Text>
+            <Text style={styles.sigName}>Emma Huntington</Text>
           </View>
         </View>
       </View>
-
-      <Text style={styles.footerBottom}>
-        Registered in England and Wales as ACCELERANT INSURANCE UK LIMITED. Reg. No. 03326800. Registered Address: One,
-        Fleet Place, London, England, EC4M 7WS. Authorised and regulated by the Financial Conduct Authority (207658).
-      </Text>
     </View>
   );
 }
@@ -525,11 +506,11 @@ function Item({ k, text }: { k: string; text: string }) {
 function DeclarationIntro() {
   return (
     <View style={styles.declIntroBlock} wrap={false}>
-      <Text style={styles.declTitle}>Temporary Insurance Declaration</Text>
+      <Text style={styles.declTitle}>Temporary Cover Declaration</Text>
       <Text style={styles.declIntro}>
-        This is a copy of the declaration you agree to as part of purchasing insurance from Coverza. You confirm you
+        This is a copy of the declaration you agree to as part of purchasing cover from Coverza. You confirm you
         meet the assumptions and eligibility criteria below. Failure to meet these criteria could invalidate your
-        insurance. You must continue to meet them for the duration of the policy.
+        cover. You must continue to meet them throughout the cover period.
       </Text>
     </View>
   );
@@ -549,7 +530,7 @@ function DeclarationPart1() {
       <Item k="h)" text="Do not have any criminal convictions;" />
       <Item
         k="i)"
-        text="Have not had a motor insurance policy cancelled, voided, refused, a premium increased, or had an insurer refuse to pay a claim;"
+        text="Have not had motor cover cancelled, voided or refused, had a premium increased, or had an insurer refuse to pay a claim;"
       />
       <Item
         k="j)"
@@ -557,7 +538,7 @@ function DeclarationPart1() {
       />
       <Item
         k="k)"
-        text="Have no additional occupations including part-time jobs outside of that disclosed for the purposes of obtaining this insurance;"
+        text="Have no additional occupations including part-time jobs outside of that disclosed for the purposes of obtaining this cover;"
       />
       <Item
         k="l)"
@@ -583,10 +564,10 @@ function DeclarationPart2And3() {
         <Item k="f)" text="Has not been modified (except modifications for disabled drivers or manufacturer optional extras such as alloy wheels);" />
         <Item k="g)" text="Has no more than seven (7) seats and is right-hand drive only;" />
         <Item k="h)" text="Has a valid MOT certificate (if required by law), and is not SORN registered;" />
-        <Item k="i)" text="Has not been previously recorded as a Category A or B insurance total loss;" />
+        <Item k="i)" text="Has not been previously recorded as a Category A or B total loss;" />
         <Item k="j)" text="Is not Q plated;" />
         <Item k="k)" text="Is registered in Great Britain, Northern Ireland or the Isle of Man;" />
-        <Item k="l)" text="Will be in the United Kingdom (UK) at the start of the policy and will not be exported during the policy period;" />
+        <Item k="l)" text="Will be in the United Kingdom (UK) at the start of cover and will not be exported during the cover period;" />
         <Item k="m)" text="Has a current market value not exceeding £65,000 (minimum vehicle value £1,000)." />
       </View>
 
@@ -596,14 +577,14 @@ function DeclarationPart2And3() {
         <Text style={styles.groupTitle}>3. Additional confirmations:</Text>
         <Item
           k="3."
-          text="I am aware this temporary insurance policy cannot be used for Hire or Loan Vehicles (e.g. rentals, credit hire, or accident management/recovery vehicles)."
+          text="I am aware this temporary cover cannot be used for Hire or Loan Vehicles (e.g. rentals, credit hire, or accident management/recovery vehicles)."
         />
         <Item
           k="4."
-          text="I declare the Certificate of Motor Insurance and any other document will not be used as evidence of insurance for the release of a vehicle impounded or confiscated by the Police or Local Authority."
+          text="I declare the Certificate of Motor Cover and any other document will not be used as evidence of cover for the release of a vehicle impounded or confiscated by the Police or Local Authority."
         />
-        <Item k="5." text="I am aware that driving of other cars is not permitted under this policy." />
-        <Item k="6." text="I am aware that no amendments, alterations or changes can be made to this policy or Certificate of Motor Insurance once issued." />
+        <Item k="5." text="I am aware that driving of other cars is not permitted under this cover." />
+        <Item k="6." text="I am aware that no amendments, alterations or changes can be made to the cover or Certificate of Motor Cover once the documents have been issued." />
         <Item
           k="7."
           text="I have read and agree that the above conditions are met and that I have taken reasonable care not to make any misrepresentation of the information I have provided."
@@ -626,15 +607,15 @@ function ProposalDoc(input: ProposalPdfInput) {
         <View style={styles.titleBlock} wrap={false}>
           <View style={styles.titleTopRow}>
             <View style={styles.titleLeft}>
-              <Text style={styles.kicker}>Temporary motor insurance</Text>
+              <Text style={styles.kicker}>Temporary motor cover</Text>
               <Text style={styles.h1}>Statement of Fact</Text>
               <Text style={styles.sub}>
-                Please read this document carefully. It records the information used to assess your temporary insurance.
+                Please read this document carefully. It records the information used to assess your temporary cover.
               </Text>
             </View>
 
             <View style={styles.policyBox}>
-              <Text style={styles.policyLabel}>Policy number</Text>
+              <Text style={styles.policyLabel}>Document number</Text>
               <Text style={styles.policyValue}>{input.policyNumber}</Text>
 
               <Text style={styles.policyLabel}>Duration</Text>
@@ -661,7 +642,7 @@ function ProposalDoc(input: ProposalPdfInput) {
 
               <View style={styles.summaryCol}>
                 <Text style={styles.summaryLabel}>Cover</Text>
-                <Text style={styles.summaryValue}>Temporary motor insurance</Text>
+                <Text style={styles.summaryValue}>Temporary motor cover</Text>
               </View>
             </View>
           </View>
@@ -671,7 +652,7 @@ function ProposalDoc(input: ProposalPdfInput) {
           <Text style={styles.sectionTitle}>Important</Text>
           <Text style={styles.para}>
             This Statement of Fact is a record of information given by you which has been used to assess the risk and
-            decide terms and conditions of your contract of insurance. You must check this document and tell us straight
+            determine the terms and conditions of your cover. You must check this document and tell us straight
             away if any information is incorrect or incomplete.
           </Text>
         </View>
@@ -698,7 +679,7 @@ function ProposalDoc(input: ProposalPdfInput) {
                 ["Make", input.make ?? "—"],
                 ["Model", input.model ?? "—"],
                 ["Year", input.year ?? "—"],
-                ["Cover", "Temporary motor insurance"],
+                ["Cover", "Temporary motor cover"],
               ]}
             />
           </View>
