@@ -1,10 +1,10 @@
-import ProductPage from "@/components/documents/ProductPage";
+import View from "@/components/documents/views/Van";
 import { documentMetadata } from "@/components/documents/Pages";
 export const metadata = documentMetadata(
   "Van documents",
-  "Explore van documents, supporting digital resources and the information needed to agree your service.",
+  "Coverza automotive documents, technical guidance and supporting digital resources.",
   "/van",
 );
 export default function Page() {
-  return <ProductPage kind="van" />;
+  return <View />;
 }

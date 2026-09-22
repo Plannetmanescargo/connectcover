@@ -1,10 +1,10 @@
-import Resources from "@/components/documents/Resources";
+import View from "@/components/documents/views/Blog";
 import { documentMetadata } from "@/components/documents/Pages";
 export const metadata = documentMetadata(
-  "The Coverza journal",
-  "Clear guidance on automotive documents, service scope and useful technical references.",
+  "Blog documents",
+  "Coverza automotive documents, technical guidance and supporting digital resources.",
   "/more/blog",
 );
 export default function Page() {
-  return <Resources blog={true} />;
+  return <View />;
 }

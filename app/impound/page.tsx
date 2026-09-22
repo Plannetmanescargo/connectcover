@@ -1,10 +1,10 @@
-import ProductPage from "@/components/documents/ProductPage";
+import View from "@/components/documents/views/Impound";
 import { documentMetadata } from "@/components/documents/Pages";
 export const metadata = documentMetadata(
   "Collection documents",
-  "Explore collection documents, supporting digital resources and the information needed to agree your service.",
+  "Coverza automotive documents, technical guidance and supporting digital resources.",
   "/impound",
 );
 export default function Page() {
-  return <ProductPage kind="impound" />;
+  return <View />;
 }

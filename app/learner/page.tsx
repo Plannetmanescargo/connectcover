@@ -1,10 +1,10 @@
-import ProductPage from "@/components/documents/ProductPage";
+import View from "@/components/documents/views/Learner";
 import { documentMetadata } from "@/components/documents/Pages";
 export const metadata = documentMetadata(
-  "Learner resources",
-  "Explore learner resources, supporting digital resources and the information needed to agree your service.",
+  "Learner documents",
+  "Coverza automotive documents, technical guidance and supporting digital resources.",
   "/learner",
 );
 export default function Page() {
-  return <ProductPage kind="learner" />;
+  return <View />;
 }
