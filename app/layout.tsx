@@ -21,25 +21,23 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://coverza.uk"),
 
   title: {
-    default: "Coverza | Temporary Car Insurance That Fits Around You",
+    default: "Coverza | Vehicle Documents & Technical Guidance",
     template: "%s | Coverza",
   },
 
   description:
-    "Coverza offers flexible temporary car insurance from 1 hour to 28 days. Get a quote online, choose the cover you need, and receive your documents in minutes.",
+    "Vehicle-specific documents, technical guidance and supporting digital resources, with clearly defined scope and electronic delivery.",
 
   applicationName: "Coverza",
   authors: [{ name: "Coverza" }],
   creator: "Coverza",
   publisher: "Coverza",
-  category: "insurance",
+  category: "automotive",
   keywords: [
-    "temporary car insurance",
-    "short term car insurance",
-    "temporary vehicle insurance",
-    "hourly car insurance",
-    "daily car insurance",
-    "car insurance UK",
+    "vehicle documents",
+    "automotive technical guidance",
+    "vehicle configuration guides",
+    "digital documents",
     "Coverza",
   ],
 
@@ -55,9 +53,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "https://coverza.uk",
-    title: "Coverza | Temporary Car Insurance That Fits Around You",
+    title: "Coverza | Vehicle Documents & Technical Guidance",
     description:
-      "Flexible temporary car insurance from 1 hour to 28 days. Get covered quickly with a simple online journey and instant documents.",
+      "Vehicle-specific documents, technical guidance and supporting digital resources.",
     siteName: "Coverza",
     locale: "en_GB",
     images: [
@@ -65,16 +63,16 @@ export const metadata: Metadata = {
         url: "/brand/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Coverza temporary car insurance",
+        alt: "Coverza vehicle documents",
       },
     ],
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "Coverza | Temporary Car Insurance That Fits Around You",
+    title: "Coverza | Vehicle Documents & Technical Guidance",
     description:
-      "Flexible temporary car insurance from 1 hour to 28 days. Fast quotes, simple cover, instant documents.",
+      "Vehicle-specific documents, technical guidance and supporting digital resources.",
     images: ["/brand/og-image.jpg"],
   },
 

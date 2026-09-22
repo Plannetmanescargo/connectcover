@@ -1,53 +1,15 @@
 "use client";
 import { useState, useSyncExternalStore } from "react";
-import { usePathname } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/site/Header";
-import Footer from "@/components/site/Footer";
-import CookieBanner from "@/components/site/CookieBanner";
 import s from "./documents.module.css";
 import CoverzaHeader from "./views/Header";
 import CoverzaFooter from "./views/Footer";
-// Explicit allowlist keeps shared chrome unchanged on quote, checkout and retrieval routes.
-const documentRoutes = [
-  "/",
-  "/car",
-  "/van",
-  "/learner",
-  "/impound",
-  "/help-support",
-  "/support",
-  "/contact",
-  "/more",
-  "/more/faq",
-  "/more/guides",
-  "/more/blog",
-  "/privacy",
-  "/terms",
-  "/cookies",
-  "/complaints",
-];
-function useDocumentRoute() {
-  const path = usePathname();
-  return documentRoutes.includes(path);
-}
+// One shared brand and navigation across public pages and the vehicle journey.
 export function SiteHeader() {
-  const isDocument = useDocumentRoute();
-  return isDocument ? (
-    <>
-      <CoverzaHeader />
-      <div className="border-b border-violet-100 bg-violet-50 px-5 py-2 text-center text-xs leading-5 text-violet-900">
-        Design preview · The vehicle journey continues to show the existing
-        service.
-      </div>
-    </>
-  ) : (
-    <Header />
-  );
+  return <CoverzaHeader />;
 }
 export function SiteFooter() {
-  const isDocument = useDocumentRoute();
-  return isDocument ? <CoverzaFooter /> : <Footer />;
+  return <CoverzaFooter />;
 }
 function subscribeToChoice(listener: () => void) {
   window.addEventListener("storage", listener);
@@ -82,8 +44,7 @@ function DocumentCookies() {
       aria-label="Cookie preferences"
     >
       <p>
-        This preview remembers your cookie preference in this browser. No
-        optional analytics are added by this refresh.{" "}
+        We remember your cookie preference in this browser.{" "}
         <Link href="/cookies">About cookies</Link>.
       </p>
       <div className={s.actions}>
@@ -98,6 +59,5 @@ function DocumentCookies() {
   );
 }
 export function SiteCookies() {
-  const isDocument = useDocumentRoute();
-  return isDocument ? <DocumentCookies /> : <CookieBanner />;
+  return <DocumentCookies />;
 }
