@@ -2,9 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-import Header from "@/components/site/Header";
-import Footer from "@/components/site/Footer";
-import CookieBanner from "@/components/site/CookieBanner";
+import {
+  SiteHeader as Header,
+  SiteFooter as Footer,
+  SiteCookies as CookieBanner,
+} from "@/components/documents/Chrome";
 
 const inter = Inter({
   subsets: ["latin"],
