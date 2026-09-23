@@ -546,6 +546,7 @@ export async function fulfillPolicy(
    * Customer-requested retrieval emails remain repeatable because they
    * do not use source INITIAL_FULFILLMENT.
    */
+  const emailIdempotencyKey = `${policy.paymentProvider === "MOLLIE" ? "mollie" : "worldpay"}-policy/${policyId}`;
   let initialEmailClaimed = false;
 
   try {
@@ -555,7 +556,7 @@ export async function fulfillPolicy(
         type: "EMAIL_SENT",
         data: {
           source: "INITIAL_FULFILLMENT",
-          ...(options.durableEmail ? { idempotencyKey: `worldpay-policy/${policyId}` } : {}),
+          ...(options.durableEmail ? { idempotencyKey: emailIdempotencyKey } : {}),
           status: "PROCESSING",
           to: policy.email,
         },
@@ -574,10 +575,10 @@ export async function fulfillPolicy(
         } });
         const data = claim?.data as { status?: string; idempotencyKey?: string } | null;
         if (data?.status !== "COMPLETED") {
-          if (!claim || data?.idempotencyKey !== `worldpay-policy/${policyId}` || Date.now() - claim.createdAt.getTime() > 23 * 60 * 60_000) {
+          if (!claim || data?.idempotencyKey !== emailIdempotencyKey || Date.now() - claim.createdAt.getTime() > 23 * 60 * 60_000) {
             throw new Error("Initial email requires manual reconciliation: missing retry key or expired idempotency window");
           }
-          // The Worldpay checkout lease serializes these calls. Retrying the
+          // The payment checkout lease serializes these calls. Retrying the
           // same Resend key recovers a worker killed after the provider accepted.
           initialEmailClaimed = true;
         }
@@ -594,7 +595,7 @@ export async function fulfillPolicy(
   if (initialEmailClaimed) {
     try {
       const emailResult = await sendPolicyEmail({
-        ...(options.durableEmail ? { idempotencyKey: `worldpay-policy/${policyId}` } : {}),
+        ...(options.durableEmail ? { idempotencyKey: emailIdempotencyKey } : {}),
         to: policy.email,
         policyNumber: policy.policyNumber,
         certificateUrl,

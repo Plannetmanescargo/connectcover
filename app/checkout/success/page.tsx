@@ -6,6 +6,7 @@ import { prisma } from "@/db/prisma";
 
 import AutoRefresh from "./AutoRefresh";
 import WorldpayConfirmation from "./WorldpayConfirmation";
+import MollieConfirmation from "./MollieConfirmation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,14 +94,17 @@ async function findCheckoutPolicy(
         policyId: true,
         squarePaymentId: true,
         worldpayTransactionReference: true,
+        molliePaymentId: true,
+        mollieFulfilledAt: true,
       },
     });
 
   if (
     !checkout ||
     checkout.brand !== "coverza" ||
-    (checkout.paymentProvider !== "SQUARE" && checkout.paymentProvider !== "WORLDPAY") ||
-    checkout.status !== "PAID"
+    (checkout.paymentProvider !== "SQUARE" && checkout.paymentProvider !== "WORLDPAY" && checkout.paymentProvider !== "MOLLIE") ||
+    checkout.status !== "PAID" ||
+    (checkout.paymentProvider === "MOLLIE" && !checkout.mollieFulfilledAt)
   ) {
     return null;
   }
@@ -131,7 +135,7 @@ async function findCheckoutPolicy(
    * using the provider's stable policy payment key.
    */
   const paymentId = checkout.paymentProvider === "WORLDPAY"
-    ? checkout.worldpayTransactionReference : checkout.squarePaymentId;
+    ? checkout.worldpayTransactionReference : checkout.paymentProvider === "MOLLIE" ? checkout.molliePaymentId : checkout.squarePaymentId;
   if (paymentId) {
     return prisma.policy.findUnique({
       where: {
@@ -531,6 +535,11 @@ export default async function SuccessPage(
   }
 
   if (!policy) {
+    if (searchParams.provider === "mollie") {
+      return <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Payment status" }]}>
+        <MollieConfirmation checkoutId={checkoutId} />
+      </PageShell>;
+    }
     if (searchParams.provider === "worldpay") {
       return <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Payment status" }]}>
         <section className="mx-auto max-w-xl px-6 py-16 text-center">

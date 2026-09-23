@@ -20,6 +20,7 @@ enum PaymentProvider {
   STRIPE
   SQUARE
   WORLDPAY
+  MOLLIE
 }
 
 enum PaymentStatus {
@@ -141,12 +142,26 @@ model PaymentCheckout {
   worldpayFulfilledAt DateTime?
   worldpayQueryAfter DateTime?
 
+  // Mollie checkout recovery and a lease shared by webhook/status/cron workers.
+  mollieRequestKey String? @unique
+  mollieConfigHash String?
+  mollieRequestHash String?
+  molliePaymentId String? @unique
+  mollieMode String?
+  mollieProfileId String?
+  mollieCheckoutUrl String?
+  mollieProcessingUntil DateTime?
+  mollieFulfilledAt DateTime?
+  mollieNextAttemptAt DateTime?
+  mollieReviewReason String?
+
   // Policy created after successful payment
   policyId String? @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([paymentProvider, mollieNextAttemptAt])
   @@index([brand])
   @@index([status])
   @@index([email])
