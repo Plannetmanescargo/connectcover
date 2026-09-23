@@ -198,3 +198,17 @@ test('checkout validates server price, origin and attempt key, and reuses persis
     assert.equal((await POST(req(payload(), 'https://example.com', 'invalid'))).status, 400);
   } finally { if (previous === undefined) delete process.env.MOLLIE_ENABLED; else process.env.MOLLIE_ENABLED = previous; }
 });
+
+test('diagnostics identify API/database failures without logging credentials or customer data', () => {
+  const { mollieDiagnostic } = load('lib/mollie/diagnostics.ts');
+  const secret = 'live_SECRET_PRIVATE';
+  const diagnostic = mollieDiagnostic({ name: 'ErrorResponse', statusCode: 422, field: 'method', detail: `Payment method creditcard is not enabled ${secret} private@example.com`, message: secret, request: { headers: { Authorization: secret } }, body: secret });
+  assert.equal(diagnostic.httpStatus, 422);
+  assert.equal(diagnostic.field, 'method');
+  assert.ok(diagnostic.topics.includes('creditcard'));
+  assert.ok(!JSON.stringify(diagnostic).includes(secret));
+  assert.ok(!JSON.stringify(diagnostic).includes('private@example.com'));
+  assert.equal(mollieDiagnostic({ code: 'P2022', message: secret }).code, 'P2022');
+  assert.equal(mollieDiagnostic({ name: secret, field: secret, code: secret }).kind, 'Error');
+  assert.equal(mollieDiagnostic(new Error('Invalid Mollie checkout URL')).reason, 'Invalid Mollie checkout URL');
+});

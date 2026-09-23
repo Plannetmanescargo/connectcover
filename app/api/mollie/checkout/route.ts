@@ -1,8 +1,9 @@
-import { createHash } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/db/prisma";
 import { validateCheckout } from "@/lib/payments/checkout";
 import { getMollieConfig } from "@/lib/mollie/config";
+import { mollieDiagnostic } from "@/lib/mollie/diagnostics";
 import { ensureMolliePayment } from "@/lib/mollie/process";
 
 export const runtime = "nodejs";
@@ -29,6 +30,8 @@ export async function POST(request: Request) {
     if (text.length > 16_384) throw new Error("Checkout request is too large.");
     quote = validateCheckout(JSON.parse(text));
   } catch (error) { return reply({ error: error instanceof Error ? error.message : "Invalid checkout request." }, 400); }
+  const reference = randomUUID();
+  let stage = "save_checkout";
   try {
     const hash = createHash("sha256").update(JSON.stringify(quote, (_, value) => typeof value === "bigint" ? value.toString() : value)).digest("hex");
     const checkout = await prisma.paymentCheckout.upsert({
@@ -41,10 +44,10 @@ export async function POST(request: Request) {
     if (checkout.mollieRequestHash !== hash) return reply({ error: "Your quote changed. Refresh and try again." }, 409);
     if (checkout.status === "PAID") return reply({ url: `${config.origin}/checkout/success?provider=mollie&checkout_id=${encodeURIComponent(checkout.id)}` });
     if (checkout.status !== "PENDING") return reply({ error: "This payment has ended. Refresh your quote before trying again." }, 409);
-    const ready = await ensureMolliePayment(checkout);
+    const ready = await ensureMolliePayment(checkout, value => { stage = value; });
     return reply({ url: ready.mollieCheckoutUrl, provider: "mollie", checkoutId: ready.id });
-  } catch {
-    console.error("[mollie checkout] creation failed; retry with the same attempt key");
-    return reply({ error: "We could not open the payment page. Please try again." }, 502);
+  } catch (error) {
+    console.error("[mollie checkout] creation failed", { reference, stage, ...mollieDiagnostic(error) });
+    return reply({ error: `We could not open the payment page. Please try again. Reference: ${reference}`, reference }, 502);
   }
 }
