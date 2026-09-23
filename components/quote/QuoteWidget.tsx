@@ -3,7 +3,6 @@
 import React from "react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
-import VehicleDataAttribution from "@/components/quote/VehicleDataAttribution";
 import { normaliseRegistration } from "@/lib/vehicle/registration";
 
 type DurationUnit = "hours" | "days" | "weeks" | "months";
@@ -496,7 +495,6 @@ export default function QuoteWidget({
                   </button>
                 </div>
 
-                <VehicleDataAttribution />
 
                 {lookupError ? (
                   <div

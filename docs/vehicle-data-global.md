@@ -38,7 +38,7 @@ Vercel environment settings.
 - Ten-second timeout, no automatic retries, no raw provider payload or error leak.
 - Current burst limiting and concurrent request deduplication remain in place.
 - Only make, model, year, colour and fuel type are returned to the browser.
-- Provider attribution is updated on both existing lookup forms.
+- Lookup forms do not display a provider attribution line.
 
 Run `node --test tests/vehicle-lookup.test.mjs` after installing dependencies.
 These use mocked requests and consume no lookup credits. After configuring your
