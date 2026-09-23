@@ -32,47 +32,62 @@ function field(value: unknown): string | null {
 }
 
 
-export function parseRapidCarCheck(payload: unknown, plate: string): VehicleSummary {
+// VDG's r2 response fields match the previous integration and the public
+// VehicleDetails example. Accept PascalCase and camelCase envelopes.
+function get(value: unknown, key: string): unknown {
+  const obj = record(value);
+  return obj[key] ?? obj[key[0].toLowerCase() + key.slice(1)];
+}
+
+export function parseVehicleDataGlobal(payload: unknown, plate: string): VehicleSummary {
   const root = record(payload);
-  if (root.HasError !== false) throw unavailable();
-  const results = record(root.Results);
-  if (results.HasVehicleResults === false) throw notFound();
-  if (results.HasVehicleResults !== true) throw unavailable();
-  const vehicle = record(results.InitialVehicleCheckModel);
-  // Reject mismatched records, including an accidentally configured demo result.
-  if (vehicle.Vrm != null && normaliseRegistration(vehicle.Vrm) !== plate) throw unavailable();
-  const basic = record(vehicle.BasicVehicleDetailsModel);
-  const year = Number(basic.YearOfManufacture);
+  const info = get(root, "ResponseInformation");
+  const status = get(info, "StatusCode");
+  if (status != null && status !== 0 && status !== "0") throw unavailable();
+  const results = get(root, "Results");
+  if (!results || typeof results !== "object" || Array.isArray(results)) throw unavailable();
+  const vehicle = get(results, "VehicleDetails");
+  const vehicleStatus = get(vehicle, "StatusCode");
+  if (vehicleStatus != null && vehicleStatus !== 0 && vehicleStatus !== "0") throw unavailable();
+  const identification = get(vehicle, "VehicleIdentification");
+  const returnedPlate = get(identification, "Vrm");
+  if (returnedPlate != null && normaliseRegistration(returnedPlate) !== plate) throw unavailable();
+  const modelDetails = get(results, "ModelDetails");
+  const modelStatus = get(modelDetails, "StatusCode");
+  const usableModel = modelStatus == null || modelStatus === 0 || modelStatus === "0" ? modelDetails : undefined;
+  const model = get(usableModel, "ModelIdentification");
+  const year = Number(get(identification, "YearOfManufacture"));
   const summary: VehicleSummary = {
-    make: field(basic.Make),
-    model: field(basic.Model),
+    make: field(get(identification, "DvlaMake")) ?? field(get(model, "Make")),
+    model: field(get(identification, "DvlaModel")) ?? field(get(model, "Model")),
     year: Number.isInteger(year) && year >= 1886 && year <= new Date().getUTCFullYear() + 1 ? year : null,
-    colour: field(basic.Colour),
-    fuelType: field(basic.FuelType),
+    colour: field(get(get(get(vehicle, "VehicleHistory"), "ColourDetails"), "CurrentColour")),
+    fuelType: field(get(identification, "DvlaFuelType")) ?? field(get(get(usableModel, "Powertrain"), "FuelType")),
   };
   if (!summary.make && !summary.model) throw notFound();
   return summary;
 }
 
-export async function fetchRapidCarCheck(
+export async function fetchVehicleDataGlobal(
   plate: string,
   env: Record<string, string | undefined> = process.env,
   request: typeof fetch = fetch,
 ): Promise<VehicleSummary> {
-  const key = env.RAPID_CAR_CHECK_API_KEY?.trim();
-  const domain = env.RAPID_CAR_CHECK_DOMAIN?.trim();
-  if (!key || !domain) throw unavailable();
+  const key = env.VEHICLE_DATA_GLOBAL_API_KEY?.trim();
+  const packageName = env.VEHICLE_DATA_GLOBAL_PACKAGE?.trim() || "VehicleDetails";
+  if (!key) throw unavailable();
   let url: URL;
   try {
-    url = new URL(env.RAPID_CAR_CHECK_ENDPOINT?.trim() || "https://www.rapidcarcheck.co.uk/api/");
+    url = new URL(env.VEHICLE_DATA_GLOBAL_ENDPOINT?.trim() || "https://uk.api.vehicledataglobal.com/r2/lookup");
   } catch { throw unavailable(); }
   // Credentials go only to the provider over verified HTTPS. Supply the base
   // endpoint, not an account URL containing parameters or a sandbox flag.
-  if (url.protocol !== "https:" || !["www.rapidcarcheck.co.uk", "rapidcarcheck.co.uk"].includes(url.hostname)
+  if (url.protocol !== "https:" || url.hostname !== "uk.api.vehicledataglobal.com"
+    || url.pathname !== "/r2/lookup"
     || url.port || url.username || url.password || url.search || url.hash) throw unavailable();
-  url.searchParams.set("key", key);
-  url.searchParams.set("domain", domain);
-  url.searchParams.set("plate", plate);
+  url.searchParams.set("apiKey", key);
+  url.searchParams.set("packageName", packageName);
+  url.searchParams.set("vrm", plate);
   try {
     const response = await request(url, {
       method: "GET",
@@ -85,7 +100,7 @@ export async function fetchRapidCarCheck(
     if (response.status === 204 || response.status === 404) throw notFound();
     if (response.status === 429) throw new VehicleLookupError(429, "Vehicle lookup is unavailable right now. Please enter the details manually.");
     if (response.status !== 200) throw unavailable();
-    return parseRapidCarCheck(await response.json(), plate);
+    return parseVehicleDataGlobal(await response.json(), plate);
   } catch (error) {
     if (error instanceof VehicleLookupError) throw error;
     // Fetch exceptions can contain the URL/API key; never expose or log them.

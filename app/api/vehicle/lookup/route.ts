@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchRapidCarCheck, normaliseRegistration, VehicleLookupError, type VehicleSummary } from "@/lib/vehicle/rapidCarCheck";
+import { fetchVehicleDataGlobal, normaliseRegistration, VehicleLookupError, type VehicleSummary } from "@/lib/vehicle/vehicleDataGlobal";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
 
     let lookup = pending.get(vrm);
     if (!lookup) {
-      lookup = fetchRapidCarCheck(vrm).finally(() => pending.delete(vrm));
+      lookup = fetchVehicleDataGlobal(vrm).finally(() => pending.delete(vrm));
       pending.set(vrm, lookup);
     }
     const summary = await lookup;
