@@ -6,7 +6,8 @@ import { getMollieConfig } from "./config";
 import { mollieClient } from "./client";
 import { assertMolliePayment, checkoutUrl, paymentNeedsReview } from "./payment";
 
-export async function ensureMolliePayment(checkout: PaymentCheckout) {
+export async function ensureMolliePayment(checkout: PaymentCheckout, onStage: (stage: string) => void = () => {}) {
+  onStage("creation_precheck");
   const config = getMollieConfig();
   if (checkout.paymentProvider !== "MOLLIE" || checkout.mollieMode !== config.mode) throw new Error("Checkout mode mismatch");
   if (checkout.molliePaymentId) return checkout;
@@ -18,6 +19,7 @@ export async function ensureMolliePayment(checkout: PaymentCheckout) {
     } });
     throw new Error("Checkout creation needs manual reconciliation");
   }
+  onStage("mollie_create_payment");
   const payment = await mollieClient().payments.create({
     idempotencyKey: `coverza-mollie-${checkout.id}`,
     paymentRequest: {
@@ -32,9 +34,12 @@ export async function ensureMolliePayment(checkout: PaymentCheckout) {
       billingAddress: { email: checkout.email },
     },
   });
+  onStage("validate_mollie_response");
   assertMolliePayment(payment, checkout);
+  const url = checkoutUrl(payment);
+  onStage("save_mollie_payment");
   return prisma.paymentCheckout.update({ where: { id: checkout.id }, data: {
-    molliePaymentId: payment.id, mollieProfileId: payment.profileId, mollieCheckoutUrl: checkoutUrl(payment),
+    molliePaymentId: payment.id, mollieProfileId: payment.profileId, mollieCheckoutUrl: url,
   } });
 }
 
