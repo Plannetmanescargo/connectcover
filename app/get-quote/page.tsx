@@ -537,6 +537,7 @@ export default function GetQuotePage() {
   // Step 1
   const [vrm,            setVrm]            = useState("");
   const lookupInProgress = useRef(false);
+  const checkoutAttempt = useRef<{ payload: string; key: string } | null>(null);
   const [loadingVehicle, setLoadingVehicle] = useState(false);
   const [vehicle,        setVehicle]        = useState<VehicleLookupSummary | null>(null);
   const [lookupError,    setLookupError]    = useState<string | null>(null);
@@ -861,6 +862,7 @@ function continueFromStep() {
   /* ── checkout ── */
   async function onContinueToPayment() {
     setFormError(null);
+    if (checkoutLoading) return;
     if (!canCheckout || !price) { setFormError("Please complete all steps before continuing."); return; }
     setCheckoutLoading(true);
     const ref      = quoteRef || makeQuoteRef();
@@ -884,9 +886,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
       sessionStorage.setItem("coverza_quote_ref", ref);
     } catch {}
     try {
-      const res = await fetch("/api/worldpay/checkout", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({
+      const payload = JSON.stringify({
           pricing: { rateType: price.rateType, units: price.units, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
           quote: {
             vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear,
@@ -899,7 +899,14 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
             fullName: customer.fullName.trim(), dob: customer.dob,
             email: customer.email.trim(), licenceType: customer.licenceType, address: addrStr,
           },
-        }),
+        });
+      if (!checkoutAttempt.current || checkoutAttempt.current.payload !== payload) {
+        checkoutAttempt.current = { payload, key: crypto.randomUUID() };
+      }
+      const res = await fetch("/api/mollie/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json", "idempotency-key": checkoutAttempt.current.key },
+        body: payload,
       });
       const data = await res.json();
       if (!res.ok || !data?.url) throw new Error(data?.error || "Failed to start checkout.");
@@ -1984,7 +1991,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
         {[
           {
             label: "Secure payment",
-            sub: "Processed by Square",
+            sub: "Processed by Mollie",
           },
           {
             label: "Policy created",
@@ -2062,7 +2069,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
       {/* Footer reassurance */}
       <div className="mt-5 text-center">
         <p className="text-[11.5px] leading-5 text-slate-500">
-          Secure payment powered by Square
+          Secure payment powered by Mollie
           <span className="mx-2 text-slate-300">·</span>
           Documents issued after successful payment
         </p>

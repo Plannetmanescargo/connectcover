@@ -194,6 +194,7 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
     "STRIPE",
     "SQUARE",
     "WORLDPAY",
+    "MOLLIE",
   ] as const;
 
   if (
