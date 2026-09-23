@@ -5,7 +5,6 @@ import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
 
 import { RATES } from "@/lib/payments/pricing";
-import VehicleDataAttribution from "@/components/quote/VehicleDataAttribution";
 import { normaliseRegistration } from "@/lib/vehicle/registration";
 
 /* =========================================================
@@ -1021,7 +1020,6 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
               </div>
             </div>
 
-            <VehicleDataAttribution />
 
             {lookupError && (
               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
