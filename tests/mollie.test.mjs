@@ -198,3 +198,11 @@ test('checkout validates server price, origin and attempt key, and reuses persis
     assert.equal((await POST(req(payload(), 'https://example.com', 'invalid'))).status, 400);
   } finally { if (previous === undefined) delete process.env.MOLLIE_ENABLED; else process.env.MOLLIE_ENABLED = previous; }
 });
+test('SEPT10 server pricing reaches Mollie payment and finalization', async () => {
+ const body = payload(); body.pricing.promoCode = 'SEPT10'; body.quote.totalAmountPence = 179;
+ const f = fixture({ created: false }); Object.assign(f.row, validateCheckout(body)); f.payment.amount.value = '1.79';
+ await f.ensureMolliePayment(f.row);
+ assert.equal(f.calls.create[0].paymentRequest.amount.value, '1.79');
+ await f.reconcileMollieCheckout(f.row.id, true);
+ assert.equal(f.calls.finalInputs[0].totalAmountPence, 179); assert.ok(f.row.mollieFulfilledAt);
+});

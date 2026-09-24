@@ -46,7 +46,7 @@ Pending checkouts are bound to a hash of the Stripe secret key. Keep that key un
    - `charge.refunded`
    - `charge.dispute.created`
 5. Reveal this endpoint's signing secret and set `STRIPE_WEBHOOK_SECRET`.
-6. Review Checkout branding and public business/support details in Stripe. The item name is **Coverza Vehicle Documents**, priced server-side in GBP. Discounts, promotion codes, shipping and adaptive currency conversion are not enabled by this integration.
+6. Review Checkout branding and public business/support details in Stripe. The item name is **Coverza Vehicle Documents**, priced server-side in GBP. Stripe-native promotion codes, shipping and adaptive currency conversion are not enabled. Coverza applies SEPT10 on its purchase review step before creating the Stripe session; see [promotion setup](promotions.md).
 
 The integration requests card payments. Hosted Checkout supports eligible Apple Pay and Google Pay as card wallets; their display depends on Stripe settings, the buyer's browser/device and a configured wallet. Review wallet enablement in Stripe's payment-method settings. PayPal's existing wallet/domain configuration is independent and remains untouched.
 

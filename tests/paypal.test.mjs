@@ -300,3 +300,12 @@ test('lost CREATED card capture response recovers without another charge', async
  await f.reconcilePayPalCheckout(f.row.id, true);
  assert.equal(f.calls.capture.length, 1); assert.equal(f.calls.fulfill, 1);
 });
+test('SEPT10 server pricing reaches PayPal order, capture and finalization', async () => {
+ const body = payload(); body.pricing.promoCode = 'SEPT10'; body.quote.totalAmountPence = 179;
+ const f = fixture({ created: false, status: 'APPROVED' }); Object.assign(f.row, validateCheckout(body));
+ f.order.purchase_units[0].amount.value = '1.79'; f.capture.amount.value = '1.79';
+ await f.ensurePayPalOrder(f.row);
+ assert.equal(f.calls.create[0].body.purchase_units[0].amount.value, '1.79');
+ await f.reconcilePayPalCheckout(f.row.id, true);
+ assert.equal(f.calls.capture.length, 1); assert.equal(f.calls.finalize[0].totalAmountPence, 179); assert.ok(f.row.paypalFulfilledAt);
+});

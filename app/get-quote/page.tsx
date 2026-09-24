@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import PageShell from "@/components/site/PageShell";
 
-import { RATES } from "@/lib/payments/pricing";
+import { RATES, promotionPrice } from "@/lib/payments/pricing";
 import { normaliseRegistration } from "@/lib/vehicle/registration";
 
 /* =========================================================
@@ -534,6 +534,10 @@ export default function GetQuotePage() {
   const [formError,       setFormError]       = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+  const [promoInput, setPromoInput] = useState("");
+  const [promoCode, setPromoCode] = useState("");
+  const [promoError, setPromoError] = useState<string | null>(null);
+
   // Step 1
   const [vrm,            setVrm]            = useState("");
   const lookupInProgress = useRef(false);
@@ -656,7 +660,7 @@ if (draft?.endAt) {
         ≤ 4 weeks   → weekly
         else        → monthly (shouldn't reach here given limit above)
   ──────────────────────────────────────────────────────────────────────── */
-const price = useMemo<PriceResult | null>(() => {
+const basePrice = useMemo<PriceResult | null>(() => {
   if (!durationMs) return null;
 
   // Preset: 1 hour
@@ -769,6 +773,18 @@ const price = useMemo<PriceResult | null>(() => {
   return null;
 }, [durationMs, coverChoice, durationUnit, durationValue]);
 
+  const promotion = basePrice ? promotionPrice(Math.round(basePrice.total * 100), promoCode) : null;
+  const price: PriceResult | null = basePrice && promotion
+    ? { ...basePrice, total: promotion.totalAmountPence / 100 } : null;
+  function applyPromo() {
+    try {
+      const result = promotionPrice(Math.round((basePrice?.total || 0) * 100), promoInput);
+      setPromoCode(result.code); setPromoInput(result.code); setPromoError(null);
+    } catch (error) {
+      setPromoCode(""); setPromoError(error instanceof Error ? error.message : "Please check your code.");
+    }
+  }
+
   /* ── driver derived ── */
   const dobAge   = useMemo(() => committedDob ? calcAgeDetailed(committedDob) : null, [committedDob]);
   const ageYears = useMemo(() => committedDob ? calcAge(committedDob) : null, [committedDob]);
@@ -880,14 +896,14 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
         quoteRef: ref,
         quote: { vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear, startAt: new Date(startAt).toISOString(), endAt: new Date(endAt).toISOString(), durationMs },
         customer: { ...customer, address: addrStr },
-        pricing: { selectedLabel: price.label, units: price.units, unitLabel: price.unitLabel, unitPrice: price.unitPrice, total: price.total, rateCard: RATES },
+        pricing: { promoCode, discountPence: promotion?.discountPence || 0, selectedLabel: price.label, units: price.units, unitLabel: price.unitLabel, unitPrice: price.unitPrice, total: price.total, rateCard: RATES },
         createdAt: new Date().toISOString(),
       }));
       sessionStorage.setItem("coverza_quote_ref", ref);
     } catch {}
     try {
       const payload = JSON.stringify({
-          pricing: { rateType: price.rateType, units: price.units, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+          pricing: { promoCode, rateType: price.rateType, units: price.units, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
           quote: {
             vrm: cleanVrm, make: chosenMake, model: chosenModel, year: chosenYear,
             // Preserve the browser-selected instants across the server boundary.
@@ -1956,6 +1972,27 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
           ))}
         </div>
 
+        <div className="border-t border-slate-100 px-5 py-5 sm:px-7">
+          <label htmlFor="promo-code" className="block text-sm font-semibold text-slate-800">Discount code</label>
+          <div className="mt-2 flex gap-2">
+            <input id="promo-code" value={promoInput} maxLength={32} disabled={checkoutLoading}
+              onChange={event => { setPromoInput(event.target.value); setPromoError(null); }}
+              onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); applyPromo(); } }}
+              autoCapitalize="characters" autoComplete="off" spellCheck={false}
+              aria-invalid={Boolean(promoError)} aria-describedby="promo-feedback"
+              placeholder="Enter your code"
+              className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-900 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200" />
+            <button type="button" disabled={checkoutLoading || !basePrice || !promoInput.trim()} onClick={applyPromo}
+              className="rounded-xl bg-[rgb(108,76,243)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">Apply</button>
+          </div>
+          <div id="promo-feedback" role="status" aria-live="polite" className="mt-2 text-sm">
+            {promoError ? <p className="text-red-700">{promoError}</p> : promoCode && promotion ?
+              <p className="text-violet-700">{promoCode} applied: 10% off. You save {moneyGBP(promotion.discountPence / 100)}.
+                <button type="button" disabled={checkoutLoading} className="ml-3 underline" onClick={() => { setPromoCode(""); setPromoInput(""); setPromoError(null); }}>Remove</button>
+              </p> : <p className="text-slate-500">Apply your code before continuing to payment.</p>}
+          </div>
+        </div>
+
         {/* Price */}
         <div className="border-t border-slate-100 bg-[linear-gradient(135deg,rgba(108,76,243,0.042),rgba(248,250,252,0.82))] px-5 py-7 sm:px-7 sm:py-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
@@ -1974,6 +2011,10 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
             </div>
 
             <div className="pt-1 sm:pt-0 sm:text-right">
+              {promotion && promotion.discountPence > 0 && <p className="mb-2 text-sm text-slate-500">
+                <span className="sr-only">Original price </span><s>{moneyGBP(promotion.subtotalPence / 100)}</s>
+                <span className="ml-2 text-violet-700">10% off</span>
+              </p>}
               <p className="text-[2.9rem] font-extrabold leading-none tracking-[-0.065em] text-slate-950 sm:text-[3.15rem]">
                 {price ? moneyGBP(price.total) : "—"}
               </p>
