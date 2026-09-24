@@ -21,10 +21,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
     <section className="mx-auto max-w-lg px-6 py-12 sm:py-16">
       <p className="text-sm font-semibold uppercase tracking-widest text-slate-500">Secure checkout</p>
       <h1 className="mt-3 text-3xl font-bold text-slate-950">Complete your purchase</h1>
-      <div className="my-7 flex items-center justify-between border-y border-slate-200 py-5"><span>Vehicle cover</span><strong className="text-2xl">£{(row.totalAmountPence / 100).toFixed(2)}</strong></div>
+      <div className="my-7 flex items-center justify-between border-y border-slate-200 py-5"><span>Coverza Vehicle Documents</span><strong className="text-2xl">£{(row.totalAmountPence / 100).toFixed(2)}</strong></div>
       <PayPalCheckout checkoutId={id} orderId={row.paypalOrderId} clientId={c.clientId} mode={c.mode}
         amount={(row.totalAmountPence / 100).toFixed(2)} applePay={c.applePay} googlePay={c.googlePay} />
-      <p className="mt-6 text-sm leading-6 text-slate-500">Payments are securely processed by PayPal. Available payment methods depend on your device and account. Your cover is confirmed after payment verification.</p>
+      <p className="mt-6 text-sm leading-6 text-slate-500">Payments are securely processed by PayPal. Available payment methods depend on your device and account. Your documents are prepared after payment verification.</p>
     </section>
   </PageShell>;
 }
