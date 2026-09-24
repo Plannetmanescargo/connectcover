@@ -9,7 +9,7 @@ This integration uses Access Worldpay HPP v1, matching the supplied documentatio
 - The quote page now opens the Worldpay checkout.
 - `/checkout/success?provider=worldpay&checkout_id=...` reads the database. A browser redirect never marks a payment paid.
 - `/checkout/worldpay` handles failed, cancelled, expired and error returns without claiming that no charge occurred.
-- Both files under `app/api/stripe` remain unchanged. They currently implement **Square**, despite their path names. Retaining them is not an automatic working Stripe fallback.
+- `/api/stripe/checkout` now implements Stripe; historical signed Square callbacks are preserved through `/api/stripe/webhook`. See [Stripe setup](stripe.md) for the current provider switch.
 
 ## Vercel environment variables
 
@@ -115,7 +115,7 @@ The source change alone does not register the webhook, set Vercel secrets, apply
 - Do not rotate API environments in place while their events are still pending. Use separate sandbox/live deployments and matching API/environment settings.
 - Worldpay coupons are not implemented; Square dashboard coupons do not transfer to this integration.
 
-For rollback, restore the quote page's checkout URL to `/api/stripe/checkout` only after confirming Square is operational. Keep `/api/worldpay/webhook` available to finish already-started Worldpay payments. The additive migration can remain installed.
+For the current rollback options, use `PAYMENT_PROVIDER=paypal`, `mollie`, or `stripe` and redeploy; do not point the quote page at `/api/stripe/checkout` expecting Square. Keep `/api/worldpay/webhook` available to finish already-started Worldpay payments. The additive migration can remain installed.
 
 ## Verification
 
