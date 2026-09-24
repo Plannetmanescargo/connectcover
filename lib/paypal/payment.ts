@@ -1,6 +1,6 @@
 import { amountPence } from "../mollie/payment";
 export type PayPalCapture = { id: string; status: string; final_capture?: boolean; amount: { currency_code: string; value: string } };
-export type PayPalOrder = { id: string; intent: string; status: string; purchase_units: Array<{
+export type PayPalOrder = { id: string; intent: string; status: string; links?: Array<{ rel: string; method?: string; href?: string }>; purchase_units: Array<{
   reference_id: string; custom_id: string; payee: { merchant_id: string };
   amount: { currency_code: string; value: string }; payments?: { captures?: PayPalCapture[] };
 }>; payment_source?: { card?: { authentication_result?: { liability_shift?: string; three_d_secure?: { enrollment_status?: string; authentication_status?: string } } }; google_pay?: { card?: { authentication_result?: { liability_shift?: string } } } } };
@@ -60,4 +60,18 @@ export function captureIdFromLinks(links: Array<{ rel?: string; href?: string }>
     } catch { /* malformed link */ }
   }
   return undefined;
+}
+
+/** A direct-card order can remain CREATED after successful 3DS.
+ * Require affirmative authentication and a capture action; a bare CREATED order
+ * or an unfinished payer action must never start a charge.
+ * Links are capability hints only: requests use our configured API and order ID.
+ */
+export function isAuthenticatedCreatedCard(order: PayPalOrder) {
+  const auth = order.payment_source?.card?.authentication_result;
+  return order.status === "CREATED" && auth?.liability_shift === "POSSIBLE" &&
+    auth.three_d_secure?.enrollment_status === "Y" &&
+    auth.three_d_secure?.authentication_status === "Y" &&
+    !!order.links?.some(link => link.rel === "capture" && link.method === "POST") &&
+    !order.links?.some(link => link.rel === "payer-action");
 }
