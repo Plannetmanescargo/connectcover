@@ -546,7 +546,7 @@ export async function fulfillPolicy(
    * Customer-requested retrieval emails remain repeatable because they
    * do not use source INITIAL_FULFILLMENT.
    */
-  const emailIdempotencyKey = `${policy.paymentProvider === "MOLLIE" ? "mollie" : "worldpay"}-policy/${policyId}`;
+  const emailIdempotencyKey = `${policy.paymentProvider === "PAYPAL" ? "paypal" : policy.paymentProvider === "MOLLIE" ? "mollie" : "worldpay"}-policy/${policyId}`;
   let initialEmailClaimed = false;
 
   try {

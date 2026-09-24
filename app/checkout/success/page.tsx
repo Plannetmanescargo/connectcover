@@ -6,6 +6,7 @@ import { prisma } from "@/db/prisma";
 
 import AutoRefresh from "./AutoRefresh";
 import WorldpayConfirmation from "./WorldpayConfirmation";
+import PayPalConfirmation from "./PayPalConfirmation";
 import MollieConfirmation from "./MollieConfirmation";
 
 export const runtime = "nodejs";
@@ -96,15 +97,19 @@ async function findCheckoutPolicy(
         worldpayTransactionReference: true,
         molliePaymentId: true,
         mollieFulfilledAt: true,
+        paypalCaptureId: true,
+        paypalFulfilledAt: true,
+        paypalReviewReason: true,
       },
     });
 
   if (
     !checkout ||
     checkout.brand !== "coverza" ||
-    (checkout.paymentProvider !== "SQUARE" && checkout.paymentProvider !== "WORLDPAY" && checkout.paymentProvider !== "MOLLIE") ||
+    (checkout.paymentProvider !== "SQUARE" && checkout.paymentProvider !== "WORLDPAY" && checkout.paymentProvider !== "MOLLIE" && checkout.paymentProvider !== "PAYPAL") ||
     checkout.status !== "PAID" ||
-    (checkout.paymentProvider === "MOLLIE" && !checkout.mollieFulfilledAt)
+    (checkout.paymentProvider === "MOLLIE" && !checkout.mollieFulfilledAt) ||
+    (checkout.paymentProvider === "PAYPAL" && (!checkout.paypalFulfilledAt || checkout.paypalReviewReason))
   ) {
     return null;
   }
@@ -134,7 +139,7 @@ async function findCheckoutPolicy(
    * writing policyId to PaymentCheckout, find the policy
    * using the provider's stable policy payment key.
    */
-  const paymentId = checkout.paymentProvider === "WORLDPAY"
+  const paymentId = checkout.paymentProvider === "PAYPAL" ? checkout.paypalCaptureId : checkout.paymentProvider === "WORLDPAY"
     ? checkout.worldpayTransactionReference : checkout.paymentProvider === "MOLLIE" ? checkout.molliePaymentId : checkout.squarePaymentId;
   if (paymentId) {
     return prisma.policy.findUnique({
@@ -535,6 +540,11 @@ export default async function SuccessPage(
   }
 
   if (!policy) {
+    if (searchParams.provider === "paypal") {
+      return <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Payment status" }]}>
+        <PayPalConfirmation checkoutId={checkoutId} />
+      </PageShell>;
+    }
     if (searchParams.provider === "mollie") {
       return <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Payment status" }]}>
         <MollieConfirmation checkoutId={checkoutId} />

@@ -195,6 +195,7 @@ export function validateFinalizeInput(input: PolicyFinalizeInput) {
     "SQUARE",
     "WORLDPAY",
     "MOLLIE",
+    "PAYPAL",
   ] as const;
 
   if (
