@@ -41,7 +41,7 @@ export async function reconcilePayPalCheckout(id: string, immediate = false) {
     checkout = await ensurePayPalOrder(checkout);
     const path = `/v2/checkout/orders/${checkout.paypalOrderId}`;
     let order: PayPalOrder;
-    try { order = await paypalRequest<PayPalOrder>(`${path}?fields=payment_source`); }
+    try { order = await paypalRequest<PayPalOrder>(path); }
     catch (error) {
       if (error instanceof PayPalError && error.status === 404 && Date.now() - checkout.createdAt.getTime() > 6 * 3600_000) {
         await prisma.paymentCheckout.update({ where: { id }, data: checkout.paypalCaptureStartedAt || checkout.status === "PAID"
@@ -53,8 +53,13 @@ export async function reconcilePayPalCheckout(id: string, immediate = false) {
     }
     let capture = assertPayPalOrder(order, checkout);
     if (order.status === "APPROVED" && !capture) {
-      assertGoogleAuthentication(order);
-      assertCardAuthentication(order);
+      // fields=payment_source is a filtered response, NOT a full order.
+      // Read it separately so authentication cannot erase status/amount/payee.
+      const source = await paypalRequest<Pick<PayPalOrder, "id" | "payment_source">>(`${path}?fields=payment_source`);
+      if (source.id !== order.id) throw new Error("PayPal authentication order mismatch");
+      const authenticatedOrder = { ...order, payment_source: source.payment_source ?? order.payment_source };
+      assertGoogleAuthentication(authenticatedOrder);
+      assertCardAuthentication(authenticatedOrder);
       if (checkout.paypalCaptureStartedAt && Date.now() - checkout.paypalCaptureStartedAt.getTime() > 5 * 3600_000) {
         await prisma.paymentCheckout.update({ where: { id }, data: { paypalReviewReason: "Ambiguous capture exceeded retry window. Check PayPal before retrying.", paypalNextAttemptAt: null } });
         return;
@@ -65,7 +70,7 @@ export async function reconcilePayPalCheckout(id: string, immediate = false) {
         // A capture may already have succeeded even if its response was lost.
         // Always read authoritative state before retrying with the same key.
         if (!(error instanceof PayPalError) || error.status !== 422) throw error;
-        order = await paypalRequest<PayPalOrder>(`${path}?fields=payment_source`);
+        order = await paypalRequest<PayPalOrder>(path);
       }
       // The capture API returns the full authoritative representation.
       capture = assertPayPalOrder(order, checkout);

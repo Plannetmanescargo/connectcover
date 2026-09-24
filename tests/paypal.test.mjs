@@ -54,6 +54,7 @@ function fixture({ created = true, status = 'COMPLETED' } = {}) {
    './client': { PayPalError: class extends Error {}, paypalRequest: async (path, body, key) => {
      if (path.endsWith('/capture')) { calls.capture.push({ path, body, key }); order.status = 'COMPLETED'; order.purchase_units[0].payments.captures = [capture]; if (calls.loseCaptureResponse) throw new Error('Lost response'); }
      else if (body) calls.create.push({ path, body, key }); else calls.reads++;
+     if (path.includes("?fields=payment_source")) return structuredClone({ id: order.id, payment_source: order.payment_source });
      return structuredClone(order);
    } },
    '@/lib/paypal/webhook': { verifyPayPalWebhook: async () => calls.verified },
@@ -167,7 +168,7 @@ test('refund link lookup accepts only a PayPal capture on the configured API ori
 test('successful capture uses its verified response without an extra PayPal lookup', async () => {
  const f = fixture({ status: 'APPROVED' });
  await f.reconcilePayPalCheckout(f.row.id, true);
- assert.equal(f.calls.reads, 1);
+ assert.equal(f.calls.reads, 2);
  assert.equal(f.calls.capture.length, 1);
  assert.equal(f.calls.fulfill, 1);
 });
@@ -219,4 +220,30 @@ test('delivery readiness follows email acceptance and precedes newsletter work',
  events.length=0; failEmail=true;
  await assert.rejects(()=>fulfillPolicy('policy_test',opts));
  assert.ok(!events.includes('ready'));
+});
+
+test('filtered authentication response cannot replace the complete approved order', async () => {
+ const f = fixture({ status: 'APPROVED' });
+ f.order.payment_source = { card: { authentication_result: {
+   liability_shift: 'POSSIBLE', three_d_secure: { enrollment_status: 'Y', authentication_status: 'Y' }
+ } } };
+ await f.reconcilePayPalCheckout(f.row.id, true);
+ assert.equal(f.calls.capture.length, 1);
+ assert.equal(f.calls.fulfill, 1);
+ assert.equal(f.row.status, 'PAID');
+});
+
+test('filtered authentication remains bound to the same order and rejects failed SCA', async () => {
+ for (const mismatch of [true, false]) {
+   const f = fixture({ status: 'APPROVED' });
+   const original = f.mocks['./client'].paypalRequest;
+   f.mocks['./client'].paypalRequest = async (path, ...args) => path.includes('?fields=payment_source')
+     ? { id: mismatch ? 'OTHER123456789' : f.order.id, payment_source: { card: { authentication_result: {
+       liability_shift: 'NO', three_d_secure: { enrollment_status: 'Y', authentication_status: 'N' }
+     } } } }
+     : original(path, ...args);
+   await assert.rejects(f.reconcilePayPalCheckout(f.row.id, true));
+   assert.equal(f.calls.capture.length, 0);
+   assert.equal(f.calls.fulfill, 0);
+ }
 });
