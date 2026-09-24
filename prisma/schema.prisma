@@ -129,6 +129,19 @@ model PaymentCheckout {
   paymentProvider PaymentProvider
   currency        String          @default("GBP")
 
+  // Stripe hosted Checkout, bound to the original configuration and attempt.
+  stripeRequestKey String? @unique
+  stripeRequestHash String?
+  stripeConfigHash String?
+  stripeCheckoutSessionId String? @unique
+  stripePaymentIntentId String? @unique
+  stripeCheckoutUrl String?
+  stripeLivemode Boolean?
+  stripeProcessingUntil DateTime?
+  stripeFulfilledAt DateTime?
+  stripeNextAttemptAt DateTime?
+  stripeReviewReason String?
+
   // Square references
   squarePaymentLinkId String? @unique
   squareOrderId       String? @unique
@@ -178,6 +191,7 @@ model PaymentCheckout {
 
   @@index([paymentProvider, mollieNextAttemptAt])
   @@index([paymentProvider, paypalNextAttemptAt])
+  @@index([paymentProvider, stripeNextAttemptAt])
   @@index([brand])
   @@index([status])
   @@index([email])

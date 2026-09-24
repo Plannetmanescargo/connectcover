@@ -1,0 +1,27 @@
+import { after, NextResponse } from "next/server";
+import { prisma } from "@/db/prisma";
+import { reconcileStripeCheckout } from "@/lib/stripe/process";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+export async function GET(request: Request) {
+  const reply = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "private, no-store" } });
+  const id = new URL(request.url).searchParams.get("checkout_id");
+  if (!id || !/^[a-zA-Z0-9_-]{10,128}$/.test(id)) return reply({ confirmed: false }, 400);
+  try {
+    const checkout = await prisma.paymentCheckout.findUnique({ where: { id }, select: {
+      paymentProvider: true, brand: true, status: true, policyId: true, stripeFulfilledAt: true, stripeReviewReason: true,
+    } });
+    if (!checkout || checkout.paymentProvider !== "STRIPE" || checkout.brand !== "coverza") return reply({ confirmed: false }, 404);
+    const confirmed = checkout.status === "PAID" && Boolean(checkout.policyId && checkout.stripeFulfilledAt);
+    if (!confirmed && !checkout.stripeReviewReason && checkout.status !== "FAILED" && checkout.status !== "EXPIRED") {
+      after(async () => { try { await reconcileStripeCheckout(id); } catch { /* cron retries */ } });
+    }
+    const documents = checkout.status === "PAID" && checkout.policyId
+      ? await prisma.policyDocument.findMany({ where: { policyId: checkout.policyId }, select: { kind: true } }) : [];
+    const documentsReady = documents.some(doc => doc.kind === "PROPOSAL") && documents.some(doc => doc.kind === "CERTIFICATE");
+    return reply({ confirmed, documentsReady, status: checkout.status, needsReview: Boolean(checkout.stripeReviewReason) });
+  } catch { return reply({ confirmed: false }, 503); }
+}

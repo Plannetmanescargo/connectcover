@@ -6,6 +6,7 @@ import { prisma } from "@/db/prisma";
 
 import AutoRefresh from "./AutoRefresh";
 import WorldpayConfirmation from "./WorldpayConfirmation";
+import StripeConfirmation from "./StripeConfirmation";
 import PayPalConfirmation from "./PayPalConfirmation";
 import MollieConfirmation from "./MollieConfirmation";
 
@@ -100,15 +101,19 @@ async function findCheckoutPolicy(
         paypalCaptureId: true,
         paypalFulfilledAt: true,
         paypalReviewReason: true,
+        stripeCheckoutSessionId: true,
+        stripeFulfilledAt: true,
+        stripeReviewReason: true,
       },
     });
 
   if (
     !checkout ||
     checkout.brand !== "coverza" ||
-    (checkout.paymentProvider !== "SQUARE" && checkout.paymentProvider !== "WORLDPAY" && checkout.paymentProvider !== "MOLLIE" && checkout.paymentProvider !== "PAYPAL") ||
+    (checkout.paymentProvider !== "SQUARE" && checkout.paymentProvider !== "WORLDPAY" && checkout.paymentProvider !== "MOLLIE" && checkout.paymentProvider !== "PAYPAL" && checkout.paymentProvider !== "STRIPE") ||
     checkout.status !== "PAID" ||
     (checkout.paymentProvider === "MOLLIE" && !checkout.mollieFulfilledAt) ||
+    (checkout.paymentProvider === "STRIPE" && (!checkout.stripeFulfilledAt || checkout.stripeReviewReason)) ||
     (checkout.paymentProvider === "PAYPAL" && (!checkout.paypalFulfilledAt || checkout.paypalReviewReason))
   ) {
     return null;
@@ -139,7 +144,7 @@ async function findCheckoutPolicy(
    * writing policyId to PaymentCheckout, find the policy
    * using the provider's stable policy payment key.
    */
-  const paymentId = checkout.paymentProvider === "PAYPAL" ? checkout.paypalCaptureId : checkout.paymentProvider === "WORLDPAY"
+  const paymentId = checkout.paymentProvider === "STRIPE" ? checkout.stripeCheckoutSessionId : checkout.paymentProvider === "PAYPAL" ? checkout.paypalCaptureId : checkout.paymentProvider === "WORLDPAY"
     ? checkout.worldpayTransactionReference : checkout.paymentProvider === "MOLLIE" ? checkout.molliePaymentId : checkout.squarePaymentId;
   if (paymentId) {
     return prisma.policy.findUnique({
@@ -540,6 +545,11 @@ export default async function SuccessPage(
   }
 
   if (!policy) {
+    if (searchParams.provider === "stripe" && checkoutId) {
+      return <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Payment status" }]}>
+        <StripeConfirmation checkoutId={checkoutId} />
+      </PageShell>;
+    }
     if (searchParams.provider === "paypal") {
       return <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Payment status" }]}>
         <PayPalConfirmation checkoutId={checkoutId} />
