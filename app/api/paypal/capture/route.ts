@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { prisma } from "@/db/prisma";
 import { getPayPalConfig } from "@/lib/paypal/config";
 import { reconcilePayPalCheckout } from "@/lib/paypal/process";
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     // Persist recovery before attempting capture; the worker uses only the stored order.
     if (!row.paypalReviewReason) {
       await prisma.paymentCheckout.update({ where: { id }, data: { paypalNextAttemptAt: new Date() } });
-      try { await reconcilePayPalCheckout(id, true); } catch { /* cron recovers uncertain captures */ }
+      after(async () => { try { await reconcilePayPalCheckout(id, true); } catch { /* persisted retry and cron recover uncertain captures */ } });
     }
     const latest = await prisma.paymentCheckout.findUniqueOrThrow({ where: { id } });
     return reply({ paid: latest.status === "PAID", needsReview: Boolean(latest.paypalReviewReason),

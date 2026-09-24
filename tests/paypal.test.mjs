@@ -23,7 +23,7 @@ function load(path, mocks = {}, cache = new Map()) {
   return mod.exports;
 }
 const { getPayPalConfig } = load('lib/paypal/config.ts');
-const { assertPayPalOrder, assertGoogleAuthentication } = load('lib/paypal/payment.ts');
+const { assertPayPalOrder, assertGoogleAuthentication, assertCardAuthentication } = load('lib/paypal/payment.ts');
 const { validateCheckout } = load('lib/payments/checkout.ts');
 const config = getPayPalConfig({ PAYPAL_CLIENT_ID: 'test_client', PAYPAL_CLIENT_SECRET: 'test_secret', PAYPAL_MERCHANT_ID: 'MERCHANT12345', PAYPAL_WEBHOOK_ID: 'webhook_test', NEXT_PUBLIC_BASE_URL: 'https://example.com' });
 const payload = () => ({ quote: { vrm: 'AB12 CDE', startAt: '2026-11-01T12:00:00Z', endAt: '2026-11-01T13:00:00Z', durationMs: 3600000, totalAmountPence: 199 },
@@ -161,4 +161,62 @@ test('refund link lookup accepts only a PayPal capture on the configured API ori
  const links = href => [{ rel: 'up', href }];
  assert.equal(captureIdFromLinks(links(`${config.api}/v2/payments/captures/CAPTURE123456789`), config.api), 'CAPTURE123456789');
  for (const href of ['https://evil.test/v2/payments/captures/CAPTURE123456789', `${config.api}/v2/checkout/orders/ORDER123456789`, 'not-a-url']) assert.equal(captureIdFromLinks(links(href), config.api), undefined);
+});
+
+
+test('successful capture uses its verified response without an extra PayPal lookup', async () => {
+ const f = fixture({ status: 'APPROVED' });
+ await f.reconcilePayPalCheckout(f.row.id, true);
+ assert.equal(f.calls.reads, 1);
+ assert.equal(f.calls.capture.length, 1);
+ assert.equal(f.calls.fulfill, 1);
+});
+
+test('Card Fields rejects failed/incomplete SCA and accepts documented exemptions', () => {
+ const order = (shift, enrollment, status) => ({ payment_source: { card: { authentication_result: {
+   liability_shift: shift, three_d_secure: { enrollment_status: enrollment, authentication_status: status }
+ } } } });
+ for (const status of ['N', 'R', 'U', 'C', 'D']) assert.throws(() => assertCardAuthentication(order('NO', 'Y', status)));
+ assert.throws(() => assertCardAuthentication(order('UNKNOWN', 'U', undefined)));
+ assert.throws(() => assertCardAuthentication(order('NO', 'Y', undefined)));
+ for (const status of ['Y', 'A']) assert.doesNotThrow(() => assertCardAuthentication(order('POSSIBLE', 'Y', status)));
+ for (const enrollment of ['N', 'U', 'B']) assert.doesNotThrow(() => assertCardAuthentication(order('NO', enrollment, undefined)));
+ assert.doesNotThrow(() => assertCardAuthentication({}));
+});
+
+test('capture acknowledges only after persisting recovery, then processes in after()', async () => {
+ const f = fixture({ status: 'APPROVED' });
+ const jobs = [];
+ const { POST } = load('app/api/paypal/capture/route.ts', { ...f.mocks,
+   'next/server': { NextResponse: { json: (body, options) => Response.json(body, options) }, after: job => jobs.push(job) },
+   '@/lib/paypal/process': { reconcilePayPalCheckout: f.reconcilePayPalCheckout },
+ });
+ const request = () => new Request('https://example.com/api/paypal/capture', { method: 'POST', headers: { origin: 'https://example.com' }, body: JSON.stringify({ checkoutId: f.row.id }) });
+ const response = await POST(request());
+ assert.equal(response.status, 200);
+ assert.equal(f.calls.capture.length, 0);
+ assert.equal(jobs.length, 1);
+ assert.ok(f.row.paypalNextAttemptAt <= new Date());
+ await jobs[0]();
+ assert.equal(f.calls.capture.length, 1);
+ assert.equal(f.row.status, 'PAID');
+});
+
+test('delivery readiness follows email acceptance and precedes newsletter work', async () => {
+ const events = []; let failEmail = false;
+ const prisma = {
+  policy: { findUnique: async () => ({ id: 'policy_test', status: 'ACTIVE', paymentProvider: 'PAYPAL', email: 'test@example.com', policyNumber: 'TEST', startAt: new Date(), endAt: new Date(), documents: [{kind:'PROPOSAL',url:'https://example.com/p.pdf'},{kind:'CERTIFICATE',url:'https://example.com/c.pdf'}] }) },
+  policyEvent: { create: async ({data}) => { events.push(data.type); return {}; }, updateMany: async()=>({count:1}), deleteMany:async()=>({count:1}) }
+ };
+ const { fulfillPolicy } = load('lib/policy/fulfill.ts', {
+  '@/db/prisma': { prisma }, '@/lib/supabase/admin': {},
+  '@/lib/email/sendPolicyEmail': { sendPolicyEmail: async()=>{ events.push('email'); if(failEmail) throw Error('not accepted'); return {id:'email_test'}; } }
+ });
+ const opts = {durableEmail:true,onDeliveryReady:async()=>{events.push('ready')}};
+ await fulfillPolicy('policy_test',opts);
+ assert.ok(events.indexOf('email') < events.indexOf('ready'));
+ assert.ok(events.indexOf('ready') < events.indexOf('NEWSLETTER_CONTACT_ADDED'));
+ events.length=0; failEmail=true;
+ await assert.rejects(()=>fulfillPolicy('policy_test',opts));
+ assert.ok(!events.includes('ready'));
 });

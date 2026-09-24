@@ -4,7 +4,7 @@ import { finalizePolicy } from "@/lib/policy/finalize";
 import { fulfillPolicy } from "@/lib/policy/fulfill";
 import { getPayPalConfig } from "./config";
 import { paypalRequest, PayPalError } from "./client";
-import { assertPayPalOrder, assertGoogleAuthentication, type PayPalOrder } from "./payment";
+import { assertPayPalOrder, assertGoogleAuthentication, assertCardAuthentication, type PayPalOrder } from "./payment";
 
 export async function ensurePayPalOrder(checkout: PaymentCheckout) {
   const c = getPayPalConfig();
@@ -27,6 +27,7 @@ export async function ensurePayPalOrder(checkout: PaymentCheckout) {
 }
 
 export async function reconcilePayPalCheckout(id: string, immediate = false) {
+  const started = Date.now();
   const c = getPayPalConfig(); const now = new Date(); const lease = new Date(now.getTime() + 90_000);
   const claim = await prisma.paymentCheckout.updateMany({ where: {
     id, paymentProvider: "PAYPAL", brand: "coverza", paypalMode: c.mode, paypalConfigHash: c.fingerprint,
@@ -40,7 +41,7 @@ export async function reconcilePayPalCheckout(id: string, immediate = false) {
     checkout = await ensurePayPalOrder(checkout);
     const path = `/v2/checkout/orders/${checkout.paypalOrderId}`;
     let order: PayPalOrder;
-    try { order = await paypalRequest<PayPalOrder>(path); }
+    try { order = await paypalRequest<PayPalOrder>(`${path}?fields=payment_source`); }
     catch (error) {
       if (error instanceof PayPalError && error.status === 404 && Date.now() - checkout.createdAt.getTime() > 6 * 3600_000) {
         await prisma.paymentCheckout.update({ where: { id }, data: checkout.paypalCaptureStartedAt || checkout.status === "PAID"
@@ -53,18 +54,20 @@ export async function reconcilePayPalCheckout(id: string, immediate = false) {
     let capture = assertPayPalOrder(order, checkout);
     if (order.status === "APPROVED" && !capture) {
       assertGoogleAuthentication(order);
+      assertCardAuthentication(order);
       if (checkout.paypalCaptureStartedAt && Date.now() - checkout.paypalCaptureStartedAt.getTime() > 5 * 3600_000) {
         await prisma.paymentCheckout.update({ where: { id }, data: { paypalReviewReason: "Ambiguous capture exceeded retry window. Check PayPal before retrying.", paypalNextAttemptAt: null } });
         return;
       }
       if (!checkout.paypalCaptureStartedAt) await prisma.paymentCheckout.update({ where: { id }, data: { paypalCaptureStartedAt: new Date() } });
-      try { await paypalRequest<PayPalOrder>(`${path}/capture`, {}, `capture-${checkout.id}`); }
+      try { order = await paypalRequest<PayPalOrder>(`${path}/capture`, {}, `capture-${checkout.id}`); }
       catch (error) {
         // A capture may already have succeeded even if its response was lost.
         // Always read authoritative state before retrying with the same key.
         if (!(error instanceof PayPalError) || error.status !== 422) throw error;
+        order = await paypalRequest<PayPalOrder>(`${path}?fields=payment_source`);
       }
-      order = await paypalRequest<PayPalOrder>(path);
+      // The capture API returns the full authoritative representation.
       capture = assertPayPalOrder(order, checkout);
     }
     if (capture) await prisma.paymentCheckout.update({ where: { id }, data: { paypalCaptureId: capture.id } });
@@ -95,7 +98,13 @@ export async function reconcilePayPalCheckout(id: string, immediate = false) {
       paymentProvider: "PAYPAL", paymentId: capture.id, paymentStatus: "PAID", currency: checkout.currency,
     });
     await prisma.paymentCheckout.update({ where: { id }, data: { status: "PAID", policyId: policy.policyId } });
-    await fulfillPolicy(policy.policyId, { durableEmail: true });
+    const deliveryStarted = Date.now();
+    await fulfillPolicy(policy.policyId, { durableEmail: true, onDeliveryReady: async () => {
+      // Documents are stored and Resend has accepted the email. Newsletter work
+      // continues within this same awaited job but no longer delays the customer.
+      await prisma.paymentCheckout.update({ where: { id }, data: { paypalFulfilledAt: new Date() } });
+      console.info("[paypal] documents and email ready", { checkoutId: id, durationMs: Date.now() - deliveryStarted, reconciliationMs: Date.now() - started });
+    } });
     await prisma.paymentCheckout.update({ where: { id }, data: { paypalFulfilledAt: new Date(), paypalNextAttemptAt: null } });
   } catch {
     console.error("[paypal] reconciliation needs retry", { checkoutId: id });

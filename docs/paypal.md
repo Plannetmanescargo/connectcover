@@ -102,3 +102,55 @@ No live credentials were available during implementation. Account approvals, rea
 - https://developer.paypal.com/v5/google-pay/integrate
 - Live association file: https://www.paypalobjects.com/devdoc/apple-pay/well-known/apple-developer-merchantid-domain-association
 - Sandbox association file: https://www.paypalobjects.com/devdoc/apple-pay/sandbox/apple-developer-merchantid-domain-association
+
+## UK card checkout and delivery progress
+
+The Coverza page uses PayPal `CardFields` for direct card entry (not the
+Buttons component's expandable guest-card form). Number, expiry and CVV are
+PayPal-hosted iframes. The merchant-owned billing form submits `countryCode: GB`
+in **live and sandbox**, with town/city and postcode labels. This is a UK-only
+billing form, not an IP/locale hint. `locale=en_GB` sets the SDK language; no
+sandbox `buyer-country` override is needed. The PayPal button is explicitly
+PayPal-only so it does not reintroduce the US-default embedded card panel.
+
+Live Advanced Credit and Debit Card Payments must be enabled/approved for the
+same app/account. `CardFields.isEligible()` controls availability; an ineligible
+card form displays a message while eligible PayPal/Apple Pay/Google Pay options
+remain usable. Apple/Google still depend on device, account and domain eligibility.
+CardFields handles bank authentication with PayPal's default
+`SCA_WHEN_REQUIRED`; billing details go directly to its SDK. The backend checks
+card authentication results from the order before capture (including PayPal's
+documented non-enrolled/bypassed exceptions). Never collect PAN/CVV in our own inputs.
+
+Capture persists retry work and schedules reconciliation with Next.js `after()`
+before returning. This moves the buyer promptly to the progress page; it is not
+a declaration of payment success. The same database lease, capture idempotency
+key, verified order/capture binding and cron recovery remain in force.
+
+PDF rendering and uploads run in parallel. Once both document records exist and
+Resend has accepted the initial email, `onDeliveryReady` marks PayPal fulfilment
+ready for the success screen. Newsletter and welcome automation still run in the
+same awaited background job, but do not block that screen. Resend acceptance does
+not prove inbox delivery. Existing document/email contents are unchanged.
+
+The first 30 seconds of status polling use a one-second interval, then back off
+to three seconds. Progress uses database payment and document states. The
+`[paypal] documents and email ready` log includes delivery duration (excluding
+capture time); compare live request timestamps to measure the complete journey.
+No fixed latency or instant inbox delivery is promised.
+
+No new environment variables or database migration are required for this change.
+Before release, exercise live account eligibility and a low-value payment with
+UK billing, bank challenge/cancellation, and both wallets on eligible devices.
+Check that one payment produces one set of documents and one initial email.
+
+References:
+- https://developer.paypal.com/v5/expanded/integrate
+- https://developer.paypal.com/api/orders-v2/expanded/3d-secure
+- https://developer.paypal.com/platforms/checkout/advanced/customize/3d-secure/response-parameters/
+
+PayPal transaction receipts are separate from PayPal Invoicing templates.
+The card-statement descriptor and the receipt's seller/account name are also
+separate. Configure the accurate customer-facing trading details through PayPal's
+account settings/support; checkout text cannot override the receipt's merchant
+identity. Do not replace verified legal account details just to change branding.
