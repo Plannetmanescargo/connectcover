@@ -903,7 +903,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
       if (!checkoutAttempt.current || checkoutAttempt.current.payload !== payload) {
         checkoutAttempt.current = { payload, key: crypto.randomUUID() };
       }
-      const res = await fetch("/api/mollie/checkout", {
+      const res = await fetch("/api/payments/checkout", {
         method: "POST",
         headers: { "content-type": "application/json", "idempotency-key": checkoutAttempt.current.key },
         body: payload,
@@ -1991,7 +1991,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
         {[
           {
             label: "Secure payment",
-            sub: "Processed by Mollie",
+            sub: "Encrypted checkout",
           },
           {
             label: "Documents prepared",
@@ -2069,7 +2069,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
       {/* Footer reassurance */}
       <div className="mt-5 text-center">
         <p className="text-[11.5px] leading-5 text-slate-500">
-          Secure payment powered by Mollie
+          Secure payment processing
           <span className="mx-2 text-slate-300">·</span>
           Documents issued after successful payment
         </p>

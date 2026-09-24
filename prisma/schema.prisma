@@ -21,6 +21,7 @@ enum PaymentProvider {
   SQUARE
   WORLDPAY
   MOLLIE
+  PAYPAL
 }
 
 enum PaymentStatus {
@@ -155,6 +156,20 @@ model PaymentCheckout {
   mollieNextAttemptAt DateTime?
   mollieReviewReason String?
 
+  // PayPal Orders v2 identity and durable recovery.
+  paypalRequestKey String? @unique
+  paypalRequestHash String?
+  paypalOrderId String? @unique
+  paypalCaptureId String? @unique
+  paypalMode String?
+  paypalMerchantId String?
+  paypalConfigHash String?
+  paypalCaptureStartedAt DateTime?
+  paypalProcessingUntil DateTime?
+  paypalFulfilledAt DateTime?
+  paypalNextAttemptAt DateTime?
+  paypalReviewReason String?
+
   // Policy created after successful payment
   policyId String? @unique
 
@@ -162,6 +177,7 @@ model PaymentCheckout {
   updatedAt DateTime @updatedAt
 
   @@index([paymentProvider, mollieNextAttemptAt])
+  @@index([paymentProvider, paypalNextAttemptAt])
   @@index([brand])
   @@index([status])
   @@index([email])

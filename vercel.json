@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/mollie",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/paypal",
+      "schedule": "* * * * *"
     }
   ]
 }
