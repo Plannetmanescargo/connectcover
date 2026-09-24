@@ -1,9 +1,19 @@
 // Shared with the quote page. Amounts are recalculated on the server at checkout.
 export const RATES = { hour: 1.99, day: 24.99, week: 149.99, month: 290.00 } as const;
 
+/** One code per purchase. Savings are rounded once, in integer pence. */
+export function promotionPrice(subtotalPence: number, value?: unknown) {
+  if (!Number.isSafeInteger(subtotalPence) || subtotalPence <= 0) throw new Error("Invalid purchase amount.");
+  if (value !== undefined && typeof value !== "string") throw new Error("Invalid discount code.");
+  const code = typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (code && code !== "SEPT10") throw new Error("That discount code is not recognised.");
+  const discountPence = code ? Math.round(subtotalPence / 10) : 0;
+  return { code, subtotalPence, discountPence, totalAmountPence: subtotalPence - discountPence };
+}
+
 export function validatePrice(input: {
   rateType: unknown; units: unknown; timeZone: unknown;
-  startAt: Date; endAt: Date; totalAmountPence: unknown;
+  startAt: Date; endAt: Date; totalAmountPence: unknown; promoCode?: unknown;
 }): number {
   const { rateType, units, startAt, endAt } = input;
   if (typeof units !== "number" || !Number.isInteger(units) || units < 1) {
@@ -36,6 +46,7 @@ export function validatePrice(input: {
     if (!rule || units > rule[1] || duration !== units * rule[0]) throw new Error("Cover dates do not match the selected duration.");
     amount = units * rule[2];
   }
+  amount = promotionPrice(amount, input.promoCode).totalAmountPence;
   if (input.totalAmountPence !== amount) throw new Error("Your quote price has changed. Please refresh and try again.");
   return amount;
 }

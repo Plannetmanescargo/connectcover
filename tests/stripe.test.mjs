@@ -203,3 +203,13 @@ test('signed refund flags an existing Stripe checkout for review without changin
  const g = fixture(); g.row.paymentProvider = 'PAYPAL'; g.row.stripePaymentIntentId = g.intent.id; const x = webhook(g);
  await x.POST(x.req({ type: 'charge.refunded', object: { payment_intent: g.intent.id } })); assert.equal(g.row.stripeReviewReason, null);
 });
+test('SEPT10 server pricing reaches Stripe creation, verification and finalization', async () => {
+ const body = payload(); body.pricing.promoCode = ' sept10 '; body.quote.totalAmountPence = 179;
+ const f = fixture({ created: false }); Object.assign(f.row, validateCheckout(body));
+ f.session.amount_total = 179; f.session.amount_subtotal = 179; f.intent.amount_received = 179;
+ await f.ensureStripeSession(f.row);
+ assert.equal(f.calls.creates[0].body.line_items[0].price_data.unit_amount, 179);
+ assert.equal(f.calls.creates[0].body.allow_promotion_codes, undefined);
+ await f.reconcileStripeCheckout(f.row.id, true);
+ assert.equal(f.calls.finalize[0].totalAmountPence, 179); assert.ok(f.row.stripeFulfilledAt);
+});
