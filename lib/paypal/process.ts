@@ -19,7 +19,7 @@ export async function ensurePayPalOrder(checkout: PaymentCheckout) {
   }
   const order = await paypalRequest<PayPalOrder>("/v2/checkout/orders", {
     intent: "CAPTURE", purchase_units: [{ reference_id: checkout.id, custom_id: `coverza:${checkout.id}`,
-      description: "Coverza vehicle cover", payee: { merchant_id: c.merchantId },
+      description: "Coverza Vehicle Documents", payee: { merchant_id: c.merchantId },
       amount: { currency_code: checkout.currency, value: (checkout.totalAmountPence / 100).toFixed(2) } }],
   }, `create-${checkout.id}`);
   assertPayPalOrder(order, checkout);
