@@ -336,7 +336,7 @@ function InputLabel({ htmlFor, children }: { htmlFor?: string; children: React.R
 ========================================================= */
 const STEP_META: Record<Step, { short: string; long: string }> = {
   1: { short: "Vehicle",  long: "Your vehicle"   },
-  2: { short: "Cover",    long: "Cover period"   },
+  2: { short: "Dates",    long: "Requested dates"   },
   3: { short: "Driver",   long: "Driver details" },
   4: { short: "Address",  long: "Address"        },
   5: { short: "Review",   long: "Review & pay"   },
@@ -487,7 +487,7 @@ function MobileStickyBar({
   canContinue: boolean; loading: boolean; onContinue: () => void;
 }) {
   const ctaLabel: Record<Step, string> = {
-    1: "Continue", 2: "Continue", 3: "Continue", 4: "Review quote",
+    1: "Continue", 2: "Continue", 3: "Continue", 4: "Review details",
     5: loading ? "Processing…" : price ? `Pay ${moneyGBP(price.total)}` : "Pay now",
   };
   return (
@@ -663,7 +663,7 @@ const price = useMemo<PriceResult | null>(() => {
   if (coverChoice === "1hour") {
     return {
       label: "Hourly",
-      helper: "One hour of cover from your chosen start time.",
+      helper: "One hour recorded from your chosen start time.",
       unitLabel: "hour",
       units: 1,
       unitPrice: RATES.hour,
@@ -676,7 +676,7 @@ const price = useMemo<PriceResult | null>(() => {
   if (coverChoice === "1day") {
     return {
       label: "Daily",
-      helper: "One full day of cover from your chosen start time.",
+      helper: "One full day recorded from your chosen start time.",
       unitLabel: "day",
       units: 1,
       unitPrice: RATES.day,
@@ -689,7 +689,7 @@ const price = useMemo<PriceResult | null>(() => {
   if (coverChoice === "1week") {
     return {
       label: "Weekly",
-      helper: "One full week of cover from your chosen start time.",
+      helper: "One full week recorded from your chosen start time.",
       unitLabel: "week",
       units: 1,
       unitPrice: RATES.week,
@@ -702,7 +702,7 @@ const price = useMemo<PriceResult | null>(() => {
   if (coverChoice === "1month") {
     return {
       label: "Monthly",
-      helper: "One full calendar month of cover from your chosen start date.",
+      helper: "One full calendar month recorded from your chosen start date.",
       unitLabel: "month",
       units: 1,
       unitPrice: RATES.month,
@@ -720,7 +720,7 @@ const price = useMemo<PriceResult | null>(() => {
     if (durationUnit === "hours") {
       return {
         label: "Hourly",
-        helper: "Billed per hour for your custom cover period.",
+        helper: "Billed per hour for your selected document period.",
         unitLabel: "hour",
         units,
         unitPrice: RATES.hour,
@@ -732,7 +732,7 @@ const price = useMemo<PriceResult | null>(() => {
     if (durationUnit === "days") {
       return {
         label: "Daily",
-        helper: "Billed per day for your custom cover period.",
+        helper: "Billed per day for your selected document period.",
         unitLabel: "day",
         units,
         unitPrice: RATES.day,
@@ -744,7 +744,7 @@ const price = useMemo<PriceResult | null>(() => {
     if (durationUnit === "weeks") {
       return {
         label: "Weekly",
-        helper: "Billed per week for your custom cover period.",
+        helper: "Billed per week for your selected document period.",
         unitLabel: "week",
         units,
         unitPrice: RATES.week,
@@ -756,7 +756,7 @@ const price = useMemo<PriceResult | null>(() => {
     if (durationUnit === "months") {
       return {
         label: "Monthly",
-        helper: "Billed per month for your custom cover period.",
+        helper: "Billed per month for your selected document period.",
         unitLabel: "month",
         units,
         unitPrice: RATES.month,
@@ -797,7 +797,7 @@ function continueFromStep() {
       if (!vehicleReady) { setFormError("Enter your registration and confirm the vehicle details."); return; }
       goToStep(2);
     } else if (activeStep === 2) {
-      if (!coverReady) { setFormError("Choose a valid cover period to continue."); return; }
+      if (!coverReady) { setFormError("Choose valid dates for your documents to continue."); return; }
       goToStep(3);
     } else if (activeStep === 3) {
       const emailErr = validEmail(customer.email);
@@ -929,7 +929,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
      RENDER
   ===================================================== */
   return (
-    <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Get quote" }]}>
+    <PageShell hideHero crumbs={[{ label: "Home", href: "/" }, { label: "Your documents" }]}>
 
       {/* ─────────────── PAGE HEADER ─────────────── */}
       <section className="pt-2 sm:pt-4 lg:pt-6">
@@ -937,18 +937,18 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
 
           <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(108,76,243,0.16)] bg-[rgba(108,76,243,0.05)] px-3.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.20em] text-[rgb(108,76,243)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[rgb(108,76,243)]" />
-            Get a quote
+            Start your journey
           </div>
 
           <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end">
             <div>
               <h1 className="max-w-[14ch] text-[2.5rem] font-extrabold leading-[0.9] tracking-[-0.065em] text-slate-950 sm:text-[3.5rem] lg:text-[4.4rem]">
-                Cover in minutes,{" "}
-                <span className="text-[rgb(108,76,243)]">not hours.</span>
+                Your documents,{" "}
+                <span className="text-[rgb(108,76,243)]">your way.</span>
               </h1>
               <p className="mt-4 max-w-[40rem] text-[0.95rem] leading-[1.85] text-slate-500">
-                Five quick steps. Confirm your vehicle, set your cover window,
-                add your details, then pay. Documents arrive the moment you check out.
+                Five quick steps. Confirm your vehicle, choose the dates to record,
+                add your details, then pay. Your documents are prepared and emailed after payment is confirmed.
               </p>
             </div>
 
@@ -958,7 +958,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/50">Reference</p>
               <p className="mt-1 text-[1.45rem] font-extrabold tracking-tight !text-white">{quoteRef || "Creating…"}</p>
               <div className="mt-4 space-y-1.5">
-                {["1 hour to 12 months cover", "Instant documents after payment", "No impact on no-claims"].map(t => (
+                {["Vehicle-specific documents", "Email delivery after payment", "Review details before you pay"].map(t => (
                   <div key={t} className="flex items-center gap-2 text-[12px] text-white/65">
                     <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-white/20">
                       <IconCheck className="h-2.5 w-2.5" />
@@ -1086,8 +1086,8 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
   <StepShell
     step={2}
     total={TOTAL_STEPS}
-    heading="How long do you need cover?"
-    sub="Pick a preset or build a custom window. Cover runs from 1 hour up to 12 months."
+    heading="Which dates should your documents record?"
+    sub="Pick a preset or choose your own dates, from 1 hour up to 12 months. These dates are recorded in your documents."
     continueLabel="Continue"
     onContinue={continueFromStep}
     onBack={() => goToStep(1)}
@@ -1098,19 +1098,19 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
         {
           key: "1hour" as CoverChoice,
           label: "1 hour",
-          sub: "Quick cover for a short trip or errand",
+          sub: "Record a one-hour period",
           Icon: IconClock,
         },
         {
           key: "1day" as CoverChoice,
           label: "1 day",
-          sub: "Single trip, test drive or same-day use",
+          sub: "Record a full day from your start time",
           Icon: IconCalendarDay,
         },
         {
           key: "1week" as CoverChoice,
           label: "1 week",
-          sub: "Flexibility across several days",
+          sub: "Record a full week from your start date",
           Icon: IconCalendarWeek,
         },
         {
@@ -1194,7 +1194,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
 
         <div className="min-w-0">
           <p className="text-[13px] font-semibold leading-5 text-slate-900">
-            Cover from{" "}
+            Requested dates:{" "}
             <span className="text-[rgb(108,76,243)]">
               {prettyDateTime(startAt)}
             </span>{" "}
@@ -1206,13 +1206,13 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
 
           <p className="mt-0.5 text-[12px] leading-5 text-slate-500">
             {coverChoice === "1hour" &&
-              "One hour of cover. You can adjust the start time using Custom if needed."}
+              "One hour recorded. You can adjust the start time using Custom if needed."}
 
             {coverChoice === "1day" &&
-              "One full day of cover from the start time shown above."}
+              "One full day recorded from the start time shown above."}
 
             {coverChoice === "1week" &&
-              "One full week of cover from the start time shown above."}
+              "One full week recorded from the start time shown above."}
 
             {coverChoice === "1month" &&
               "One full calendar month — the end date respects the actual number of days in each month."}
@@ -1231,7 +1231,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
         <div className="grid gap-4">
           {/* Row 1: Unit selector */}
           <div>
-            <InputLabel>Cover unit</InputLabel>
+            <InputLabel>Duration unit</InputLabel>
 
             <div className="grid grid-cols-4 gap-2">
               {(["hours", "days", "weeks", "months"] as DurationUnit[]).map(
@@ -1448,7 +1448,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                  Cover window
+                  Requested dates
                 </p>
 
                 <p className="mt-1 text-[13px] font-semibold text-slate-900">
@@ -1489,7 +1489,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
 
     {!coverWithinLimit && endAt && (
       <FieldError>
-        Cover can&apos;t exceed 12 months. Please adjust your end date.
+        The recorded period can&apos;t exceed 12 months. Please adjust your end date.
       </FieldError>
     )}
 
@@ -1509,7 +1509,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
     step={3}
     total={TOTAL_STEPS}
     heading="Tell us about you"
-    sub="Used for your quote confirmation and policy documents. Your name must match your driving licence."
+    sub="Used for your order confirmation and vehicle documents. Your name must match your driving licence."
     continueLabel="Continue"
     onContinue={continueFromStep}
     onBack={() => goToStep(2)}
@@ -1577,7 +1577,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
 
         {committedDob && (ageYears ?? 99) < 17 && (
           <FieldError>
-            You must be 17 or over to get cover.
+            You must be 17 or over to continue.
           </FieldError>
         )}
 
@@ -1702,7 +1702,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
         </FieldError>
       ) : (
         <InputHint>
-          Documents are emailed here immediately after payment.
+          Your documents are emailed here after payment is confirmed.
         </InputHint>
       )}
     </div>
@@ -1759,8 +1759,8 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
           <StepShell
             step={4} total={TOTAL_STEPS}
             heading="What's your home address?"
-            sub="Required for your policy documents."
-            continueLabel="Review my quote"
+            sub="Required for your vehicle documents."
+            continueLabel="Review my details"
             onContinue={continueFromStep}
             onBack={() => goToStep(3)}
           >
@@ -1850,7 +1850,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
 
           <div className="relative">
             <p className="text-[10px] font-bold uppercase tracking-[0.19em] text-[rgb(108,76,243)]/60">
-              Your cover
+              Your vehicle documents
             </p>
 
             <div className="mt-3">
@@ -1887,7 +1887,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
                 onClick={() => goToStep(2)}
                 className="text-[12px] font-semibold text-slate-400 underline decoration-slate-200 underline-offset-4 transition hover:text-[rgb(108,76,243)]"
               >
-                Edit cover
+                Edit dates
               </button>
             </div>
           </div>
@@ -1994,12 +1994,12 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
             sub: "Processed by Mollie",
           },
           {
-            label: "Policy created",
+            label: "Documents prepared",
             sub: "After payment confirms",
           },
           {
             label: "Documents emailed",
-            sub: "Once your policy is ready",
+            sub: "Once your documents are ready",
           },
         ].map(({ label, sub }) => (
           <div
@@ -2075,7 +2075,7 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
         </p>
 
         <p className="mt-1.5 text-[10.5px] font-medium text-slate-400">
-          Quote reference: {quoteRef}
+          Order reference: {quoteRef}
         </p>
       </div>
     </div>
