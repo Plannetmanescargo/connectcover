@@ -22,7 +22,7 @@ export default function PayPalCheckout(props: { checkoutId: string; orderId: str
     }
     async function init() {
       const components = ["buttons", ...(props.applePay ? ["applepay"] : []), ...(props.googlePay ? ["googlepay"] : [])];
-      await loadScript(`https://www.paypal.com/sdk/js?${new URLSearchParams({ "client-id": props.clientId, currency: "GBP", intent: "capture", components: components.join(","), "disable-funding": "paylater,venmo" })}`);
+      await loadScript(`https://www.paypal.com/sdk/js?${new URLSearchParams({ "client-id": props.clientId, currency: "GBP", locale: "en_GB", ...(props.mode === "sandbox" ? { "buyer-country": "GB" } : {}), intent: "capture", components: components.join(","), "disable-funding": "paylater,venmo" })}`);
       if (stopped || !w.paypal || !paypalContainer.current) return;
       const sdk = w.paypal;
       const buttons = sdk.Buttons({ style: { layout: "vertical", shape: "rect", label: "pay" },
