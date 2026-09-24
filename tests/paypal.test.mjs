@@ -247,3 +247,56 @@ test('filtered authentication remains bound to the same order and rejects failed
    assert.equal(f.calls.fulfill, 0);
  }
 });
+
+function authenticatedCreatedCard() {
+ const f = fixture({ status: 'CREATED' });
+ f.order.payment_source = { card: { authentication_result: {
+   liability_shift: 'POSSIBLE', three_d_secure: { enrollment_status: 'Y', authentication_status: 'Y' }
+ } } };
+ f.order.links = [{ rel: 'capture', method: 'POST', href: `https://api.paypal.com/v2/checkout/orders/${f.order.id}/capture` }];
+ return f;
+}
+test('authenticated CREATED direct-card order captures and fulfils once', async () => {
+ const f = authenticatedCreatedCard();
+ await Promise.all([f.reconcilePayPalCheckout(f.row.id), f.reconcilePayPalCheckout(f.row.id)]);
+ assert.equal(f.calls.capture.length, 1);
+ assert.equal(f.calls.capture[0].key, `capture-${f.row.id}`);
+ assert.equal(f.row.status, 'PAID'); assert.ok(f.row.paypalFulfilledAt);
+ assert.equal(f.calls.fulfill, 1);
+ await f.reconcilePayPalCheckout(f.row.id, true);
+ assert.equal(f.calls.capture.length, 1); assert.equal(f.calls.fulfill, 1);
+});
+test('CREATED capture requires successful card authentication and no payer action', async () => {
+ const patches = [
+   o => delete o.payment_source,
+   o => delete o.payment_source.card.authentication_result,
+   o => o.payment_source.card.authentication_result.liability_shift = 'NO',
+   ...['N', 'R', 'U', 'C', 'D', undefined].map(status => o => o.payment_source.card.authentication_result.three_d_secure.authentication_status = status),
+   o => o.links = [],
+   o => o.links[0].method = 'GET',
+   o => o.links.push({ rel: 'payer-action', method: 'GET' }),
+   o => o.status = 'PAYER_ACTION_REQUIRED',
+   o => o.status = 'VOIDED',
+ ];
+ for (const patch of patches) {
+   const f = authenticatedCreatedCard(); patch(f.order);
+   await f.reconcilePayPalCheckout(f.row.id);
+   assert.equal(f.calls.capture.length, 0); assert.equal(f.calls.fulfill, 0);
+ }
+});
+test('CREATED card rechecks authentication and preserves checkout binding', async () => {
+ const f = authenticatedCreatedCard(); const original = f.mocks['./client'].paypalRequest;
+ f.mocks['./client'].paypalRequest = async (path, ...args) => path.includes('?fields=')
+   ? { id: f.order.id, payment_source: { card: { authentication_result: { liability_shift: 'NO' } } } }
+   : original(path, ...args);
+ await f.reconcilePayPalCheckout(f.row.id);
+ assert.equal(f.calls.capture.length, 0);
+ const g = authenticatedCreatedCard(); g.order.purchase_units[0].amount.value = '0.01';
+ await assert.rejects(g.reconcilePayPalCheckout(g.row.id)); assert.equal(g.calls.capture.length, 0);
+});
+test('lost CREATED card capture response recovers without another charge', async () => {
+ const f = authenticatedCreatedCard(); f.calls.loseCaptureResponse = true;
+ await assert.rejects(f.reconcilePayPalCheckout(f.row.id));
+ await f.reconcilePayPalCheckout(f.row.id, true);
+ assert.equal(f.calls.capture.length, 1); assert.equal(f.calls.fulfill, 1);
+});

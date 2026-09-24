@@ -4,7 +4,7 @@ import { finalizePolicy } from "@/lib/policy/finalize";
 import { fulfillPolicy } from "@/lib/policy/fulfill";
 import { getPayPalConfig } from "./config";
 import { paypalRequest, PayPalError } from "./client";
-import { assertPayPalOrder, assertGoogleAuthentication, assertCardAuthentication, type PayPalOrder } from "./payment";
+import { assertPayPalOrder, assertGoogleAuthentication, assertCardAuthentication, isAuthenticatedCreatedCard, type PayPalOrder } from "./payment";
 
 export async function ensurePayPalOrder(checkout: PaymentCheckout) {
   const c = getPayPalConfig();
@@ -52,12 +52,13 @@ export async function reconcilePayPalCheckout(id: string, immediate = false) {
       throw error;
     }
     let capture = assertPayPalOrder(order, checkout);
-    if (order.status === "APPROVED" && !capture) {
+    if (!capture && (order.status === "APPROVED" || isAuthenticatedCreatedCard(order))) {
       // fields=payment_source is a filtered response, NOT a full order.
       // Read it separately so authentication cannot erase status/amount/payee.
       const source = await paypalRequest<Pick<PayPalOrder, "id" | "payment_source">>(`${path}?fields=payment_source`);
       if (source.id !== order.id) throw new Error("PayPal authentication order mismatch");
       const authenticatedOrder = { ...order, payment_source: source.payment_source ?? order.payment_source };
+      if (order.status === "CREATED" && !isAuthenticatedCreatedCard(authenticatedOrder)) return;
       assertGoogleAuthentication(authenticatedOrder);
       assertCardAuthentication(authenticatedOrder);
       if (checkout.paypalCaptureStartedAt && Date.now() - checkout.paypalCaptureStartedAt.getTime() > 5 * 3600_000) {
