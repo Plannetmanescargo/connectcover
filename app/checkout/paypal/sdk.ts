@@ -3,8 +3,18 @@
 type ObjectData = Record<string, unknown>;
 export type AppleConfig = { isEligible: boolean; countryCode: string; merchantCapabilities: string[]; supportedNetworks: string[] };
 export type GoogleConfig = { allowedPaymentMethods: ObjectData[]; merchantInfo: ObjectData };
+export type CardField = { render(element: HTMLElement): Promise<void>; close(): Promise<void> };
+export type CardFields = {
+  isEligible(): boolean;
+  getState(): Promise<{ isFormValid: boolean }>;
+  submit(options: { name: string; billingAddress: { addressLine1: string; addressLine2: string; adminArea2: string; postalCode: string; countryCode: string } }): Promise<void>;
+  NumberField(options?: ObjectData): CardField;
+  ExpiryField(options?: ObjectData): CardField;
+  CVVField(options?: ObjectData): CardField;
+};
 export type PayPalSDK = {
-  Buttons(options: { style: ObjectData; createOrder: () => Promise<string>; onApprove: () => Promise<void>; onCancel: () => void; onError: () => void }): { render(element: HTMLElement): Promise<void>; close(): Promise<void> };
+  CardFields(options: { style: ObjectData; createOrder: () => Promise<string>; onApprove: () => Promise<void>; onCancel: () => void; onError: () => void }): CardFields;
+  Buttons(options: { fundingSource?: string; style: ObjectData; createOrder: () => Promise<string>; onApprove: () => Promise<void>; onCancel: () => void; onError: () => void }): { render(element: HTMLElement): Promise<void>; close(): Promise<void> };
   Applepay(): { config(): Promise<AppleConfig>; validateMerchant(data: ObjectData): Promise<{ merchantSession: unknown }>; confirmOrder(data: ObjectData): Promise<{ status: string }> };
   Googlepay(): { config(): Promise<GoogleConfig>; confirmOrder(data: ObjectData): Promise<{ status: string }>; initiatePayerAction(data: { orderId: string }): Promise<unknown> };
 };

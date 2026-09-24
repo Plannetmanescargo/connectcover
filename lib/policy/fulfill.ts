@@ -344,7 +344,7 @@ async function triggerWelcomeAutomation(policy: {
 
 export async function fulfillPolicy(
   policyId: string,
-  options: { durableEmail?: boolean } = {}
+  options: { durableEmail?: boolean; onDeliveryReady?: () => Promise<void> } = {}
 ): Promise<FulfillResult> {
   const policy = await prisma.policy.findUnique({
     where: {
@@ -422,15 +422,10 @@ export async function fulfillPolicy(
       signatureUrl: "/brand/signature.png",
     };
 
-    const proposalPdf = await renderPdf(
-      "/api/internal/policy/render-proposal",
-      proposalPayload
-    );
-
-    const certificatePdf = await renderPdf(
-      "/api/internal/policy/render-certificate",
-      certificatePayload
-    );
+    const [proposalPdf, certificatePdf] = await Promise.all([
+      renderPdf("/api/internal/policy/render-proposal", proposalPayload),
+      renderPdf("/api/internal/policy/render-certificate", certificatePayload),
+    ]);
 
     const bucket = "policy-documents";
     const baseKey = `policies/${policy.policyNumber}`;
@@ -441,17 +436,10 @@ export async function fulfillPolicy(
     const certificateKey =
       `${baseKey}/certificate-${certificateNumber}.pdf`;
 
-    proposalUrl = await uploadPdf(
-      bucket,
-      proposalKey,
-      proposalPdf
-    );
-
-    certificateUrl = await uploadPdf(
-      bucket,
-      certificateKey,
-      certificatePdf
-    );
+    [proposalUrl, certificateUrl] = await Promise.all([
+      uploadPdf(bucket, proposalKey, proposalPdf),
+      uploadPdf(bucket, certificateKey, certificatePdf),
+    ]);
 
     await prisma.$transaction(async (transaction) => {
       const currentDocuments =
@@ -652,6 +640,8 @@ export async function fulfillPolicy(
       throw error;
     }
   }
+
+  await options.onDeliveryReady?.();
 
   /*
    * Atomically claim newsletter processing before calling Resend.

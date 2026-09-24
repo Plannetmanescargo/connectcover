@@ -3,7 +3,7 @@ export type PayPalCapture = { id: string; status: string; final_capture?: boolea
 export type PayPalOrder = { id: string; intent: string; status: string; purchase_units: Array<{
   reference_id: string; custom_id: string; payee: { merchant_id: string };
   amount: { currency_code: string; value: string }; payments?: { captures?: PayPalCapture[] };
-}>; payment_source?: { google_pay?: { card?: { authentication_result?: { liability_shift?: string } } } } };
+}>; payment_source?: { card?: { authentication_result?: { liability_shift?: string; three_d_secure?: { enrollment_status?: string; authentication_status?: string } } }; google_pay?: { card?: { authentication_result?: { liability_shift?: string } } } } };
 export type CheckoutIdentity = { id: string; brand: string; paymentProvider: string; currency: string; totalAmountPence: number;
   paypalOrderId: string | null; paypalCaptureId: string | null; paypalMerchantId: string | null };
 export const paypalIdValid = (id: unknown): id is string => typeof id === "string" && /^[A-Z0-9]{10,32}$/.test(id);
@@ -32,6 +32,19 @@ export function assertGoogleAuthentication(order: PayPalOrder) {
   // permitting exempt payments for which PayPal supplies no authentication result.
   const shift = order.payment_source?.google_pay?.card?.authentication_result?.liability_shift;
   if (shift && shift !== "POSSIBLE") throw new Error("Google Pay authentication was not successful");
+}
+
+/** Enforce PayPal's server-side 3DS recommendations, including exemptions. */
+export function assertCardAuthentication(order: PayPalOrder) {
+  const auth = order.payment_source?.card?.authentication_result;
+  if (!auth) return; // PayPal may omit authentication results for exempt payments.
+  const shift = auth.liability_shift;
+  const enrollment = auth.three_d_secure?.enrollment_status;
+  const status = auth.three_d_secure?.authentication_status;
+  if (["N", "R", "U", "C", "D"].includes(status || "")) throw new Error("Card authentication incomplete or failed");
+  if (shift === "POSSIBLE") return;
+  if (shift === "NO" && ["N", "U", "B"].includes(enrollment || "") && !status) return;
+  if (shift || enrollment === "Y") throw new Error("Card authentication was not successful");
 }
 
 /** Refund events can link to their capture rather than include related_ids.

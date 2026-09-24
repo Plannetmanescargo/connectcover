@@ -19,6 +19,9 @@ export async function GET(request: Request) {
     if (!confirmed && !checkout.paypalReviewReason && checkout.status !== "FAILED" && checkout.status !== "EXPIRED") {
       after(async () => { try { await reconcilePayPalCheckout(id); } catch { /* cron retries */ } });
     }
-    return reply({ confirmed, status: checkout.status, needsReview: Boolean(checkout.paypalReviewReason) });
+    const documents = checkout.status === "PAID" && checkout.policyId
+      ? await prisma.policyDocument.findMany({ where: { policyId: checkout.policyId }, select: { kind: true } }) : [];
+    const documentsReady = documents.some(doc => doc.kind === "PROPOSAL") && documents.some(doc => doc.kind === "CERTIFICATE");
+    return reply({ confirmed, documentsReady, status: checkout.status, needsReview: Boolean(checkout.paypalReviewReason) });
   } catch { return reply({ confirmed: false }, 503); }
 }
