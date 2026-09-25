@@ -95,7 +95,7 @@ export function middleware(
    */
   if (
     (req.method === "GET" || req.method === "HEAD") &&
-    ["coverza.net", "coverza.uk", "www.coverza.uk"].includes(hostname)
+    hostname === "coverza.net"
   ) {
     const canonicalUrl =
       req.nextUrl.clone();
