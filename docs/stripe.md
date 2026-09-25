@@ -23,7 +23,7 @@ Configure both your local `.env` (where appropriate) and Vercel; local values ar
 PAYMENT_PROVIDER=paypal
 STRIPE_SECRET_KEY=sk_live_REPLACE_ME
 STRIPE_WEBHOOK_SECRET=whsec_REPLACE_ME
-NEXT_PUBLIC_BASE_URL=https://www.coverza.uk
+NEXT_PUBLIC_BASE_URL=https://www.coverza.net
 # Retain your existing CRON_SECRET, DATABASE_URL, DIRECT_URL,
 # Supabase, Resend, INTERNAL_RENDER_KEY and other fulfilment settings.
 ```
@@ -36,7 +36,7 @@ Pending checkouts are bound to a hash of the Stripe secret key. Keep that key un
 
 1. Use the Stripe account receiving Coverza purchases and complete its live activation requirements.
 2. In Workbench/Webhooks, add an event destination for **your account** with URL:
-   `https://www.coverza.uk/api/stripe/webhook`
+   `https://www.coverza.net/api/stripe/webhook`
 3. Select snapshot events (not thin events). Use API version `2025-12-15.clover` to match the installed SDK if the dashboard asks for a version.
 4. Select these events:
    - `checkout.session.completed`

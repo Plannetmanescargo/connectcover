@@ -25,7 +25,7 @@ Configure these server-side secrets in the environment receiving the correspondi
 | `WORLDPAY_WEBHOOK_SECURITY` | **`vercel-ip` for this WPecom account.** Use `hmac` only for an Enterprise account with signing enabled. Omitting it preserves the original HMAC requirement. |
 | `WORLDPAY_WEBHOOK_KEY_ID` | Enterprise HMAC mode only; leave unset for WPecom. |
 | `WORLDPAY_WEBHOOK_SECRET` | Enterprise HMAC mode only; leave unset for WPecom. |
-| `NEXT_PUBLIC_BASE_URL` | Canonical HTTPS website origin, e.g. `https://www.coverza.uk`. No path or query. |
+| `NEXT_PUBLIC_BASE_URL` | Canonical HTTPS website origin, e.g. `https://www.coverza.net`. No path or query. |
 
 Existing Prisma, Supabase, Resend and internal PDF-rendering variables remain required. Leave the existing Square/Stripe variables available for the retained routes.
 
@@ -33,7 +33,7 @@ Existing Prisma, Supabase, Resend and internal PDF-rendering variables remain re
 
 For the current canonical hostname in the repository, register:
 
-`https://www.coverza.uk/api/worldpay/webhook`
+`https://www.coverza.net/api/worldpay/webhook`
 
 If deploying on a different hostname, substitute that site's canonical origin. The endpoint must be publicly reachable over HTTPS without login, a deployment protection page or a redirect.
 
@@ -71,8 +71,8 @@ This mode requires an actual deployed Vercel runtime (`VERCEL=1` supplied by Ver
 After deploying, send an ordinary request and one with forged forwarding headers from your computer; **both must be denied** (403). Example in PowerShell:
 
 ```powershell
-curl.exe -i -X POST "https://www.coverza.uk/api/worldpay/webhook" -H "Content-Type: application/json" --data "{}"
-curl.exe -i -X POST "https://www.coverza.uk/api/worldpay/webhook" -H "Content-Type: application/json" -H "x-vercel-forwarded-for: 34.246.73.11" -H "x-forwarded-for: 34.246.73.11" --data "{}"
+curl.exe -i -X POST "https://www.coverza.net/api/worldpay/webhook" -H "Content-Type: application/json" --data "{}"
+curl.exe -i -X POST "https://www.coverza.net/api/worldpay/webhook" -H "Content-Type: application/json" -H "x-vercel-forwarded-for: 34.246.73.11" -H "x-forwarded-for: 34.246.73.11" --data "{}"
 ```
 
 A real Worldpay delivery must then succeed and issue exactly one policy after matching the stored GBP amount and reference. A 503 indicates missing security/environment configuration; a 400 from the forged-header test means the source gate was not enforced before JSON validation and must be investigated. Check the firewall logs and runtime logs together. Mocked unit tests cannot prove deployed ingress/header behavior.

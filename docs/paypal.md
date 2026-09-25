@@ -8,7 +8,7 @@ This adds direct-merchant PayPal Orders v2 checkout to the existing Coverza purc
 2. Start with **Sandbox**, create a REST app, and copy its **Client ID** and **Secret**. Get the **Merchant ID** for the same sandbox business account. For production, repeat under **Live**, using the live receiving account's Merchant ID (Business account settings / Business information).
 3. In the app features, enable PayPal checkout, Apple Pay and Google Pay as available. Complete PayPal's production onboarding for Advanced/Expanded Checkout and the wallets if requested. A Business account alone does not guarantee live wallet eligibility.
 4. Add a webhook to this SAME app and environment:
-   `https://www.coverza.uk/api/paypal/webhook`
+   `https://www.coverza.net/api/paypal/webhook`
    Use your actual public HTTPS test origin when testing. Copy the resulting **Webhook ID**; this is not an API key or event ID.
 5. Select these events (API identifiers shown):
 
@@ -37,7 +37,7 @@ PAYPAL_MERCHANT_ID=the_receiving_business_account_merchant_id
 PAYPAL_WEBHOOK_ID=the_webhook_id_from_that_same_app
 PAYPAL_APPLE_PAY_ENABLED=true
 PAYPAL_GOOGLE_PAY_ENABLED=true
-NEXT_PUBLIC_BASE_URL=https://www.coverza.uk
+NEXT_PUBLIC_BASE_URL=https://www.coverza.net
 # Keep the existing strong CRON_SECRET and fulfilment/database/email settings.
 ```
 
@@ -46,11 +46,11 @@ Use `PAYPAL_ENVIRONMENT=live` with all four matching live values for production.
 ## Apple Pay
 
 The app serves the correct PayPal association file at:
-`https://www.coverza.uk/.well-known/apple-developer-merchantid-domain-association`
+`https://www.coverza.net/.well-known/apple-developer-merchantid-domain-association`
 
 With `PAYPAL_APPLE_PAY_ENABLED=true`, `PAYPAL_ENVIRONMENT` chooses the bundled PayPal sandbox/live file. With it disabled, the existing legacy association file remains available. The verification endpoint returns HTTP 200 and `application/octet-stream`, without a domain redirect. Files came from PayPal's official documentation on 2026-09-24; refresh them from the documented URLs if PayPal changes them.
 
-Deploy first. In the PayPal app, go to **Features → Apple Pay → Manage → Add Domain**, register `www.coverza.uk`, and verify it. Register any other hostname that actually displays the payment button separately, in the appropriate environment. Sandbox registration does not register the live domain. Check that your hosting firewall allows Apple to retrieve the file without authentication or redirects. Test with a compatible Apple device and the correct sandbox/live wallet account.
+Deploy first. In the PayPal app, go to **Features → Apple Pay → Manage → Add Domain**, register `www.coverza.net`, and verify it. Register any other hostname that actually displays the payment button separately, in the appropriate environment. Sandbox registration does not register the live domain. Check that your hosting firewall allows Apple to retrieve the file without authentication or redirects. Test with a compatible Apple device and the correct sandbox/live wallet account.
 
 ## Google Pay
 

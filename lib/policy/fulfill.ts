@@ -48,7 +48,7 @@ function stripTrailingSlash(url: string): string {
  * Server-safe Coverza URL resolver.
  *
  * Recommended Vercel value:
- * SITE_URL=https://www.coverza.uk
+ * SITE_URL=https://www.coverza.net
  */
 function getSiteUrl(): string {
   const raw =
@@ -65,7 +65,7 @@ function getSiteUrl(): string {
   }
 
   throw new Error(
-    "Missing SITE_URL. Set SITE_URL=https://www.coverza.uk in Vercel."
+    "Missing SITE_URL. Set SITE_URL=https://www.coverza.net in Vercel."
   );
 }
 

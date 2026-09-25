@@ -18,7 +18,7 @@ const inter = Inter({
    METADATA (COVERZA)
 ========================================================= */
 export const metadata: Metadata = {
-  metadataBase: new URL("https://coverza.uk"),
+  metadataBase: new URL("https://www.coverza.net"),
 
   title: {
     default: "Coverza | Vehicle Documents & Technical Guidance",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   ],
 
   alternates: {
-    canonical: "https://coverza.uk",
+    canonical: "https://www.coverza.net",
   },
 
   robots: {
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
 
   openGraph: {
     type: "website",
-    url: "https://coverza.uk",
+    url: "https://www.coverza.net",
     title: "Coverza | Vehicle Documents & Technical Guidance",
     description:
       "Vehicle-specific documents, technical guidance and supporting digital resources.",
