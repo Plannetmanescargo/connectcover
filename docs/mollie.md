@@ -10,10 +10,10 @@ Copy the profile's **test API key** initially. After completing tests in an isol
 
 There are **no webhook events to select when creating this API key**. This integration uses Mollie's classic payment webhook, supplied in each create-payment request. Do not create a next-generation signed JSON webhook subscription for this endpoint: that is a different protocol.
 
-For a deployment whose base URL is `https://www.coverza.uk`, the callback is:
+For a deployment whose base URL is `https://www.coverza.net`, the callback is:
 
 ```text
-https://www.coverza.uk/api/mollie/webhook
+https://www.coverza.net/api/mollie/webhook
 ```
 
 It accepts Mollie's form POST containing `id=tr_...` and verifies the payment through the authenticated API. No webhook signing secret, publishable key or profile ID environment variable is needed. Mollie also notifies this callback about refunds and chargebacks; these are flagged for manual review, not automatic document cancellation.

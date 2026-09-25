@@ -90,14 +90,21 @@ export function middleware(
 
   /*
    * Force normal website pages onto the canonical
-   * www hostname.
+   * www hostname. Preserve paths and query strings for payment returns.
+   * Leave POST requests on their original origin for existing open tabs.
    */
-  if (hostname === "coverza.uk") {
+  if (
+    (req.method === "GET" || req.method === "HEAD") &&
+    ["coverza.net", "coverza.uk", "www.coverza.uk"].includes(hostname)
+  ) {
     const canonicalUrl =
       req.nextUrl.clone();
 
     canonicalUrl.hostname =
-      "www.coverza.uk";
+      "www.coverza.net";
+
+    canonicalUrl.protocol = "https:";
+    canonicalUrl.port = "";
 
     return NextResponse.redirect(
       canonicalUrl,
@@ -110,7 +117,7 @@ export function middleware(
    *
    * Open:
    *
-   * https://www.coverza.uk/?maintenance_bypass=YOUR_SECRET
+   * https://www.coverza.net/?maintenance_bypass=YOUR_SECRET
    */
   const suppliedBypassSecret =
     req.nextUrl.searchParams
