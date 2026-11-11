@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/db/prisma";
 import { validateCheckout } from "@/lib/payments/checkout";
 import { getPayPalConfig } from "@/lib/paypal/config";
+import { PayPalError } from "@/lib/paypal/client";
 import { ensurePayPalOrder } from "@/lib/paypal/process";
 
 export const runtime = "nodejs";
@@ -44,8 +45,12 @@ export async function POST(request: Request) {
     if (checkout.status !== "PENDING") return reply({ error: "This payment has ended. Refresh your quote before trying again." }, 409);
     const ready = await ensurePayPalOrder(checkout);
     return reply({ url: `${config.origin}/checkout/paypal?checkout_id=${encodeURIComponent(ready.id)}`, provider: "paypal", checkoutId: ready.id });
-  } catch {
-    console.error("[paypal checkout] creation failed; retry with the same attempt key");
+  } catch (error: unknown) {
+    console.error("[paypal checkout] creation failed; retry with the same attempt key", {
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+      paypalStatus: error instanceof PayPalError ? error.status : null,
+    });
     return reply({ error: "We could not open the payment page. Please try again." }, 502);
   }
 }
