@@ -112,8 +112,13 @@ export async function reconcilePayPalCheckout(id: string, immediate = false) {
       console.info("[paypal] documents and email ready", { checkoutId: id, durationMs: Date.now() - deliveryStarted, reconciliationMs: Date.now() - started });
     } });
     await prisma.paymentCheckout.update({ where: { id }, data: { paypalFulfilledAt: new Date(), paypalNextAttemptAt: null } });
-  } catch {
-    console.error("[paypal] reconciliation needs retry", { checkoutId: id });
+  } catch (error: unknown) {
+    console.error("[paypal] reconciliation needs retry", {
+      checkoutId: id,
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+      paypalStatus: error instanceof PayPalError ? error.status : null,
+    });
     throw new Error("PayPal reconciliation needs retry");
   } finally {
     await prisma.paymentCheckout.updateMany({ where: { id, paypalProcessingUntil: lease }, data: { paypalProcessingUntil: null } });
