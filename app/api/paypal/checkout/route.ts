@@ -50,6 +50,10 @@ export async function POST(request: Request) {
       errorType: error instanceof Error ? error.constructor.name : typeof error,
       errorMessage: error instanceof Error ? error.message : "Unknown error",
       paypalStatus: error instanceof PayPalError ? error.status : null,
+      paypalName: error instanceof PayPalError ? error.details?.name ?? null : null,
+      paypalMessage: error instanceof PayPalError ? error.details?.message ?? null : null,
+      paypalDebugId: error instanceof PayPalError ? error.details?.debugId ?? null : null,
+      paypalIssues: error instanceof PayPalError ? error.details?.issues ?? null : null,
     });
     return reply({ error: "We could not open the payment page. Please try again." }, 502);
   }

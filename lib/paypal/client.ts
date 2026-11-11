@@ -1,7 +1,21 @@
 import { getPayPalConfig } from "./config";
 let cached: { key: string; token: string; until: number } | undefined;
 export class PayPalError extends Error {
-  constructor(public status: number) { super("PayPal request failed"); }
+  constructor(
+    public status: number,
+    public details?: {
+      name?: string;
+      message?: string;
+      debugId?: string;
+      issues?: Array<{
+        issue?: string;
+        field?: string;
+        description?: string;
+      }>;
+    },
+  ) {
+    super("PayPal request failed");
+  }
 }
 async function accessToken() {
   const c = getPayPalConfig();
@@ -22,6 +36,39 @@ export async function paypalRequest<T>(path: string, body?: unknown, requestId?:
     headers: { Authorization: `Bearer ${await accessToken()}`, "Content-Type": "application/json", Prefer: "return=representation",
       ...(requestId ? { "PayPal-Request-Id": requestId } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(8000) });
-  if (!response.ok) { if (response.status === 401) cached = undefined; throw new PayPalError(response.status); }
+  if (!response.ok) {
+    if (response.status === 401) cached = undefined;
+
+    let details: PayPalError["details"];
+    try {
+      const body = await response.json() as {
+        name?: unknown;
+        message?: unknown;
+        debug_id?: unknown;
+        details?: Array<{
+          issue?: unknown;
+          field?: unknown;
+          description?: unknown;
+        }>;
+      };
+
+      details = {
+        name: typeof body.name === "string" ? body.name : undefined,
+        message: typeof body.message === "string" ? body.message : undefined,
+        debugId: typeof body.debug_id === "string" ? body.debug_id : undefined,
+        issues: Array.isArray(body.details)
+          ? body.details.slice(0, 5).map(item => ({
+              issue: typeof item.issue === "string" ? item.issue : undefined,
+              field: typeof item.field === "string" ? item.field : undefined,
+              description: typeof item.description === "string" ? item.description : undefined,
+            }))
+          : undefined,
+      };
+    } catch {
+      details = undefined;
+    }
+
+    throw new PayPalError(response.status, details);
+  }
   return response.json() as Promise<T>;
 }
