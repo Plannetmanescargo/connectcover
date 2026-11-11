@@ -26,7 +26,7 @@ their actual limited purpose. Collection documents do not authorise release.
 
 The contact API referenced by the old contact page does not exist in this repo.
 The refreshed contact form prepares an email draft in the customer’s mail app and does not claim
-messages were sent. Verify the support@coverza.uk mailbox before release.
+messages were sent. Verify the support@coverza.org mailbox before release.
 
 ## Legal and launch inputs still needed
 
