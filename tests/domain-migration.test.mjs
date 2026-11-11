@@ -16,11 +16,11 @@ new Function('require', 'module', 'exports', code)(name => {
 }, mod, mod.exports);
 const { middleware } = mod.exports;
 
-for (const host of ['coverza.net']) {
+for (const host of ['coverza.org']) {
   test(`${host} preserves checkout reference and query on canonical redirect`, () => {
     const response = middleware(new NextRequest(`https://${host}/checkout/success?provider=stripe&session_id=cs_example&checkout_id=example`));
     assert.equal(response.status, 308);
-    assert.equal(response.headers.get('location'), 'https://www.coverza.net/checkout/success?provider=stripe&session_id=cs_example&checkout_id=example');
+    assert.equal(response.headers.get('location'), 'https://www.coverza.org/checkout/success?provider=stripe&session_id=cs_example&checkout_id=example');
   });
 }
 
@@ -28,7 +28,7 @@ test('API callbacks and wallet verification remain direct during maintenance', (
   const old = process.env.NEXT_PUBLIC_MAINTENANCE;
   process.env.NEXT_PUBLIC_MAINTENANCE = 'true';
   try {
-    for (const host of ['coverza.net', 'www.coverza.net']) {
+    for (const host of ['coverza.org', 'www.coverza.org']) {
       for (const path of ['/api', '/api/stripe/webhook', '/api/paypal/webhook', '/api/mollie/webhook', '/api/internal/policy/render-certificate', '/.well-known/apple-developer-merchantid-domain-association']) {
         const response = middleware(new NextRequest(`https://${host}${path}`, { method: path.startsWith('/api') ? 'POST' : 'GET' }));
         assert.equal(response.headers.get('location'), null);
@@ -43,13 +43,13 @@ test('API callbacks and wallet verification remain direct during maintenance', (
 });
 
 test('new canonical, preview and localhost hosts do not redirect domains', () => {
-  for (const host of ['www.coverza.net', 'coverza-preview.vercel.app', 'localhost:3000']) {
+  for (const host of ['www.coverza.org', 'coverza-preview.vercel.app', 'localhost:3000']) {
     const response = middleware(new NextRequest(`https://${host}/`));
     assert.equal(response.headers.get('location'), null);
   }
 });
 
 test('apex POSTs are not forwarded across origins', () => {
-  const response = middleware(new NextRequest('https://coverza.net/get-quote', { method: 'POST' }));
+  const response = middleware(new NextRequest('https://coverza.org/get-quote', { method: 'POST' }));
   assert.equal(response.headers.get('location'), null);
 });
