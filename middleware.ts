@@ -95,13 +95,13 @@ export function middleware(
    */
   if (
     (req.method === "GET" || req.method === "HEAD") &&
-    hostname === "coverza.net"
+    hostname === "coverza.org"
   ) {
     const canonicalUrl =
       req.nextUrl.clone();
 
     canonicalUrl.hostname =
-      "www.coverza.net";
+      "www.coverza.org";
 
     canonicalUrl.protocol = "https:";
     canonicalUrl.port = "";
@@ -117,7 +117,7 @@ export function middleware(
    *
    * Open:
    *
-   * https://www.coverza.net/?maintenance_bypass=YOUR_SECRET
+   * https://www.coverza.org/?maintenance_bypass=YOUR_SECRET
    */
   const suppliedBypassSecret =
     req.nextUrl.searchParams

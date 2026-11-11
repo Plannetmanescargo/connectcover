@@ -838,7 +838,7 @@ export default function HomePage() {
                         </Link>
 
                         <a
-                          href="mailto:support@coverza.uk"
+                          href="mailto:support@coverza.org"
                           className="btn-ghost"
                         >
                           Contact support
@@ -853,7 +853,7 @@ export default function HomePage() {
                       </div>
 
                       <div className="mt-3 whitespace-nowrap text-[1.02rem] font-semibold tracking-[-0.02em] text-slate-950">
-                        support@coverza.uk
+                        support@coverza.org
                       </div>
 
                       <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -863,7 +863,7 @@ export default function HomePage() {
 
                       <div className="mt-5">
                         <a
-                          href="mailto:support@coverza.uk"
+                          href="mailto:support@coverza.org"
                           className="btn-ghost w-full justify-center"
                         >
                           Email support

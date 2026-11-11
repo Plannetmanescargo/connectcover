@@ -85,7 +85,7 @@ export async function sendPolicyEmail(input: SendPolicyEmailInput) {
   const proposalUrl = cleanPdfUrl(input.proposalUrl, "proposalUrl");
 
   const brandName = "Coverza";
-  const supportEmail = replyTo || "support@coverza.uk";
+  const supportEmail = replyTo || "support@coverza.org";
   const policyNumber = input.policyNumber.trim();
 
   const veh = vehicleLine(input);

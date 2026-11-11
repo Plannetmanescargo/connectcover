@@ -118,7 +118,7 @@ export default function TermsPage() {
               <br />
               <strong>Registered address:</strong> 5/5 Crutchett’s Ramp, Gibraltar, GX11 1AA
               <br />
-              <strong>Support email:</strong> support@coverza.uk
+              <strong>Support email:</strong> support@coverza.org
             </p>
           </TermsSection>
 
@@ -330,7 +330,7 @@ export default function TermsPage() {
               If you have any questions about these Terms &amp; Conditions, please contact us:
             </p>
             <p>
-              <strong>Email:</strong> support@coverza.uk
+              <strong>Email:</strong> support@coverza.org
               <br />
               <strong>Address:</strong> 5/5 Crutchett’s Ramp, Gibraltar, GX11 1AA
             </p>

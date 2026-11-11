@@ -5,7 +5,7 @@ export const terms = [
     title: "1. About this service",
     paragraphs: [
       "Coverza’s document service provides automotive documentation and supporting digital resources. The description and agreed order determine the service you receive. This preview does not enable online orders for these services.",
-      "The operating legal entity, business address and final contract information must be confirmed before this document-service draft is published for sales. Contact: support@coverza.uk.",
+      "The operating legal entity, business address and final contract information must be confirmed before this document-service draft is published for sales. Contact: support@coverza.org.",
     ],
   },
   {
@@ -40,7 +40,7 @@ export const terms = [
     title: "6. Revisions and support",
     paragraphs: [
       "Report a suspected error with your order reference, document name, version and the relevant details. Included updates and revisions are those agreed for your order. A new vehicle, task or configuration may require a different scope.",
-      "Contact support@coverza.uk about access, corrections or a complaint. Do not send passwords, security codes or full payment card details.",
+      "Contact support@coverza.org about access, corrections or a complaint. Do not send passwords, security codes or full payment card details.",
     ],
   },
   {
@@ -70,7 +70,7 @@ export const privacy = [
   {
     title: "1. Scope and contact",
     paragraphs: [
-      "This notice is a draft for the document-service frontend. Contact support@coverza.uk for a privacy enquiry. The legal controller’s name, address and final data-handling details need confirmation before the document service launches.",
+      "This notice is a draft for the document-service frontend. Contact support@coverza.org for a privacy enquiry. The legal controller’s name, address and final data-handling details need confirmation before the document service launches.",
       "The existing quote, payment and document-retrieval journeys have not been migrated by this frontend refresh. Their existing privacy information is retained separately. This draft does not imply that their processing has stopped or changed.",
     ],
   },
@@ -113,7 +113,7 @@ export const privacy = [
     title: "7. Your rights",
     paragraphs: [
       "Depending on the processing and applicable law, you may have rights to access, correct or erase information, restrict processing, obtain portable data or object to processing. These rights are not absolute. Where processing relies on consent, you can withdraw it.",
-      "To make a request, contact support@coverza.uk. You may also raise a concern with the relevant data protection authority; in the UK this is the Information Commissioner’s Office (ICO).",
+      "To make a request, contact support@coverza.org. You may also raise a concern with the relevant data protection authority; in the UK this is the Information Commissioner’s Office (ICO).",
     ],
   },
 ];

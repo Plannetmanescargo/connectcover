@@ -36,7 +36,7 @@ export default function Complaints() {
           ]}
         />
         <div className={s.actions}>
-          <Action href="mailto:support@coverza.uk?subject=Document%20service%20complaint">
+          <Action href="mailto:support@coverza.org?subject=Document%20service%20complaint">
             Email your complaint
           </Action>
         </div>
