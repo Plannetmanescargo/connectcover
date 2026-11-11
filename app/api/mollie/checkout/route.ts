@@ -44,8 +44,26 @@ export async function POST(request: Request) {
     if (checkout.status !== "PENDING") return reply({ error: "This payment has ended. Refresh your quote before trying again." }, 409);
     const ready = await ensureMolliePayment(checkout);
     return reply({ url: ready.mollieCheckoutUrl, provider: "mollie", checkoutId: ready.id });
-  } catch {
-    console.error("[mollie checkout] creation failed; retry with the same attempt key");
+  } catch (error: unknown) {
+    const record =
+      error && typeof error === "object"
+        ? (error as Record<string, unknown>)
+        : {};
+
+    console.error("[mollie checkout] creation failed; retry with the same attempt key", {
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+      status:
+        typeof record.status === "number"
+          ? record.status
+          : typeof record.statusCode === "number"
+            ? record.statusCode
+            : null,
+      field: typeof record.field === "string" ? record.field : null,
+      title: typeof record.title === "string" ? record.title : null,
+      detail: typeof record.detail === "string" ? record.detail : null,
+    });
+
     return reply({ error: "We could not open the payment page. Please try again." }, 502);
   }
 }
