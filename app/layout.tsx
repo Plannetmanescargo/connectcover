@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import WebAnalytics from "@/components/site/WebAnalytics";
 
 import {
   SiteHeader as Header,
@@ -125,6 +126,7 @@ export default function RootLayout({
           <Footer />
           <CookieBanner />
         </div>
+        {process.env.VERCEL === "1" && <WebAnalytics />}
       </body>
     </html>
   );
