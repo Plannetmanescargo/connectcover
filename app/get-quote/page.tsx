@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import MotrVehicleLookup, { validVehicle, type MotrVehicle } from "@/components/quote/MotrVehicleLookup";
 import PageShell from "@/components/site/PageShell";
 
 import { RATES, promotionPrice } from "@/lib/payments/pricing";
@@ -540,11 +541,11 @@ export default function GetQuotePage() {
 
   // Step 1
   const [vrm,            setVrm]            = useState("");
-  const lookupInProgress = useRef(false);
+  const [vehicleInit, setVehicleInit] = useState(false);
   const checkoutAttempt = useRef<{ payload: string; key: string } | null>(null);
-  const [loadingVehicle, setLoadingVehicle] = useState(false);
+
   const [vehicle,        setVehicle]        = useState<VehicleLookupSummary | null>(null);
-  const [lookupError,    setLookupError]    = useState<string | null>(null);
+
   const [manualMode,     setManualMode]     = useState(false);
   const [manualMake,     setManualMake]     = useState("");
   const [manualModel,    setManualModel]    = useState("");
@@ -596,6 +597,24 @@ if (draft?.endAt) {
 }
       }
     } catch { setQuoteRef(makeQuoteRef()); }
+    const params = new URLSearchParams(window.location.search);
+    const requestedVrm = normaliseVrm(params.get("vrm") || "");
+    try {
+      const raw = sessionStorage.getItem("coverza_motr_vehicle");
+      sessionStorage.removeItem("coverza_motr_vehicle");
+      const selected: unknown = raw ? JSON.parse(raw) : null;
+      if (params.get("manual") !== "1" && validVehicle(selected) && (!requestedVrm || selected.registration === requestedVrm)) {
+        selectMotrVehicle(selected);
+      } else if (requestedVrm || params.get("manual") === "1") {
+        setVrm(requestedVrm); setVehicle(null);
+        setManualMake(""); setManualModel(""); setManualYear("");
+        setManualMode(params.get("manual") === "1");
+      }
+    } catch {
+      if (requestedVrm) { setVrm(requestedVrm); setVehicle(null); setManualMake(""); setManualModel(""); setManualYear(""); setManualMode(false); }
+    }
+    if (params.get("manual") === "1") setManualMode(true);
+    setVehicleInit(true);
   }, []);
 
   // Keep endAt in sync for non-custom presets
@@ -828,24 +847,11 @@ function continueFromStep() {
     }
   }
 
-  /* ── vehicle lookup ── */
-  async function lookupVehicle(vrmOverride?: string) {
-    const v = normaliseVrm(vrmOverride ?? vrm);
-    if (!normaliseRegistration(v) || lookupInProgress.current || vehicle) return;
-    lookupInProgress.current = true;
-    setLoadingVehicle(true); setLookupError(null); setFormError(null); setVehicle(null);
-    try {
-      const res  = await fetch("/api/vehicle/lookup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ vrm: v }), signal: AbortSignal.timeout(15_000) });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.ok) throw new Error(data?.error || "Vehicle lookup failed.");
-      const s = data?.summary ?? null; setVehicle(s);
-      setManualMake(s?.make || "");
-      setManualModel(s?.model || "");
-      setManualYear(s?.year ? String(s.year) : "");
-      setManualMode(!s?.make || !s?.model);
-    } catch (e: any) {
-      setLookupError(e?.message || "Vehicle lookup failed."); setManualMode(true);
-    } finally { lookupInProgress.current = false; setLoadingVehicle(false); }
+  function selectMotrVehicle(selected: MotrVehicle) {
+    setVrm(selected.registration);
+    setVehicle({ make: selected.make, model: selected.model, year: selected.year, colour: selected.colour });
+    setManualMake(selected.make); setManualModel(selected.model); setManualYear(selected.year);
+    setManualMode(false); setFormError(null);
   }
 
   /* ── cover choice selection ── */
@@ -1004,50 +1010,21 @@ sessionStorage.setItem("coverza_quote_draft", JSON.stringify({
             continueLabel="Continue"
             onContinue={continueFromStep}
           >
-            <div>
-              <p className="mb-6 text-[12px] text-slate-400">
-                Fields marked <span className="text-red-400">*</span> are required.
-              </p>
-              <InputLabel>Registration number <span className="text-red-400">*</span></InputLabel>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <input
-                  className="input flex-1 text-[1.2rem] font-extrabold uppercase tracking-[0.15em]"
-                  placeholder="AB12 CDE"
-                  value={vrmDisplay}
-                  disabled={loadingVehicle}
-                  autoCapitalize="characters" autoCorrect="off" spellCheck={false}
-                  onChange={e => {
-                    const next = normaliseVrm(e.target.value);
-                    if (next === vrm) return;
-                    setVrm(next); setVehicle(null); setLookupError(null); setFormError(null);
-                    setManualMake(""); setManualModel(""); setManualYear("");
-                  }}
-                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); lookupVehicle(vrm); } }}
-                />
-                <button type="button"
-                  onClick={() => lookupVehicle(vrm)}
-                  disabled={!normaliseRegistration(vrm) || loadingVehicle}
-                  className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                >
-                  {loadingVehicle ? <><IconSpinner /> Checking…</> : "Check reg"}
+            {vehicleInit && !manualMode && !vehicle && (
+              <MotrVehicleLookup initialVrm={vrm} onSelect={selectMotrVehicle}
+                onCancel={() => { setManualMode(true); setFormError(null); }} />
+            )}
+            {(manualMode || vehicle) && (
+              <div>
+                {manualMode ? <>
+                  <InputLabel htmlFor="manual-registration">Registration number *</InputLabel>
+                  <input id="manual-registration" className="input uppercase" value={vrmDisplay} placeholder="AB12 CDE"
+                    onChange={e => { setVrm(normaliseVrm(e.target.value)); setVehicle(null); setFormError(null); }} />
+                </> : <p className="font-bold uppercase">{vrmDisplay}</p>}
+                <button type="button" className="mt-3 text-sm text-[rgb(108,76,243)] underline"
+                  onClick={() => { setVehicle(null); setManualMake(""); setManualModel(""); setManualYear(""); setManualMode(false); setFormError(null); }}>
+                  Search for another vehicle
                 </button>
-              </div>
-              <div className="mt-3 flex items-center justify-between gap-4">
-                <InputHint>Press Enter or tap Check reg.</InputHint>
-                <button type="button"
-                  onClick={() => { setManualMode(v => !v); setFormError(null); }}
-                  className="text-[12px] font-semibold text-[rgb(108,76,243)] underline-offset-4 hover:underline"
-                >
-                  {manualMode ? "Hide manual entry" : "Enter manually"}
-                </button>
-              </div>
-            </div>
-
-
-            {lookupError && (
-              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
-                <p className="text-[13px] font-semibold text-amber-800">Couldn't look this up automatically</p>
-                <p className="mt-0.5 text-[13px] text-amber-700">{lookupError} Enter the details manually below.</p>
               </div>
             )}
 

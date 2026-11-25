@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Vehicle lookup</title>
+  <style>
+    html,body{margin:0;background:transparent;font-family:system-ui,sans-serif;color:#6c4cf3}
+    body{padding:4px;box-sizing:border-box}
+    #motr-label{display:block;margin:0 0 10px;font-size:11px;font-weight:500;color:#62675e}
+    #motr{font-family:inherit;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;overflow:visible}
+    #motr .motr-w-title,#motr .motr-w-full{display:none!important}
+    #motr .motr-w-form{display:flex;flex-direction:column;gap:12px}
+    #motr .motr-w-input{box-sizing:border-box;flex:auto;width:100%;height:58px;min-height:58px;padding:0 18px;border:1px solid #cfd2cb;border-left:4px solid #6c4cf3;border-radius:14px;background:#fff;font-family:inherit;font-size:18px;font-weight:600;letter-spacing:.09em;color:#6c4cf3}
+    #motr .motr-w-input::placeholder{font-size:18px;font-weight:500;color:#82867d}
+    #motr .motr-w-input:focus{border-color:#6c4cf3;box-shadow:0 0 0 2px #6c4cf322}
+    #motr .motr-w-btn{width:100%;height:52px;min-height:52px;padding:0 20px;border-radius:999px;background:#6c4cf3;box-shadow:none;font-family:inherit;font-size:14px;font-weight:600;color:white}
+    #motr .motr-w-btn:hover:not(:disabled){background:#5839d4;transform:none}
+    #motr .motr-w-attr{margin-top:10px;font-size:10px;color:#62675e;opacity:.8}
+    #motr .motr-w-preview{margin-top:0}
+    #motr .motr-w-reg{margin-bottom:8px;background:#f1f3ec;color:#6c4cf3}
+    #motr .motr-w-vrow{padding:8px 0;font-family:inherit;font-size:13px}
+    #motr .motr-w-vrow:nth-of-type(n+6){display:none}
+    #motr .motr-w-back{margin-top:8px;padding:8px 0;font-family:inherit;opacity:.75}
+    #motr .motr-w-load,#motr .motr-w-err{font-family:inherit;font-size:12px}
+  </style>
+</head>
+<body>
+  <div id="motr-shell">
+    <label id="motr-label" for="motr-registration">Vehicle registration</label>
+    <div id="motr" data-motr-widget="vehicle-report" data-motr-theme="light"
+      data-motr-accent="#6c4cf3" data-motr-button-text="Find vehicle" data-motr-placeholder="AB12 CDE" data-motr-size="medium"></div>
+  </div>
+  <script src="/vehicle/motr-bridge.js"></script>
+  <script src="https://motr.uk/functions/serveWidgetEmbed"></script>
+</body>
+</html>
