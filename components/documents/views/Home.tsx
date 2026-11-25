@@ -2,7 +2,6 @@
 "use client";
 
 import React from "react";
-import MotrHomeLookup from "@/components/quote/MotrHomeLookup";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
@@ -88,10 +87,55 @@ export default function HomePage() {
                     from the start.
                   </motion.p>
 
-                  <MotrHomeLookup />
-                  <Link className="mt-3 inline-block text-sm text-slate-500 underline underline-offset-4" href="/retrieve-policy">
-                    Existing documents
-                  </Link>
+                  {/* CTA buttons */}
+                  <motion.div
+                    initial={false}
+                    animate="show"
+                    variants={fadeUp}
+                    custom={0.18}
+                    className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
+                  >
+                    <motion.div
+                      whileHover={reduceMotion ? undefined : { scale: 1.02 }}
+                      whileTap={reduceMotion ? undefined : { scale: 0.975 }}
+                      className="w-full sm:w-auto"
+                    >
+                      <Link
+                        className="btn-primary btn-primary-lg flex w-full items-center justify-center gap-2 text-white sm:w-auto"
+                        href="/get-quote"
+                      >
+                        Enter vehicle details
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M3 7h8M7.5 3.5 11 7l-3.5 3.5"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </Link>
+                    </motion.div>
+
+                    <motion.div
+                      whileHover={reduceMotion ? undefined : { scale: 1.01 }}
+                      whileTap={reduceMotion ? undefined : { scale: 0.985 }}
+                      className="w-full sm:w-auto"
+                    >
+                      <Link
+                        className="btn-ghost flex w-full items-center justify-center sm:w-auto"
+                        href="/retrieve-policy"
+                      >
+                        Existing documents
+                      </Link>
+                    </motion.div>
+                  </motion.div>
 
                   {/* Trust row — 3 micro stats, single line on mobile */}
                   <motion.div
@@ -1106,4 +1150,3 @@ function FaqLineItem({
     </details>
   );
 }
-

@@ -597,23 +597,6 @@ if (draft?.endAt) {
 }
       }
     } catch { setQuoteRef(makeQuoteRef()); }
-    const params = new URLSearchParams(window.location.search);
-    const requestedVrm = normaliseVrm(params.get("vrm") || "");
-    try {
-      const raw = sessionStorage.getItem("coverza_motr_vehicle");
-      sessionStorage.removeItem("coverza_motr_vehicle");
-      const selected: unknown = raw ? JSON.parse(raw) : null;
-      if (params.get("manual") !== "1" && validVehicle(selected) && (!requestedVrm || selected.registration === requestedVrm)) {
-        selectMotrVehicle(selected);
-      } else if (requestedVrm || params.get("manual") === "1") {
-        setVrm(requestedVrm); setVehicle(null);
-        setManualMake(""); setManualModel(""); setManualYear("");
-        setManualMode(params.get("manual") === "1");
-      }
-    } catch {
-      if (requestedVrm) { setVrm(requestedVrm); setVehicle(null); setManualMake(""); setManualModel(""); setManualYear(""); setManualMode(false); }
-    }
-    if (params.get("manual") === "1") setManualMode(true);
     setVehicleInit(true);
   }, []);
 
